@@ -17,6 +17,7 @@ type Row = {
   country: string;
   address: string | null;
   is_baseline: boolean;
+  is_highway: boolean;
 };
 
 export default function ImportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,7 +76,11 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
 
         const liters = typeof tank === "number" && Number.isFinite(tank) ? tank : null;
         const price = typeof total === "number" && Number.isFinite(total) ? total : null;
-        const { region, country } = mapRegionCode(typeof misto === "string" ? misto : null);
+        const rawMisto = typeof misto === "string" ? misto.trim() : "";
+        const isHighway = rawMisto === "D";
+        const { region, country } = isHighway
+          ? { region: null as string | null, country: "CZ" }
+          : mapRegionCode(rawMisto || null);
 
         parsed.push({
           date: dateStr,
@@ -88,6 +93,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
           country,
           address: typeof address === "string" ? address : null,
           is_baseline: liters === null || liters === 0,
+          is_highway: isHighway,
         });
       }
 
@@ -128,6 +134,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
       address: r.address,
       is_baseline: r.is_baseline,
       is_full_tank: !r.is_baseline,
+      is_highway: r.is_highway,
     }));
 
     for (let i = 0; i < payload.length; i += 50) {
@@ -188,12 +195,16 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
               <tbody>
                 {rows.slice(0, 20).map((r, i) => (
                   <tr key={i} className="border-t border-slate-100">
-                    <td className="px-2 py-1">{r.date}{r.is_baseline && <span className="text-orange-600 ml-1">·baseline</span>}</td>
+                    <td className="px-2 py-1">
+                      {r.date}
+                      {r.is_baseline && <span className="text-orange-600 ml-1">·baseline</span>}
+                      {r.is_highway && <span className="text-blue-600 ml-1">·dálnice</span>}
+                    </td>
                     <td className="px-2 py-1 text-right">{formatNumber(r.odometer_km, 0)}</td>
                     <td className="px-2 py-1 text-right">{r.liters ? formatNumber(r.liters, 2) : "—"}</td>
                     <td className="px-2 py-1 text-right">{r.total_price ? formatNumber(r.total_price, 0) : "—"}</td>
                     <td className="px-2 py-1">{r.station_brand ?? "—"}</td>
-                    <td className="px-2 py-1">{r.region ?? "—"}</td>
+                    <td className="px-2 py-1">{r.region ?? (r.is_highway ? "D" : "—")}</td>
                     <td className="px-2 py-1">{r.country}</td>
                   </tr>
                 ))}

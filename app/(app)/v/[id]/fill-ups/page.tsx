@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { regionLabel } from "@/lib/regions";
 
 export default async function FillUpsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -64,7 +65,14 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id!} className="border-t border-slate-100 hover:bg-slate-50/50">
-                  <Td>{formatDate(r.date)}</Td>
+                  <Td>
+                    {formatDate(r.date)}
+                    {r.is_highway && (
+                      <span className="ml-2 inline-block rounded bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                        D
+                      </span>
+                    )}
+                  </Td>
                   <Td right>{formatNumber(r.odometer_km, 0)}</Td>
                   <Td right className="text-slate-500">{r.km_since_last ? formatNumber(r.km_since_last, 0) : "—"}</Td>
                   <Td right>{r.is_baseline ? "—" : formatNumber(r.liters, 2)}</Td>
@@ -74,7 +82,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Td>{r.station_brand || "—"}</Td>
                   <Td>
                     <span className="text-slate-600">
-                      {[r.city, r.region, r.country].filter(Boolean).join(", ")}
+                      {[r.city, regionLabel(r.region, r.country)].filter((x) => x && x !== "—").join(", ") || "—"}
                     </span>
                   </Td>
                 </tr>

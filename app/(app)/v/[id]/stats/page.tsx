@@ -7,7 +7,7 @@ import {
   TopBrands,
 } from "@/components/stats-charts";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { regionLabel } from "@/lib/regions";
+import { countryLabel } from "@/lib/regions";
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,7 +21,14 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .eq("vehicle_id", id)
     .order("date", { ascending: true });
 
-  const rows = (rowsRaw ?? []).filter((r) => !r.is_baseline);
+  const rowsAll = rowsRaw ?? [];
+  const rows = rowsAll.filter((r) => !r.is_baseline);
+
+  // Current odometer = highest odometer reading we have (including baseline).
+  const currentOdometer = rowsAll.reduce(
+    (max, r) => Math.max(max, Number(r.odometer_km ?? 0)),
+    0,
+  );
 
   // Split highway vs non-highway for side-by-side stats.
   const highway = rows.filter((r) => r.is_highway);
@@ -49,7 +56,11 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   // Trends (all rows together — highway rows are a small fraction, include them).
   const priceSeries = rows
     .filter((r) => r.price_per_liter != null && r.date)
-    .map((r) => ({ date: r.date!.slice(0, 7), pricePerLiter: Number(r.price_per_liter) }));
+    .map((r) => ({
+      date: r.date!.slice(0, 7),
+      pricePerLiter: Number(r.price_per_liter),
+      country: r.country ?? "CZ",
+    }));
 
   const consumptionSeries = rows
     .filter((r) => r.consumption_l_per_100km != null && r.date)
@@ -68,10 +79,10 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .map(([brand, v]) => ({ brand, ...v, liters: Number(v.liters.toFixed(2)) }))
     .sort((a, b) => b.liters - a.liters);
 
-  // Country (full Czech names)
+  // Country (full Czech names — "Česko" for CZ)
   const byCountry = new Map<string, { liters: number; count: number }>();
   for (const r of rows) {
-    const key = regionLabel(null, r.country ?? "CZ");
+    const key = countryLabel(r.country ?? "CZ");
     const e = byCountry.get(key) ?? { liters: 0, count: 0 };
     e.liters += Number(r.liters ?? 0);
     e.count += 1;
@@ -98,14 +109,14 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Celkem km" value={formatNumber(totalAgg.km, 0)} />
+        <Stat label="Aktuální tachometr" value={`${formatNumber(currentOdometer, 0)} km`} />
+        <Stat label="Celkem najeto" value={`${formatNumber(totalAgg.km, 0)} km`} />
         <Stat label="Celkem litrů" value={formatNumber(totalAgg.liters, 1)} />
         <Stat label="Celkem Kč" value={formatCurrency(totalAgg.price)} />
         <Stat label="Ø L/100 km" value={formatNumber(totalAgg.avgL100, 2)} />
         <Stat label="Ø Kč/l" value={formatNumber(totalAgg.avgPricePerL, 2)} />
         <Stat label="Kč/km" value={formatNumber(totalAgg.czkPerKm, 2)} />
         <Stat label="Počet tankování" value={String(rows.length)} />
-        <Stat label="Pumpa №1" value={brandData[0]?.brand ?? "—"} />
       </div>
 
       {highwayAgg.count > 0 && (

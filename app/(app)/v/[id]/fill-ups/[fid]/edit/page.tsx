@@ -12,6 +12,7 @@ import {
 } from "@/lib/regions";
 
 const OTHER_BRAND = "__other__";
+const OTHER_COUNTRY_KEY = "C:__other__";
 
 export default function EditFillUpPage({
   params,
@@ -25,9 +26,11 @@ export default function EditFillUpPage({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
+  const [addressOptions, setAddressOptions] = useState<string[]>([]);
   const [brandLoading, setBrandLoading] = useState(true);
   const [brandSelect, setBrandSelect] = useState<string>("");
   const [brandNew, setBrandNew] = useState<string>("");
+  const [customCountry, setCustomCountry] = useState<string>("");
 
   const [form, setForm] = useState({
     date: "",
@@ -52,9 +55,8 @@ export default function EditFillUpPage({
         supabase.from("fill_ups").select("*").eq("id", fillUpId).single(),
         supabase
           .from("fill_ups")
-          .select("station_brand")
+          .select("station_brand, address")
           .eq("vehicle_id", vehicleId)
-          .not("station_brand", "is", null)
           .limit(2000),
       ]);
 
@@ -66,7 +68,12 @@ export default function EditFillUpPage({
         return;
       }
       const r = rowRes.data;
-      const rk = regionKey(r.region, r.country);
+      // Known foreign countries round-trip via regionKey; unknown codes (e.g.
+      // "Jiný stát…" previously saved) need to re-enter via the custom input.
+      const knownForeign = FOREIGN_COUNTRIES.some((c) => c.country === r.country);
+      const isUnknownForeign = r.country !== "CZ" && !knownForeign;
+      const rk = isUnknownForeign ? OTHER_COUNTRY_KEY : regionKey(r.region, r.country);
+      if (isUnknownForeign) setCustomCountry(r.country ?? "");
       setForm({
         date: r.date ?? "",
         odometer_km: String(r.odometer_km ?? ""),
@@ -96,6 +103,14 @@ export default function EditFillUpPage({
         .sort((a, b) => a.localeCompare(b, "cs"));
       const options = [...top3, ...rest];
       setBrandOptions(options);
+
+      // Distinct addresses for autocomplete.
+      const addrs = new Set<string>();
+      for (const row of histRes.data ?? []) {
+        const a = row.address?.trim();
+        if (a) addrs.add(a);
+      }
+      setAddressOptions(Array.from(addrs).sort((a, b) => a.localeCompare(b, "cs")));
 
       const current = r.station_brand?.trim() ?? "";
       if (current && options.includes(current)) {
@@ -129,7 +144,14 @@ export default function EditFillUpPage({
     setSaving(true);
 
     const supabase = createClient();
-    const { region, country } = parseRegionKey(form.region_key);
+    let region: string | null;
+    let country: string;
+    if (form.region_key === OTHER_COUNTRY_KEY) {
+      region = null;
+      country = customCountry.trim().toUpperCase() || "XX";
+    } else {
+      ({ region, country } = parseRegionKey(form.region_key));
+    }
     const brand =
       brandSelect === OTHER_BRAND
         ? brandNew.trim() || null
@@ -304,8 +326,18 @@ export default function EditFillUpPage({
                   {c.label}
                 </option>
               ))}
+              <option value={OTHER_COUNTRY_KEY}>Jiný stát…</option>
             </optgroup>
           </select>
+          {form.region_key === OTHER_COUNTRY_KEY && (
+            <input
+              className="input mt-2 uppercase"
+              placeholder="ISO kód (např. NO, HU, RO)"
+              maxLength={3}
+              value={customCountry}
+              onChange={(e) => setCustomCountry(e.target.value)}
+            />
+          )}
         </div>
         <div>
           <label className="label">Město</label>
@@ -321,9 +353,15 @@ export default function EditFillUpPage({
         <label className="label">Adresa / detail</label>
         <input
           className="input"
+          list="address-history-edit"
           value={form.address}
           onChange={(e) => setForm({ ...form, address: e.target.value })}
         />
+        <datalist id="address-history-edit">
+          {addressOptions.map((a) => (
+            <option key={a} value={a} />
+          ))}
+        </datalist>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

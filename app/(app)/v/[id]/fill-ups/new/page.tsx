@@ -11,6 +11,7 @@ import {
 } from "@/lib/regions";
 
 const OTHER_BRAND = "__other__";
+const OTHER_COUNTRY_KEY = "C:__other__";
 
 export default function NewFillUpPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: vehicleId } = use(params);
@@ -18,9 +19,11 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
+  const [addressOptions, setAddressOptions] = useState<string[]>([]);
   const [brandLoading, setBrandLoading] = useState(true);
   const [brandSelect, setBrandSelect] = useState<string>("");
   const [brandNew, setBrandNew] = useState<string>("");
+  const [customCountry, setCustomCountry] = useState<string>("");
 
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -36,20 +39,20 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     note: "",
   });
 
-  // Load station-brand history, ordered by top-3 frequency then alphabetical.
+  // Load station-brand + address history for the brand dropdown and address autocomplete.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("fill_ups")
-        .select("station_brand")
+        .select("station_brand, address")
         .eq("vehicle_id", vehicleId)
-        .not("station_brand", "is", null)
         .limit(2000);
 
       if (cancelled) return;
 
+      // Brands — top-3 frequency then alphabetical.
       const counts = new Map<string, number>();
       for (const r of data ?? []) {
         const b = r.station_brand?.trim();
@@ -64,6 +67,15 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         .map(([b]) => b)
         .sort((a, b) => a.localeCompare(b, "cs"));
       setBrandOptions([...top3, ...rest]);
+
+      // Distinct addresses for autocomplete (<datalist>).
+      const seen = new Set<string>();
+      for (const r of data ?? []) {
+        const a = r.address?.trim();
+        if (a) seen.add(a);
+      }
+      setAddressOptions(Array.from(seen).sort((a, b) => a.localeCompare(b, "cs")));
+
       setBrandLoading(false);
     })();
     return () => {
@@ -97,7 +109,14 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       return;
     }
 
-    const { region, country } = parseRegionKey(form.region_key);
+    let region: string | null;
+    let country: string;
+    if (form.region_key === OTHER_COUNTRY_KEY) {
+      region = null;
+      country = customCountry.trim().toUpperCase() || "XX";
+    } else {
+      ({ region, country } = parseRegionKey(form.region_key));
+    }
     const brand =
       brandSelect === OTHER_BRAND
         ? brandNew.trim() || null
@@ -259,8 +278,18 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
                   {c.label}
                 </option>
               ))}
+              <option value={OTHER_COUNTRY_KEY}>Jiný stát…</option>
             </optgroup>
           </select>
+          {form.region_key === OTHER_COUNTRY_KEY && (
+            <input
+              className="input mt-2 uppercase"
+              placeholder="ISO kód (např. NO, HU, RO)"
+              maxLength={3}
+              value={customCountry}
+              onChange={(e) => setCustomCountry(e.target.value)}
+            />
+          )}
         </div>
         <div>
           <label className="label">Město</label>
@@ -276,10 +305,16 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         <label className="label">Adresa / detail</label>
         <input
           className="input"
+          list="address-history"
           placeholder="Žernosecká"
           value={form.address}
           onChange={(e) => setForm({ ...form, address: e.target.value })}
         />
+        <datalist id="address-history">
+          {addressOptions.map((a) => (
+            <option key={a} value={a} />
+          ))}
+        </datalist>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

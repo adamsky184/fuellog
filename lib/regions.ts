@@ -88,3 +88,14 @@ export function regionLabel(region: string | null, country: string | null | unde
   }
   return "—";
 }
+
+/**
+ * Country-only label (used e.g. in "Litry podle státu" chart).
+ * Returns "Česko" for CZ and the full foreign name for known countries,
+ * falling back to the raw country code when unknown ("Jiný stát…").
+ */
+export function countryLabel(country: string | null | undefined): string {
+  if (!country || country === "CZ") return "Česko";
+  const f = FOREIGN_COUNTRIES.find((x) => x.country === country);
+  return f ? f.label : country;
+}

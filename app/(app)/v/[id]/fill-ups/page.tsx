@@ -60,6 +60,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 <Th right>L/100</Th>
                 <Th>Pumpa</Th>
                 <Th>Místo</Th>
+                <Th right>Akce</Th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +85,14 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                     <span className="text-slate-600">
                       {[r.city, regionLabel(r.region, r.country)].filter((x) => x && x !== "—").join(", ") || "—"}
                     </span>
+                  </Td>
+                  <Td right>
+                    <Link
+                      href={`/v/${id}/fill-ups/${r.id}/edit`}
+                      className="text-sky-600 hover:underline text-xs"
+                    >
+                      Upravit
+                    </Link>
                   </Td>
                 </tr>
               ))}

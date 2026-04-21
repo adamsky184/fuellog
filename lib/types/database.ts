@@ -158,6 +158,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          color: string | null
           created_at: string
           created_by: string
           fuel_type: Database["public"]["Enums"]["fuel_type"]
@@ -171,6 +172,7 @@ export type Database = {
           year: number | null
         }
         Insert: {
+          color?: string | null
           created_at?: string
           created_by: string
           fuel_type?: Database["public"]["Enums"]["fuel_type"]
@@ -184,6 +186,7 @@ export type Database = {
           year?: number | null
         }
         Update: {
+          color?: string | null
           created_at?: string
           created_by?: string
           fuel_type?: Database["public"]["Enums"]["fuel_type"]

@@ -5,7 +5,7 @@ export default async function VehiclesPage() {
   const supabase = await createClient();
   const { data: vehicles } = await supabase
     .from("vehicles")
-    .select("id, name, make, model, year, license_plate, fuel_type")
+    .select("id, name, make, model, year, license_plate, fuel_type, color")
     .order("created_at", { ascending: false });
 
   return (
@@ -32,7 +32,14 @@ export default async function VehiclesPage() {
           {vehicles.map((v) => (
             <li key={v.id} className="card">
               <Link href={`/v/${v.id}/fill-ups`} className="block p-5 hover:bg-slate-50 rounded-2xl">
-                <div className="font-semibold text-lg">{v.name}</div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-block h-5 w-5 rounded-full border border-slate-200 shrink-0"
+                    style={{ backgroundColor: v.color ?? "#e2e8f0" }}
+                    aria-hidden
+                  />
+                  <div className="font-semibold text-lg">{v.name}</div>
+                </div>
                 <div className="text-sm text-slate-500 mt-1">
                   {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"}
                 </div>

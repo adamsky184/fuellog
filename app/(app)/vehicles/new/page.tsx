@@ -16,6 +16,7 @@ export default function NewVehiclePage() {
     license_plate: "",
     fuel_type: "diesel",
     tank_capacity_liters: "",
+    color: "#0ea5e9",
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,6 +46,7 @@ export default function NewVehiclePage() {
         tank_capacity_liters: form.tank_capacity_liters
           ? parseFloat(form.tank_capacity_liters)
           : null,
+        color: form.color || null,
         created_by: user.id,
       })
       .select("id")
@@ -112,7 +114,7 @@ export default function NewVehiclePage() {
             <label className="label">SPZ</label>
             <input
               className="input"
-              placeholder="8C0 8402"
+              placeholder="1A2 3456"
               value={form.license_plate}
               onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
             />
@@ -141,6 +143,24 @@ export default function NewVehiclePage() {
               step="0.1"
               value={form.tank_capacity_liters}
               onChange={(e) => setForm({ ...form, tank_capacity_liters: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Barva vozidla</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              className="h-10 w-14 rounded border border-slate-300 cursor-pointer"
+              value={form.color}
+              onChange={(e) => setForm({ ...form, color: e.target.value })}
+            />
+            <input
+              className="input flex-1"
+              placeholder="#0ea5e9"
+              value={form.color}
+              onChange={(e) => setForm({ ...form, color: e.target.value })}
             />
           </div>
         </div>

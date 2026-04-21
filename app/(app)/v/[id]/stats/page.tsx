@@ -4,6 +4,7 @@ import {
   ConsumptionTrend,
   CountryBreakdown,
   PriceTrend,
+  TopBrands,
 } from "@/components/stats-charts";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { regionLabel } from "@/lib/regions";
@@ -136,7 +137,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       <div className="grid md:grid-cols-2 gap-4">
         <PriceTrend data={priceSeries} />
         <ConsumptionTrend data={consumptionSeries} />
-        <BrandBreakdown data={brandData.slice(0, 10)} />
+        <TopBrands data={brandData.filter((b) => b.brand !== "—")} />
+        <BrandBreakdown data={brandData.filter((b) => b.brand !== "—").slice(0, 10)} />
         <CountryBreakdown data={countryData} />
       </div>
 

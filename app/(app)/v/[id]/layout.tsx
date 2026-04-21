@@ -13,7 +13,7 @@ export default async function VehicleLayout({
   const supabase = await createClient();
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("id, name, make, model, year, license_plate, fuel_type")
+    .select("id, name, make, model, year, license_plate, fuel_type, color")
     .eq("id", id)
     .maybeSingle();
 
@@ -22,20 +22,27 @@ export default async function VehicleLayout({
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-4">
-        <div>
-          <Link href="/vehicles" className="text-xs text-slate-500 hover:text-slate-800">← Garáž</Link>
-          <h1 className="text-2xl font-semibold mt-1">{vehicle.name}</h1>
-          <p className="text-sm text-slate-500">
-            {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")}
-            {vehicle.license_plate ? ` · ${vehicle.license_plate}` : ""}
-          </p>
+        <div className="flex items-center gap-3">
+          <span
+            className="inline-block h-6 w-6 rounded-full border border-slate-200 shrink-0"
+            style={{ backgroundColor: vehicle.color ?? "#e2e8f0" }}
+            aria-hidden
+          />
+          <div>
+            <Link href="/vehicles" className="text-xs text-slate-500 hover:text-slate-800">← Garáž</Link>
+            <h1 className="text-2xl font-semibold mt-1">{vehicle.name}</h1>
+            <p className="text-sm text-slate-500">
+              {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ")}
+              {vehicle.license_plate ? ` · ${vehicle.license_plate}` : ""}
+            </p>
+          </div>
         </div>
       </div>
 
       <nav className="flex gap-1 text-sm border-b border-slate-200">
         <TabLink href={`/v/${id}/fill-ups`} label="Tankování" />
         <TabLink href={`/v/${id}/stats`} label="Statistiky" />
-        <TabLink href={`/v/${id}/import`} label="Import z xlsx" />
+        <TabLink href={`/v/${id}/import`} label="Import / Export" />
       </nav>
 
       <div>{children}</div>

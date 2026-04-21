@@ -28,6 +28,90 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  function downloadSample() {
+    const header = [
+      ["FuelLog — šablona pro import"],
+      ["Vyplň data od řádku 5 níž. První řádek s datem a bez litrů je počáteční stav tachometru."],
+      [],
+      ["Datum", "Stav km", "Ujeto km", "Litry", "Kč celkem", "Kč/l", "Firma", "Místo (kód)", "Adresa"],
+      [new Date(), 123456, null, null, null, null, null, null, "výchozí stav — nech prázdné"],
+      [new Date(), 123800, 344, 25.12, 980, null, "Shell", "P8", "Žernosecká"],
+      [new Date(), 124150, 350, 26.00, 1010, null, "OMV", "StČ", "D1 sjezd 21"],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(header);
+    ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 9 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 22 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "SPOTŘEBA");
+    XLSX.writeFile(wb, "fuellog-sablona.xlsx");
+  }
+
+  async function handleExport() {
+    setExportError(null);
+    setExporting(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("fill_up_stats_v")
+        .select("*")
+        .eq("vehicle_id", vehicleId)
+        .order("date", { ascending: true });
+      if (error) throw error;
+
+      const header = [
+        "Datum",
+        "Stav km",
+        "Ujeto km",
+        "Litry",
+        "Kč celkem",
+        "Kč/l",
+        "L/100 km",
+        "Firma",
+        "Město",
+        "Kraj",
+        "Stát",
+        "Adresa",
+        "Plná nádrž",
+        "Dálnice",
+        "Baseline",
+        "Poznámka",
+      ];
+      const rowsOut = (data ?? []).map((r) => [
+        r.date,
+        r.odometer_km,
+        r.km_since_last,
+        r.liters,
+        r.total_price,
+        r.price_per_liter,
+        r.consumption_l_per_100km,
+        r.station_brand,
+        r.city,
+        r.region,
+        r.country,
+        r.address,
+        r.is_full_tank ? "ano" : "ne",
+        r.is_highway ? "ano" : "ne",
+        r.is_baseline ? "ano" : "ne",
+        r.note,
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([header, ...rowsOut]);
+      ws["!cols"] = [
+        { wch: 12 }, { wch: 10 }, { wch: 9 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 8 },
+        { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 6 }, { wch: 22 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 24 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "SPOTŘEBA");
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `fuellog-export-${today}.xlsx`);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -156,14 +240,31 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
   return (
     <div className="space-y-5 max-w-3xl">
       <div className="card p-5 space-y-3">
-        <h2 className="text-lg font-semibold">Import z Google Sheets (xlsx)</h2>
+        <h2 className="text-lg font-semibold">Import z xlsx</h2>
         <p className="text-sm text-slate-600">
           Očekávaný formát: list <code>SPOTŘEBA</code>, sloupce <em>A (datum) B (stav) C (ujeto) D (litry) E (Kč celkem) F (Kč/l) G (firma) H (místo) I (adresa)</em>,
           data začínají řádkem 5. První řádek s datem ale bez litrů je počáteční stav tachometru — označíme ho jako baseline a do statistik ho nezapočítáváme.
         </p>
-        <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="block text-sm" />
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <input type="file" accept=".xlsx,.xls" onChange={handleFile} className="block text-sm" />
+          <button type="button" onClick={downloadSample} className="btn-secondary text-xs">
+            Stáhnout vzorovou šablonu
+          </button>
+        </div>
         {parsing && <p className="text-sm text-slate-500">Čtu xlsx…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
+
+      <div className="card p-5 space-y-3">
+        <h2 className="text-lg font-semibold">Export do xlsx</h2>
+        <p className="text-sm text-slate-600">
+          Stáhne všechna tankování tohoto auta do Excelu (list <code>SPOTŘEBA</code>).
+          Obsahuje i dopočítané sloupce (ujeto km, Kč/l, L/100 km).
+        </p>
+        <button type="button" onClick={handleExport} disabled={exporting} className="btn-primary">
+          {exporting ? "Exportuji…" : "Stáhnout všechna tankování"}
+        </button>
+        {exportError && <p className="text-sm text-red-600">{exportError}</p>}
       </div>
 
       {rows.length > 0 && (

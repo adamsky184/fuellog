@@ -45,7 +45,13 @@ export function Header({
         )}
 
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="text-slate-500 hidden sm:block">{userEmail}</span>
+          <Link
+            href="/profile"
+            className="text-slate-500 hidden sm:block hover:text-slate-700 hover:underline"
+            title="Můj profil"
+          >
+            {userEmail}
+          </Link>
           <button onClick={signOut} className="btn-secondary text-xs">Odhlásit</button>
         </div>
       </div>

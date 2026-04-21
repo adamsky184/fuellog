@@ -15,6 +15,7 @@ import {
   Legend,
 } from "recharts";
 import { countryLabel } from "@/lib/regions";
+import { BrandLogo } from "@/components/brand-logo";
 
 /**
  * Brand colors — used for per-brand bar coloring and the BrandBadge component.
@@ -301,7 +302,7 @@ export function TopBrands({ data }: { data: { brand: string; liters: number; cou
         {top.map((b, i) => (
           <li key={b.brand} className="flex items-center gap-3">
             <span className="text-xs w-5 text-slate-400 tabular-nums">{i + 1}.</span>
-            <BrandBadge brand={b.brand} size={28} />
+            <BrandLogo brand={b.brand} size={32} />
             <span className="font-medium">{b.brand}</span>
             <span className="ml-auto text-sm text-slate-500 tabular-nums">
               {b.count}× · {b.liters.toFixed(1)} l

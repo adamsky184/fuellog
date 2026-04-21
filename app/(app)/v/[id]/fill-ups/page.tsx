@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Pencil, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { BrandBadge } from "@/components/stats-charts";
+import { BrandLogo } from "@/components/brand-logo";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { regionLabel } from "@/lib/regions";
 
@@ -91,7 +91,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Td>
                     {r.station_brand ? (
                       <span className="inline-flex items-center gap-2">
-                        <BrandBadge brand={r.station_brand} size={20} />
+                        <BrandLogo brand={r.station_brand} size={22} />
                         <span>{r.station_brand}</span>
                       </span>
                     ) : (

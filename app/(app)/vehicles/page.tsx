@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function VehiclesPage() {
@@ -19,7 +20,10 @@ export default async function VehiclesPage() {
               : "Zatím žádná auta"}
           </p>
         </div>
-        <Link href="/vehicles/new" className="btn-primary">+ Přidat auto</Link>
+        <Link href="/vehicles/new" className="btn-primary inline-flex items-center gap-1">
+          <Plus className="h-4 w-4" />
+          Přidat auto
+        </Link>
       </div>
 
       {!vehicles?.length ? (

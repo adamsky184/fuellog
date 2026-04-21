@@ -224,6 +224,69 @@ export function CountryBreakdown({ data }: { data: { country: string; liters: nu
   );
 }
 
+/* --------------------------- Monthly trends --------------------------------- */
+
+type MonthlyPoint = {
+  month: string; // YYYY-MM
+  km: number;
+  liters: number;
+  price: number;
+};
+
+/**
+ * Bar chart over recent months with a metric toggle (km / L / Kč).
+ * Months with no data are skipped on the X axis rather than zero-filled.
+ */
+export function MonthlyTrends({ data }: { data: MonthlyPoint[] }) {
+  const [metric, setMetric] = useState<"km" | "liters" | "price">("km");
+
+  const metricConfig = {
+    km: { label: "Ujeté km", color: "#0ea5e9", unit: "km" },
+    liters: { label: "Litry", color: "#f59e0b", unit: "l" },
+    price: { label: "Kč", color: "#10b981", unit: "Kč" },
+  } as const;
+
+  const cfg = metricConfig[metric];
+
+  if (data.length === 0) return null;
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <div className="font-semibold">Měsíční přehled</div>
+        <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+          {(Object.keys(metricConfig) as (keyof typeof metricConfig)[]).map((k) => (
+            <button
+              key={k}
+              onClick={() => setMetric(k)}
+              className={`px-2.5 py-1 ${
+                metric === k
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {metricConfig[k].label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip
+              formatter={(v: number) => [`${v.toLocaleString("cs-CZ")} ${cfg.unit}`, cfg.label]}
+            />
+            <Bar dataKey={metric} fill={cfg.color} name={cfg.label} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------- Top brands widget ------------------------------ */
 
 export function TopBrands({ data }: { data: { brand: string; liters: number; count: number }[] }) {

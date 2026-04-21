@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Fuel, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export function Header({
@@ -26,7 +27,9 @@ export function Header({
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-200">
       <div className="max-w-5xl mx-auto flex items-center gap-4 px-4 py-3">
         <Link href="/vehicles" className="flex items-center gap-2 font-semibold">
-          <span className="w-8 h-8 rounded-lg bg-accent text-white grid place-items-center text-lg">⛽</span>
+          <span className="w-8 h-8 rounded-lg bg-accent text-white grid place-items-center">
+            <Fuel className="h-4 w-4" />
+          </span>
           <span>FuelLog</span>
         </Link>
 
@@ -52,7 +55,14 @@ export function Header({
           >
             {userEmail}
           </Link>
-          <button onClick={signOut} className="btn-secondary text-xs">Odhlásit</button>
+          <button
+            onClick={signOut}
+            className="btn-secondary text-xs inline-flex items-center gap-1"
+            title="Odhlásit"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Odhlásit</span>
+          </button>
         </div>
       </div>
     </header>

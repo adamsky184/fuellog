@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Pencil, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { BrandBadge } from "@/components/stats-charts";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { regionLabel } from "@/lib/regions";
 
@@ -35,7 +37,13 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
           <Stat label="Celkem Kč" value={formatCurrency(totals?.price)} />
           <Stat label="Ø L/100 km" value={formatNumber(avgConsumption, 2)} />
         </div>
-        <Link href={`/v/${id}/fill-ups/new`} className="btn-primary">+ Tankování</Link>
+        <Link
+          href={`/v/${id}/fill-ups/new`}
+          className="btn-primary inline-flex items-center gap-1"
+        >
+          <Plus className="h-4 w-4" />
+          Tankování
+        </Link>
       </div>
 
       {!rows?.length ? (
@@ -80,7 +88,16 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Td right>{r.price_per_liter ? formatNumber(r.price_per_liter, 2) : "—"}</Td>
                   <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
                   <Td right>{r.consumption_l_per_100km ? formatNumber(r.consumption_l_per_100km, 2) : "—"}</Td>
-                  <Td>{r.station_brand || "—"}</Td>
+                  <Td>
+                    {r.station_brand ? (
+                      <span className="inline-flex items-center gap-2">
+                        <BrandBadge brand={r.station_brand} size={20} />
+                        <span>{r.station_brand}</span>
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </Td>
                   <Td>
                     <span className="text-slate-600">
                       {[r.city, regionLabel(r.region, r.country)].filter((x) => x && x !== "—").join(", ") || "—"}
@@ -89,8 +106,9 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Td right>
                     <Link
                       href={`/v/${id}/fill-ups/${r.id}/edit`}
-                      className="text-sky-600 hover:underline text-xs"
+                      className="text-sky-600 hover:underline text-xs inline-flex items-center gap-1"
                     >
+                      <Pencil className="h-3 w-3" />
                       Upravit
                     </Link>
                   </Td>

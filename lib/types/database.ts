@@ -244,6 +244,14 @@ export type Database = {
       }
     }
     Functions: {
+      add_vehicle_member: {
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["member_role"]
+          p_vehicle_id: string
+        }
+        Returns: Json
+      }
       can_write_vehicle: {
         Args: { u_id: string; v_id: string }
         Returns: boolean
@@ -251,6 +259,29 @@ export type Database = {
       is_vehicle_member: {
         Args: { u_id: string; v_id: string }
         Returns: boolean
+      }
+      list_vehicle_members: {
+        Args: { p_vehicle_id: string }
+        Returns: {
+          display_name: string
+          email: string
+          invited_by: string
+          joined_at: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }[]
+      }
+      remove_vehicle_member: {
+        Args: { p_user_id: string; p_vehicle_id: string }
+        Returns: undefined
+      }
+      set_vehicle_member_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["member_role"]
+          p_user_id: string
+          p_vehicle_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

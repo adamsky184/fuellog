@@ -3,6 +3,7 @@ import {
   BrandBreakdown,
   ConsumptionTrend,
   CountryBreakdown,
+  MonthlyTrends,
   PriceTrend,
   TopBrands,
 } from "@/components/stats-charts";
@@ -92,6 +93,27 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .map(([country, v]) => ({ country, ...v, liters: Number(v.liters.toFixed(2)) }))
     .sort((a, b) => b.liters - a.liters);
 
+  // Monthly
+  const byMonth = new Map<string, { km: number; liters: number; price: number }>();
+  for (const r of rows) {
+    if (!r.date) continue;
+    const m = r.date.slice(0, 7);
+    const e = byMonth.get(m) ?? { km: 0, liters: 0, price: 0 };
+    e.km += Number(r.km_since_last ?? 0);
+    e.liters += Number(r.liters ?? 0);
+    e.price += Number(r.total_price ?? 0);
+    byMonth.set(m, e);
+  }
+  const monthly = Array.from(byMonth.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-18) // last ~1.5 years so the chart stays readable
+    .map(([month, e]) => ({
+      month,
+      km: Math.round(e.km),
+      liters: Number(e.liters.toFixed(1)),
+      price: Math.round(e.price),
+    }));
+
   // Yearly
   const byYear = new Map<string, { km: number; liters: number; price: number; count: number }>();
   for (const r of rows) {
@@ -144,6 +166,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       )}
+
+      <MonthlyTrends data={monthly} />
 
       <div className="grid md:grid-cols-2 gap-4">
         <PriceTrend data={priceSeries} />

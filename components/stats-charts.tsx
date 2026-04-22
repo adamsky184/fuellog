@@ -13,8 +13,9 @@ import {
   Bar,
   Cell,
   Legend,
+  ComposedChart,
 } from "recharts";
-import { countryLabel } from "@/lib/regions";
+import { countryLabel, regionLabel } from "@/lib/regions";
 import { BrandLogo } from "@/components/brand-logo";
 
 /**
@@ -310,6 +311,266 @@ export function TopBrands({ data }: { data: { brand: string; liters: number; cou
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/* --------------------------- Brand price ranking ---------------------------- */
+
+type BrandRankRow = {
+  brand: string;
+  count: number;
+  liters: number;
+  avgPricePerL: number | null;
+  avgL100: number | null;
+};
+
+/**
+ * Žebříček pump — kolik jsi tam tankoval, jaká tam byla průměrná cena za litr
+ * a průměrná spotřeba L/100 km. Sortovatelné podle ceny, spotřeby, nebo četnosti.
+ */
+export function BrandRanking({ data }: { data: BrandRankRow[] }) {
+  const [sortBy, setSortBy] = useState<"price" | "consumption" | "count">("price");
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+
+  const sorted = useMemo(() => {
+    const filtered = data.filter((d) => d.brand && d.brand !== "—");
+    const cmp = (a: BrandRankRow, b: BrandRankRow) => {
+      const pick = (r: BrandRankRow) =>
+        sortBy === "price" ? r.avgPricePerL : sortBy === "consumption" ? r.avgL100 : r.count;
+      const av = pick(a);
+      const bv = pick(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      return order === "asc" ? av - bv : bv - av;
+    };
+    return [...filtered].sort(cmp);
+  }, [data, sortBy, order]);
+
+  if (sorted.length === 0) return null;
+
+  function toggleSort(key: typeof sortBy) {
+    if (sortBy === key) setOrder(order === "asc" ? "desc" : "asc");
+    else {
+      setSortBy(key);
+      setOrder(key === "count" ? "desc" : "asc");
+    }
+  }
+
+  const arrow = (key: typeof sortBy) => (sortBy === key ? (order === "asc" ? " ↑" : " ↓") : "");
+
+  return (
+    <div className="card p-4 md:col-span-2">
+      <div className="font-semibold mb-3">Žebříček pump</div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-slate-500 uppercase">
+            <tr>
+              <th className="text-left px-2 py-1">Pumpa</th>
+              <th
+                className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("count")}
+              >
+                Tankování{arrow("count")}
+              </th>
+              <th className="text-right px-2 py-1">Litry</th>
+              <th
+                className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("price")}
+              >
+                Ø Kč/l{arrow("price")}
+              </th>
+              <th
+                className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("consumption")}
+              >
+                Ø L/100{arrow("consumption")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => (
+              <tr key={r.brand} className="border-t border-slate-100">
+                <td className="px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <BrandLogo brand={r.brand} size={22} />
+                    <span className="font-medium">{r.brand}</span>
+                  </div>
+                </td>
+                <td className="px-2 py-1 text-right tabular-nums">{r.count}</td>
+                <td className="px-2 py-1 text-right tabular-nums">{r.liters.toFixed(1)}</td>
+                <td className="px-2 py-1 text-right tabular-nums">
+                  {r.avgPricePerL != null ? r.avgPricePerL.toFixed(2) : "—"}
+                </td>
+                <td className="px-2 py-1 text-right tabular-nums">
+                  {r.avgL100 != null ? r.avgL100.toFixed(2) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-slate-400 mt-2">
+        Klikni na sloupec pro seřazení. Ceny i spotřeba se počítají jen z tankování s platnými daty.
+      </p>
+    </div>
+  );
+}
+
+/* --------------------------- Region breakdown ------------------------------- */
+
+type RegionRow = {
+  region: string | null;
+  country: string | null;
+  liters: number;
+  count: number;
+};
+
+/**
+ * Kde jsem tankoval — podle regionu (pražské okresy, historické země, cizí státy).
+ * Horizontální bar chart, seřazený sestupně.
+ */
+export function RegionBreakdown({ data }: { data: RegionRow[] }) {
+  const prepped = useMemo(() => {
+    return data
+      .map((r) => ({
+        label: regionLabel(r.region, r.country),
+        liters: Number(r.liters.toFixed(1)),
+        count: r.count,
+      }))
+      .filter((r) => r.label !== "—")
+      .sort((a, b) => b.liters - a.liters)
+      .slice(0, 15);
+  }, [data]);
+
+  if (prepped.length === 0) return null;
+
+  return (
+    <div className="card p-4">
+      <div className="font-semibold mb-3">Litry podle regionu</div>
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={prepped}
+            layout="vertical"
+            margin={{ top: 5, right: 20, bottom: 5, left: 80 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis type="number" tick={{ fontSize: 10 }} />
+            <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={80} />
+            <Tooltip formatter={(v: number) => `${v.toLocaleString("cs-CZ")} l`} />
+            <Bar dataKey="liters" fill="#8b5cf6" name="Litry" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Yearly chart ----------------------------------- */
+
+type YearlyPoint = {
+  year: string;
+  km: number;
+  liters: number;
+  price: number;
+};
+
+/**
+ * Roční graf: bar km + line Kč s dvojí osou.
+ * Doplněk k ročnímu textovému souhrnu.
+ */
+export function YearlyChart({ data }: { data: YearlyPoint[] }) {
+  if (data.length === 0) return null;
+  return (
+    <div className="card p-4 md:col-span-2">
+      <div className="font-semibold mb-3">Roční přehled — km & Kč</div>
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 10 }}
+              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: 10 }}
+              tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+            />
+            <Tooltip
+              formatter={(v: number, name: string) => {
+                if (name === "km") return [`${v.toLocaleString("cs-CZ")} km`, "Ujeto"];
+                if (name === "Kč") return [`${v.toLocaleString("cs-CZ")} Kč`, "Náklady"];
+                return [v, name];
+              }}
+            />
+            <Legend />
+            <Bar yAxisId="left" dataKey="km" fill="#0ea5e9" name="km" />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="price"
+              stroke="#ef4444"
+              strokeWidth={2}
+              name="Kč"
+              dot
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Recent activity card --------------------------- */
+
+type RecentData = {
+  days30: { liters: number; price: number; km: number; count: number };
+  days365: { liters: number; price: number; km: number; count: number };
+};
+
+/**
+ * Rychlý přehled "co jsem tankoval posledních 30 / 365 dní".
+ */
+export function RecentActivity({ data }: { data: RecentData }) {
+  const { days30, days365 } = data;
+  if (days365.count === 0) return null;
+
+  const cell = (label: string, value: string) => (
+    <div className="space-y-0.5">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+
+  return (
+    <div className="card p-4">
+      <div className="font-semibold mb-3">Poslední aktivita</div>
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">30 dní</div>
+          <div className="grid grid-cols-2 gap-3">
+            {cell("Tankování", String(days30.count))}
+            {cell("Litry", days30.liters.toFixed(1))}
+            {cell("km", days30.km.toLocaleString("cs-CZ"))}
+            {cell("Kč", days30.price.toLocaleString("cs-CZ"))}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">365 dní</div>
+          <div className="grid grid-cols-2 gap-3">
+            {cell("Tankování", String(days365.count))}
+            {cell("Litry", days365.liters.toFixed(1))}
+            {cell("km", days365.km.toLocaleString("cs-CZ"))}
+            {cell("Kč", days365.price.toLocaleString("cs-CZ"))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   BrandBreakdown,
+  BrandRanking,
   ConsumptionTrend,
   CountryBreakdown,
   MonthlyTrends,
   PriceTrend,
+  RecentActivity,
+  RegionBreakdown,
   TopBrands,
+  YearlyChart,
 } from "@/components/stats-charts";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { countryLabel } from "@/lib/regions";
@@ -54,6 +58,27 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   const highwayAgg = agg(highway);
   const cityAgg = agg(cityRoute);
 
+  // Recent activity — last 30 / 365 days (based on fill-up `date`, not timestamp)
+  const now = new Date();
+  const cutoff = (days: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - days);
+    return d.toISOString().slice(0, 10);
+  };
+  const c30 = cutoff(30);
+  const c365 = cutoff(365);
+  const rangeAgg = (since: string) => {
+    const subset = rows.filter((r) => r.date && r.date >= since);
+    const liters = subset.reduce((a, r) => a + Number(r.liters ?? 0), 0);
+    const price = subset.reduce((a, r) => a + Number(r.total_price ?? 0), 0);
+    const km = subset.reduce((a, r) => a + Number(r.km_since_last ?? 0), 0);
+    return { liters, price, km: Math.round(km), count: subset.length };
+  };
+  const recentData = {
+    days30: rangeAgg(c30),
+    days365: rangeAgg(c365),
+  };
+
   // Trends (all rows together — highway rows are a small fraction, include them).
   const priceSeries = rows
     .filter((r) => r.price_per_liter != null && r.date)
@@ -67,17 +92,41 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     .filter((r) => r.consumption_l_per_100km != null && r.date)
     .map((r) => ({ date: r.date!.slice(0, 7), consumption: Number(r.consumption_l_per_100km) }));
 
-  // Brand
-  const byBrand = new Map<string, { liters: number; count: number }>();
+  // Brand aggregation — with price & consumption averages per brand for the ranking table.
+  const byBrand = new Map<
+    string,
+    { liters: number; count: number; priceSum: number; priceN: number; consSum: number; consN: number }
+  >();
   for (const r of rows) {
     const key = r.station_brand?.trim() || "—";
-    const e = byBrand.get(key) ?? { liters: 0, count: 0 };
+    const e = byBrand.get(key) ?? {
+      liters: 0,
+      count: 0,
+      priceSum: 0,
+      priceN: 0,
+      consSum: 0,
+      consN: 0,
+    };
     e.liters += Number(r.liters ?? 0);
     e.count += 1;
+    if (r.price_per_liter != null) {
+      e.priceSum += Number(r.price_per_liter);
+      e.priceN += 1;
+    }
+    if (r.consumption_l_per_100km != null) {
+      e.consSum += Number(r.consumption_l_per_100km);
+      e.consN += 1;
+    }
     byBrand.set(key, e);
   }
   const brandData = Array.from(byBrand.entries())
-    .map(([brand, v]) => ({ brand, ...v, liters: Number(v.liters.toFixed(2)) }))
+    .map(([brand, v]) => ({
+      brand,
+      liters: Number(v.liters.toFixed(2)),
+      count: v.count,
+      avgPricePerL: v.priceN > 0 ? Number((v.priceSum / v.priceN).toFixed(2)) : null,
+      avgL100: v.consN > 0 ? Number((v.consSum / v.consN).toFixed(2)) : null,
+    }))
     .sort((a, b) => b.liters - a.liters);
 
   // Country (full Czech names — "Česko" for CZ)
@@ -92,6 +141,18 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   const countryData = Array.from(byCountry.entries())
     .map(([country, v]) => ({ country, ...v, liters: Number(v.liters.toFixed(2)) }))
     .sort((a, b) => b.liters - a.liters);
+
+  // Region breakdown — groups by (region, country). Foreign rows go under their country.
+  const byRegion = new Map<string, { region: string | null; country: string | null; liters: number; count: number }>();
+  for (const r of rows) {
+    const key = `${r.country ?? "CZ"}|${r.region ?? ""}`;
+    const e =
+      byRegion.get(key) ?? { region: r.region, country: r.country ?? "CZ", liters: 0, count: 0 };
+    e.liters += Number(r.liters ?? 0);
+    e.count += 1;
+    byRegion.set(key, e);
+  }
+  const regionData = Array.from(byRegion.values());
 
   // Monthly
   const byMonth = new Map<string, { km: number; liters: number; price: number }>();
@@ -128,6 +189,13 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   }
   const yearly = Array.from(byYear.entries()).sort(([a], [b]) => a.localeCompare(b));
 
+  const yearlyChartData = yearly.map(([year, e]) => ({
+    year,
+    km: Math.round(e.km),
+    liters: Number(e.liters.toFixed(1)),
+    price: Math.round(e.price),
+  }));
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -139,6 +207,11 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
         <Stat label="Ø Kč/l" value={formatNumber(totalAgg.avgPricePerL, 2)} />
         <Stat label="Kč/km" value={formatNumber(totalAgg.czkPerKm, 2)} />
         <Stat label="Počet tankování" value={String(rows.length)} />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <RecentActivity data={recentData} />
+        <TopBrands data={brandData.filter((b) => b.brand !== "—")} />
       </div>
 
       {highwayAgg.count > 0 && (
@@ -172,9 +245,11 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       <div className="grid md:grid-cols-2 gap-4">
         <PriceTrend data={priceSeries} />
         <ConsumptionTrend data={consumptionSeries} />
-        <TopBrands data={brandData.filter((b) => b.brand !== "—")} />
+        <BrandRanking data={brandData} />
         <BrandBreakdown data={brandData.filter((b) => b.brand !== "—").slice(0, 10)} />
         <CountryBreakdown data={countryData} />
+        <RegionBreakdown data={regionData} />
+        <YearlyChart data={yearlyChartData} />
       </div>
 
       <div className="card p-4">

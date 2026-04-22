@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+type GarageOpt = { id: string; name: string };
 
 export default function NewVehiclePage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [garages, setGarages] = useState<GarageOpt[]>([]);
   const [form, setForm] = useState({
     name: "",
     make: "",
@@ -17,7 +20,19 @@ export default function NewVehiclePage() {
     fuel_type: "diesel",
     tank_capacity_liters: "",
     color: "#0ea5e9",
+    garage_id: "",
   });
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("garages")
+        .select("id, name")
+        .order("created_at", { ascending: true });
+      setGarages(data ?? []);
+    })();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +62,7 @@ export default function NewVehiclePage() {
           ? parseFloat(form.tank_capacity_liters)
           : null,
         color: form.color || null,
+        garage_id: form.garage_id || null,
         created_by: user.id,
       })
       .select("id")
@@ -145,6 +161,27 @@ export default function NewVehiclePage() {
               onChange={(e) => setForm({ ...form, tank_capacity_liters: e.target.value })}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label">Garáž</label>
+          <select
+            className="input"
+            value={form.garage_id}
+            onChange={(e) => setForm({ ...form, garage_id: e.target.value })}
+          >
+            <option value="">— bez garáže —</option>
+            {garages.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          {garages.length === 0 && (
+            <p className="text-xs text-slate-400 mt-1">
+              Zatím nemáš žádné garáže. Můžeš je vytvořit v sekci Garáže.
+            </p>
+          )}
         </div>
 
         <div>

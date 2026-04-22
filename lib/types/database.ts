@@ -100,6 +100,33 @@ export type Database = {
           },
         ]
       }
+      garages: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -162,6 +189,7 @@ export type Database = {
           created_at: string
           created_by: string
           fuel_type: Database["public"]["Enums"]["fuel_type"]
+          garage_id: string | null
           id: string
           license_plate: string | null
           make: string | null
@@ -176,6 +204,7 @@ export type Database = {
           created_at?: string
           created_by: string
           fuel_type?: Database["public"]["Enums"]["fuel_type"]
+          garage_id?: string | null
           id?: string
           license_plate?: string | null
           make?: string | null
@@ -190,6 +219,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           fuel_type?: Database["public"]["Enums"]["fuel_type"]
+          garage_id?: string | null
           id?: string
           license_plate?: string | null
           make?: string | null
@@ -199,7 +229,15 @@ export type Database = {
           updated_at?: string
           year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -254,6 +292,10 @@ export type Database = {
       }
       can_write_vehicle: {
         Args: { u_id: string; v_id: string }
+        Returns: boolean
+      }
+      is_garage_owner: {
+        Args: { g_id: string; u_id: string }
         Returns: boolean
       }
       is_vehicle_member: {

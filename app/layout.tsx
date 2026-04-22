@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Footer } from "@/components/footer";
+import { SWRegister } from "@/components/sw-register";
 
 export const metadata: Metadata = {
   title: "FuelLog — evidence tankování",
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body>
         {children}
         <Footer />
+        <SWRegister />
       </body>
     </html>
   );

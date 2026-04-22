@@ -31,6 +31,7 @@ export default function VehicleSettingsPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [garages, setGarages] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
     name: "",
     make: "",
@@ -40,6 +41,7 @@ export default function VehicleSettingsPage({
     fuel_type: "diesel",
     tank_capacity_liters: "",
     color: "#0ea5e9",
+    garage_id: "",
   });
 
   // Sharing
@@ -60,13 +62,15 @@ export default function VehicleSettingsPage({
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      const [vehRes, userRes] = await Promise.all([
+      const [vehRes, userRes, garRes] = await Promise.all([
         supabase.from("vehicles").select("*").eq("id", vehicleId).single(),
         supabase.auth.getUser(),
+        supabase.from("garages").select("id, name").order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
 
       if (userRes.data.user) setMe(userRes.data.user.id);
+      setGarages(garRes.data ?? []);
 
       if (vehRes.error || !vehRes.data) {
         setError(vehRes.error?.message ?? "Auto nenalezeno.");
@@ -84,6 +88,7 @@ export default function VehicleSettingsPage({
         tank_capacity_liters:
           v.tank_capacity_liters != null ? String(v.tank_capacity_liters) : "",
         color: v.color ?? "#0ea5e9",
+        garage_id: v.garage_id ?? "",
       });
       setLoading(false);
     })();
@@ -137,6 +142,7 @@ export default function VehicleSettingsPage({
           ? parseFloat(form.tank_capacity_liters)
           : null,
         color: form.color || null,
+        garage_id: form.garage_id || null,
       })
       .eq("id", vehicleId);
     setSaving(false);
@@ -327,6 +333,22 @@ export default function VehicleSettingsPage({
               }
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label">Garáž</label>
+          <select
+            className="input"
+            value={form.garage_id}
+            onChange={(e) => setForm({ ...form, garage_id: e.target.value })}
+          >
+            <option value="">— bez garáže —</option>
+            {garages.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

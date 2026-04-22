@@ -35,6 +35,7 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
     errorParam === "auth_failed" ? "Přihlašovací odkaz je neplatný nebo vypršel." : null,
@@ -44,6 +45,25 @@ function LoginForm() {
     setMode(m);
     setInfo(null);
     setError(null);
+  }
+
+  async function handleGoogle() {
+    setError(null);
+    setInfo(null);
+    setGoogleBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      },
+    });
+    if (error) {
+      setGoogleBusy(false);
+      setError(error.message);
+      return;
+    }
+    // Supabase returns with a redirect URL; browser navigates away — no further state.
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -143,6 +163,26 @@ function LoginForm() {
       <div className="text-center space-y-1">
         <div className="font-semibold">{title}</div>
         <p className="text-sm text-slate-500">{subtitle}</p>
+      </div>
+
+      {/* Google OAuth */}
+      <button
+        type="button"
+        onClick={handleGoogle}
+        disabled={googleBusy}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+      >
+        <GoogleIcon />
+        {googleBusy ? "Přesměrovávám…" : "Pokračovat s Google"}
+      </button>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-2 text-slate-400">nebo e-mailem</span>
+        </div>
       </div>
 
       {/* Mode tabs */}
@@ -246,6 +286,30 @@ function LoginForm() {
         )}
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  // Standard Google "G" mark — inline SVG so no extra asset/network call.
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+      <path
+        fill="#FFC107"
+        d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.5-5.9 7.7-11.3 7.7-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C33.7 6 29.1 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.4-.4-3.5z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C33.7 6 29.1 4 24 4 16.3 4 9.6 8.4 6.3 14.7z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.1 0 9.7-2 13.1-5.1l-6-5.1c-2 1.5-4.5 2.4-7.1 2.4-5.4 0-10-3.3-11.6-7.9l-6.5 5C9.2 39.5 16 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.2 5.6l6 5.1c-.4.4 6.6-4.8 6.6-14.7 0-1.3-.1-2.4-.4-3.5z"
+      />
+    </svg>
   );
 }
 

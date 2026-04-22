@@ -55,6 +55,15 @@ body {
   @apply text-slate-500 dark:text-slate-400;
 }
 
+/* Hide scrollbar on horizontally-scrollable pill navs (mobile sub-nav etc.) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /*
  * Dark-mode fallback: map the most common light-on-white slate shades to
  * lighter equivalents when `.dark` is applied to <html>. This lets us ship

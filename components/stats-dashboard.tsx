@@ -16,7 +16,24 @@
  */
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileDown, Info } from "lucide-react";
+import {
+  FileDown,
+  Info,
+  Gauge,
+  Route,
+  Droplet,
+  Fuel,
+  Coins,
+  Wallet,
+  Hash,
+  TrendingUp,
+  CalendarRange,
+  Flag,
+  Landmark,
+  Building2,
+  MilestoneIcon,
+  Globe,
+} from "lucide-react";
 import {
   BrandBreakdown,
   BrandRanking,
@@ -75,24 +92,100 @@ function InfoDot({ description }: { description: string }) {
   );
 }
 
-/* ----- Stat tile with optional info tooltip ----- */
+/* ----- Stat tile with optional info tooltip, accent tone and icon ----- */
+
+type StatTone = "km" | "fuel" | "money" | "count";
+
+const TONES: Record<
+  StatTone,
+  {
+    iconBg: string;
+    iconColor: string;
+    ring: string;
+    gradient: string;
+  }
+> = {
+  km: {
+    iconBg: "bg-violet-100 dark:bg-violet-950/50",
+    iconColor: "text-violet-600 dark:text-violet-300",
+    ring: "ring-violet-500/10 dark:ring-violet-400/10",
+    gradient:
+      "before:bg-gradient-to-br before:from-violet-500/5 before:to-transparent",
+  },
+  fuel: {
+    iconBg: "bg-sky-100 dark:bg-sky-950/50",
+    iconColor: "text-sky-600 dark:text-sky-300",
+    ring: "ring-sky-500/10 dark:ring-sky-400/10",
+    gradient:
+      "before:bg-gradient-to-br before:from-sky-500/5 before:to-transparent",
+  },
+  money: {
+    iconBg: "bg-emerald-100 dark:bg-emerald-950/50",
+    iconColor: "text-emerald-600 dark:text-emerald-300",
+    ring: "ring-emerald-500/10 dark:ring-emerald-400/10",
+    gradient:
+      "before:bg-gradient-to-br before:from-emerald-500/5 before:to-transparent",
+  },
+  count: {
+    iconBg: "bg-amber-100 dark:bg-amber-950/50",
+    iconColor: "text-amber-600 dark:text-amber-300",
+    ring: "ring-amber-500/10 dark:ring-amber-400/10",
+    gradient:
+      "before:bg-gradient-to-br before:from-amber-500/5 before:to-transparent",
+  },
+};
 
 function Stat({
   label,
   value,
   info,
+  tone,
+  icon,
 }: {
   label: string;
   value: string;
   info?: string;
+  tone?: StatTone;
+  icon?: React.ReactNode;
 }) {
+  const t = tone ? TONES[tone] : null;
+  // Default icon inferred from tone if not provided.
+  const resolvedIcon =
+    icon ??
+    (tone === "km" ? (
+      <Route className="h-4 w-4" />
+    ) : tone === "fuel" ? (
+      <Droplet className="h-4 w-4" />
+    ) : tone === "money" ? (
+      <Coins className="h-4 w-4" />
+    ) : tone === "count" ? (
+      <Hash className="h-4 w-4" />
+    ) : null);
+
   return (
-    <div className="card p-3 relative">
-      <div className="flex items-start justify-between gap-1">
-        <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
+    <div
+      className={`card p-3 relative overflow-hidden isolate before:absolute before:inset-0 before:rounded-2xl before:pointer-events-none ${t?.gradient ?? ""}`}
+    >
+      <div className="relative flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            {resolvedIcon && t && (
+              <span
+                className={`inline-flex items-center justify-center h-6 w-6 rounded-lg ${t.iconBg} ${t.iconColor} ring-1 ${t.ring}`}
+              >
+                {resolvedIcon}
+              </span>
+            )}
+            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {label}
+            </div>
+          </div>
+          <div className="font-semibold text-lg mt-1.5 tabular-nums">
+            {value}
+          </div>
+        </div>
         {info && <InfoDot description={info} />}
       </div>
-      <div className="font-semibold text-lg">{value}</div>
     </div>
   );
 }
@@ -107,20 +200,43 @@ type Bucket = {
   km: number;
 };
 
+/** Pick a colored dot + icon based on the bucket label. */
+function bucketAccent(label: string): { color: string; icon: React.ReactNode } {
+  const L = label.toLowerCase();
+  if (L.startsWith("česko")) return { color: "#DC2626", icon: <Flag className="h-3 w-3" /> };
+  if (L.startsWith("zahrani")) return { color: "#2563EB", icon: <Globe className="h-3 w-3" /> };
+  if (L.startsWith("praha")) return { color: "#7C3AED", icon: <Landmark className="h-3 w-3" /> };
+  if (L.startsWith("zbytek")) return { color: "#0891B2", icon: <Building2 className="h-3 w-3" /> };
+  if (L.includes("mimo dálnici") || L.startsWith("město")) return { color: "#D97706", icon: <Building2 className="h-3 w-3" /> };
+  if (L.startsWith("dálnice")) return { color: "#059669", icon: <MilestoneIcon className="h-3 w-3" /> };
+  return { color: "#64748B", icon: null };
+}
+
 function SplitRow({ b }: { b: Bucket }) {
   const avgL100 = b.km > 0 ? (b.liters / b.km) * 100 : null;
   const avgKcL = b.liters > 0 ? b.price / b.liters : null;
   const kcKm = b.km > 0 ? b.price / b.km : null;
+  const accent = bucketAccent(b.label);
   return (
     <tr className="border-t border-slate-100 dark:border-slate-800">
-      <td className="px-2 py-1 font-medium">{b.label}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{b.count}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatNumber(b.km, 0)}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatNumber(b.liters, 1)}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatCurrency(b.price)}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatNumber(avgL100, 2)}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatNumber(avgKcL, 2)}</td>
-      <td className="px-2 py-1 text-right tabular-nums">{formatNumber(kcKm, 2)}</td>
+      <td className="px-2 py-1.5 font-medium">
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="inline-flex items-center justify-center h-5 w-5 rounded-md text-white shrink-0"
+            style={{ backgroundColor: accent.color }}
+          >
+            {accent.icon}
+          </span>
+          <span>{b.label}</span>
+        </span>
+      </td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{b.count}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatNumber(b.km, 0)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatNumber(b.liters, 1)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatCurrency(b.price)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatNumber(avgL100, 2)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatNumber(avgKcL, 2)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{formatNumber(kcKm, 2)}</td>
     </tr>
   );
 }
@@ -436,10 +552,17 @@ export function StatsDashboard({
   return (
     <div className="space-y-4">
       {/* Header: period selector + roční report */}
-      <div className="card p-3 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Období</span>
-          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
+      <div className="card p-3 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <div className="inline-flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sm">
+              <CalendarRange className="h-4 w-4" />
+            </span>
+            <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+              Období
+            </span>
+          </div>
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs shadow-sm">
             {([
               ["all", "Všechno"],
               ["year", "Letos"],
@@ -450,7 +573,7 @@ export function StatsDashboard({
               <button
                 key={k}
                 onClick={() => setPreset(k as PeriodPreset)}
-                className={`px-2.5 py-1 ${
+                className={`px-2.5 py-1 transition ${
                   preset === k
                     ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                     : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -477,8 +600,12 @@ export function StatsDashboard({
               />
             </div>
           )}
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            · {filtered.length}× · {formatNumber(totalAgg.km, 0)} km
+          <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/70 border border-slate-200/50 dark:border-slate-700/50">
+            <Hash className="h-3 w-3 opacity-60" />
+            {filtered.length}×
+            <span className="mx-0.5 opacity-40">·</span>
+            <Route className="h-3 w-3 opacity-60" />
+            {formatNumber(totalAgg.km, 0)} km
           </span>
         </div>
         <Link
@@ -495,42 +622,54 @@ export function StatsDashboard({
         <Stat
           label="Aktuální tachometr"
           value={`${formatNumber(currentOdometer, 0)} km`}
-          info="Nejvyšší zaznamenaný stav tachometru (včetně baseline záznamu)."
+          info="Nejvyšší stav tachometru, který jsi kdy zapsal."
+          tone="km"
+          icon={<Gauge className="h-4 w-4" />}
         />
         <Stat
           label="Najeto v období"
           value={`${formatNumber(totalAgg.km, 0)} km`}
-          info={`Součet km_since_last přes všechna tankování v období: ${periodLabel}.`}
+          info={`Kolik kilometrů jsi ujel za vybrané období (${periodLabel.toLowerCase()}).`}
+          tone="km"
         />
         <Stat
           label="Litrů v období"
           value={formatNumber(totalAgg.liters, 1)}
-          info="Součet natankovaných litrů za zvolené období."
+          info="Kolik litrů paliva jsi natankoval za vybrané období."
+          tone="fuel"
         />
         <Stat
           label="Kč v období"
           value={formatCurrency(totalAgg.price)}
-          info="Součet zaplacených částek za zvolené období."
+          info="Kolik jsi za palivo utratil za vybrané období."
+          tone="money"
         />
         <Stat
           label="Ø L/100 km"
           value={formatNumber(totalAgg.avgL100, 2)}
-          info="Vážený průměr spotřeby: celkové litry / celkové km × 100. Počítáno ze všech tankování v období."
+          info="Průměrná spotřeba — celkové litry děleno celkové kilometry krát 100. Dražší tankování mají větší váhu."
+          tone="fuel"
+          icon={<Fuel className="h-4 w-4" />}
         />
         <Stat
           label="Ø Kč/l"
           value={formatNumber(totalAgg.avgPricePerL, 2)}
-          info="Celková cena / celkové litry. Vážený průměr — dražší tankování mají větší váhu."
+          info="Průměrná cena za litr — celková cena děleno celkové litry."
+          tone="money"
+          icon={<Wallet className="h-4 w-4" />}
         />
         <Stat
           label="Kč/km"
           value={formatNumber(totalAgg.czkPerKm, 2)}
-          info="Celková cena v Kč za ujetý kilometr. Počítá náklad na palivo bez oprav a servisu."
+          info="Kolik tě stál jeden ujetý kilometr (jen palivo, bez servisu a oprav)."
+          tone="money"
+          icon={<TrendingUp className="h-4 w-4" />}
         />
         <Stat
           label="Počet tankování"
           value={String(filtered.length)}
-          info="Kolikrát jsi tankoval v zvoleném období."
+          info="Kolikrát jsi ve vybraném období tankoval."
+          tone="count"
         />
       </div>
 
@@ -539,32 +678,41 @@ export function StatsDashboard({
         <Stat
           label="Ø tankování / den"
           value={formatNumber(periodAvgs.fillUpsPerDay, 3)}
-          info={`Počet tankování / délka období ve dnech. Období má ${Math.round(spanDays)} dní.`}
+          info={`Průměrný počet tankování na den (období má ${Math.round(spanDays)} dní).`}
+          tone="count"
+          icon={<CalendarRange className="h-4 w-4" />}
         />
         <Stat
           label="Ø tankování / měsíc"
           value={formatNumber(periodAvgs.fillUpsPerMonth, 2)}
-          info="Počet tankování / počet měsíců v období (1 měsíc ≈ 30,44 dne)."
+          info="Průměrný počet tankování za měsíc v tomto období."
+          tone="count"
+          icon={<CalendarRange className="h-4 w-4" />}
         />
         <Stat
           label="Ø tankování / rok"
           value={formatNumber(periodAvgs.fillUpsPerYear, 1)}
-          info="Počet tankování / počet let v období."
+          info="Průměrný počet tankování za rok v tomto období."
+          tone="count"
+          icon={<CalendarRange className="h-4 w-4" />}
         />
         <Stat
           label="Ø km / den"
           value={formatNumber(periodAvgs.kmPerDay, 1)}
-          info="Ujeté km / počet dní v období. Zahrnuje všechny dny, i ty bez tankování."
+          info="Průměrný počet ujetých kilometrů na den — počítá se ze všech dní v období, i bez tankování."
+          tone="km"
         />
         <Stat
           label="Ø km / měsíc"
           value={formatNumber(periodAvgs.kmPerMonth, 0)}
-          info="Ujeté km / počet měsíců v období."
+          info="Průměrný počet ujetých kilometrů za měsíc v tomto období."
+          tone="km"
         />
         <Stat
           label="Ø km / rok"
           value={formatNumber(periodAvgs.kmPerYear, 0)}
-          info="Ujeté km / počet let v období."
+          info="Průměrný počet ujetých kilometrů za rok v tomto období."
+          tone="km"
         />
       </div>
 
@@ -577,21 +725,21 @@ export function StatsDashboard({
       <SplitTable
         title="Město vs. dálnice"
         buckets={cityVsHighway}
-        info="Rozdělení podle příznaku dálničního tankování."
+        info="Porovnání tankování označených jako dálnice a těch ostatních."
       />
 
       {/* ČR vs zahraničí */}
       <SplitTable
         title="ČR vs. zahraničí"
         buckets={czVsForeign}
-        info="Rozdělení podle státu — Česko vs. všechny cizí státy dohromady."
+        info="Porovnání tankování v Česku a v zahraničí."
       />
 
       {/* Praha vs zbytek ČR */}
       <SplitTable
         title="Praha vs. zbytek ČR"
         buckets={prahaVsCz}
-        info="V rámci Česka: tankování v Praze (regiony P1–P10) vs. mimo ni."
+        info="Tankování v Praze (regiony P1–P10) vs. tankování mimo Prahu — pouze v rámci Česka."
       />
 
       {/* Monthly with horizon selector */}
@@ -599,7 +747,7 @@ export function StatsDashboard({
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="font-semibold">Měsíční přehled</div>
-            <InfoDot description="Součty po měsících. Jezdec vpravo určuje, kolik posledních měsíců zobrazit." />
+            <InfoDot description="Součty km, litrů a Kč po jednotlivých měsících. Přepínačem vpravo si zvolíš, kolik posledních měsíců chceš vidět." />
           </div>
           <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
             {([
@@ -642,7 +790,7 @@ export function StatsDashboard({
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="font-semibold">Roční souhrn</div>
-          <InfoDot description="Součty po kalendářních letech v rámci zvoleného období." />
+          <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období." />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

@@ -318,16 +318,33 @@ export function TopBrands({ data }: { data: { brand: string; liters: number; cou
     .sort((a, b) => b.count - a.count || b.liters - a.liters)
     .slice(0, 3);
   if (top.length === 0) return null;
+  const medals = ["#F59E0B", "#94A3B8", "#B45309"]; // gold / silver / bronze
   return (
-    <div className="card p-4">
-      <div className="font-semibold mb-3">Top 3 nejčastější pumpy</div>
-      <ol className="space-y-2">
+    <div className="card p-4 relative overflow-hidden">
+      <div className="absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-gradient-to-br from-amber-400/15 to-rose-400/15 blur-2xl pointer-events-none" />
+      <div className="flex items-center gap-2 mb-3 relative">
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+            <path d="M8 1.5a.75.75 0 0 1 .67.415l1.537 3.114 3.437.499a.75.75 0 0 1 .416 1.28l-2.487 2.423.587 3.423a.75.75 0 0 1-1.088.79L8 11.832 4.928 13.444a.75.75 0 0 1-1.088-.79l.587-3.423L1.94 6.808a.75.75 0 0 1 .416-1.28l3.437-.499L7.33 1.915A.75.75 0 0 1 8 1.5Z" />
+          </svg>
+        </span>
+        <div className="font-semibold">Top 3 pumpy</div>
+      </div>
+      <ol className="space-y-2 relative">
         {top.map((b, i) => (
-          <li key={b.brand} className="flex items-center gap-3">
-            <span className="text-xs w-5 text-slate-400 tabular-nums">{i + 1}.</span>
+          <li
+            key={b.brand}
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+          >
+            <span
+              className="inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold text-white tabular-nums shrink-0"
+              style={{ backgroundColor: medals[i] }}
+            >
+              {i + 1}
+            </span>
             <BrandLogo brand={b.brand} size={32} />
-            <span className="font-medium">{b.brand}</span>
-            <span className="ml-auto text-sm text-slate-500 tabular-nums">
+            <span className="font-medium truncate">{b.brand}</span>
+            <span className="ml-auto text-sm text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
               {b.count}× · {b.liters.toFixed(1)} l
             </span>
           </li>
@@ -563,35 +580,50 @@ export function RecentActivity({ data }: { data: RecentData }) {
   const { days30, days365 } = data;
   if (days365.count === 0) return null;
 
-  const cell = (label: string, value: string) => (
+  const cell = (label: string, value: string, dotColor: string) => (
     <div className="space-y-0.5">
-      <div className="text-xs text-slate-500">{label}</div>
+      <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: dotColor }}
+        />
+        {label}
+      </div>
       <div className="font-semibold tabular-nums">{value}</div>
     </div>
   );
 
+  const block = (title: string, badge: string, d: RecentData["days30"]) => (
+    <div>
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-gradient-to-br from-sky-500/10 to-indigo-500/10 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-300 border border-sky-500/20">
+          {title}
+        </span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500">{badge}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {cell("Tankování", String(d.count), "#F59E0B")}
+        {cell("Litry", d.liters.toFixed(1), "#0EA5E9")}
+        {cell("km", d.km.toLocaleString("cs-CZ"), "#7C3AED")}
+        {cell("Kč", d.price.toLocaleString("cs-CZ"), "#10B981")}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="card p-4">
-      <div className="font-semibold mb-3">Poslední aktivita</div>
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">30 dní</div>
-          <div className="grid grid-cols-2 gap-3">
-            {cell("Tankování", String(days30.count))}
-            {cell("Litry", days30.liters.toFixed(1))}
-            {cell("km", days30.km.toLocaleString("cs-CZ"))}
-            {cell("Kč", days30.price.toLocaleString("cs-CZ"))}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-400 mb-2">365 dní</div>
-          <div className="grid grid-cols-2 gap-3">
-            {cell("Tankování", String(days365.count))}
-            {cell("Litry", days365.liters.toFixed(1))}
-            {cell("km", days365.km.toLocaleString("cs-CZ"))}
-            {cell("Kč", days365.price.toLocaleString("cs-CZ"))}
-          </div>
-        </div>
+    <div className="card p-4 relative overflow-hidden">
+      <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-sky-500/10 to-indigo-500/10 blur-2xl pointer-events-none" />
+      <div className="flex items-center gap-2 mb-3 relative">
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sm">
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+            <path d="M8 1a7 7 0 1 0 7 7 .75.75 0 0 0-1.5 0A5.5 5.5 0 1 1 8 2.5a.75.75 0 0 0 0-1.5Zm.75 2.75a.75.75 0 0 0-1.5 0V8c0 .2.08.39.22.53l2.5 2.5a.75.75 0 0 0 1.06-1.06l-2.28-2.28V3.75Z" />
+          </svg>
+        </span>
+        <div className="font-semibold">Poslední aktivita</div>
+      </div>
+      <div className="grid grid-cols-2 gap-6 relative">
+        {block("30 dní", "měsíční pohled", days30)}
+        {block("365 dní", "roční pohled", days365)}
       </div>
     </div>
   );

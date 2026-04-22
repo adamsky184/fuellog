@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { FileDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   BrandBreakdown,
@@ -11,6 +13,7 @@ import {
   TopBrands,
   YearlyChart,
 } from "@/components/stats-charts";
+import { CalendarHeatmap } from "@/components/calendar-heatmap";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { countryLabel } from "@/lib/regions";
 
@@ -196,8 +199,27 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     price: Math.round(e.price),
   }));
 
+  // Heatmap input — raw (date, liters, price, is_baseline) for all years.
+  const heatmapRows = rowsAll.map((r) => ({
+    date: r.date ?? null,
+    liters: r.liters == null ? null : Number(r.liters),
+    total_price: r.total_price == null ? null : Number(r.total_price),
+    is_baseline: r.is_baseline ?? null,
+  }));
+  const yearsAvailable = yearly.map(([y]) => parseInt(y, 10));
+  const latestYear = yearsAvailable[yearsAvailable.length - 1] ?? new Date().getFullYear();
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Link
+          href={`/v/${id}/report?year=${latestYear}`}
+          className="btn-secondary text-xs inline-flex items-center gap-1"
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          Roční report
+        </Link>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="Aktuální tachometr" value={`${formatNumber(currentOdometer, 0)} km`} />
         <Stat label="Celkem najeto" value={`${formatNumber(totalAgg.km, 0)} km`} />
@@ -241,6 +263,10 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
       )}
 
       <MonthlyTrends data={monthly} />
+
+      {yearsAvailable.length > 0 && (
+        <CalendarHeatmap rows={heatmapRows} yearsAvailable={yearsAvailable} />
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         <PriceTrend data={priceSeries} />

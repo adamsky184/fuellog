@@ -8,10 +8,30 @@ import {
   FOREIGN_COUNTRIES,
   PRAGUE_DISTRICTS,
   parseRegionKey,
+  regionKey,
+  regionLabel,
 } from "@/lib/regions";
+import { enqueueFillUp } from "@/lib/offline-queue";
 
 const OTHER_BRAND = "__other__";
 const OTHER_COUNTRY_KEY = "C:__other__";
+
+type HistoryRow = {
+  station_brand: string | null;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+};
+
+type Combo = {
+  brand: string;
+  region: string | null;
+  country: string;
+  city: string | null;
+  address: string | null;
+  count: number;
+};
 
 export default function NewFillUpPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: vehicleId } = use(params);
@@ -19,6 +39,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brandOptions, setBrandOptions] = useState<string[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [addressOptions, setAddressOptions] = useState<string[]>([]);
   const [brandLoading, setBrandLoading] = useState(true);
   const [brandSelect, setBrandSelect] = useState<string>("");
@@ -39,22 +60,23 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     note: "",
   });
 
-  // Load station-brand + address history for the brand dropdown and address autocomplete.
+  // Load station-brand + address + combo history.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("fill_ups")
-        .select("station_brand, address")
+        .select("station_brand, address, city, region, country")
         .eq("vehicle_id", vehicleId)
         .limit(2000);
 
       if (cancelled) return;
+      const rows = (data as HistoryRow[] | null) ?? [];
 
       // Brands — top-3 frequency then alphabetical.
       const counts = new Map<string, number>();
-      for (const r of data ?? []) {
+      for (const r of rows) {
         const b = r.station_brand?.trim();
         if (!b) continue;
         counts.set(b, (counts.get(b) ?? 0) + 1);
@@ -68,13 +90,31 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         .sort((a, b) => a.localeCompare(b, "cs"));
       setBrandOptions([...top3, ...rest]);
 
-      // Distinct addresses for autocomplete (<datalist>).
+      // Distinct addresses for datalist autocomplete.
       const seen = new Set<string>();
-      for (const r of data ?? []) {
+      for (const r of rows) {
         const a = r.address?.trim();
         if (a) seen.add(a);
       }
       setAddressOptions(Array.from(seen).sort((a, b) => a.localeCompare(b, "cs")));
+
+      // Build {brand, region, country, city, address} combo frequency.
+      const comboMap = new Map<string, Combo>();
+      for (const r of rows) {
+        const brand = r.station_brand?.trim();
+        if (!brand) continue;
+        const country = (r.country ?? "CZ").trim() || "CZ";
+        const region = r.region?.trim() || null;
+        const city = r.city?.trim() || null;
+        const address = r.address?.trim() || null;
+        const key = [brand, region ?? "", country, city ?? "", address ?? ""].join("|");
+        const cur = comboMap.get(key);
+        if (cur) cur.count++;
+        else comboMap.set(key, { brand, region, country, city, address, count: 1 });
+      }
+      const comboList = Array.from(comboMap.values())
+        .sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand, "cs"));
+      setCombos(comboList);
 
       setBrandLoading(false);
     })();
@@ -93,6 +133,33 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.region_key]);
+
+  // Resolve the currently-typed brand (select vs. free-form Jiná…)
+  const currentBrand =
+    brandSelect === OTHER_BRAND ? brandNew.trim() : brandSelect.trim();
+
+  // Filter combos by current brand. Keep top 5 most frequent.
+  const suggestedCombos = useMemo(() => {
+    if (!currentBrand) return [];
+    const lower = currentBrand.toLowerCase();
+    return combos
+      .filter((c) => c.brand.toLowerCase() === lower)
+      .slice(0, 5);
+  }, [currentBrand, combos]);
+
+  function applyCombo(c: Combo) {
+    setForm((f) => ({
+      ...f,
+      region_key: regionKey(c.region, c.country),
+      city: c.city ?? f.city,
+      address: c.address ?? f.address,
+    }));
+    // If this combo's country is not in our known list, store it as custom.
+    if (c.country !== "CZ" && !FOREIGN_COUNTRIES.find((x) => x.country === c.country)) {
+      setCustomCountry(c.country);
+      setForm((f) => ({ ...f, region_key: OTHER_COUNTRY_KEY }));
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -122,7 +189,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         ? brandNew.trim() || null
         : brandSelect.trim() || null;
 
-    const { error } = await supabase.from("fill_ups").insert({
+    const payload = {
       vehicle_id: vehicleId,
       created_by: user.id,
       date: form.date,
@@ -138,10 +205,45 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       is_full_tank: form.is_full_tank,
       is_highway: form.is_highway,
       note: form.note.trim() || null,
-    });
+    };
 
+    // If the browser says we're offline, drop straight into IndexedDB and let
+    // the OfflineSync component flush later. The server insert is identical so
+    // there's no schema divergence.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        await enqueueFillUp(payload);
+        window.dispatchEvent(new CustomEvent("fuellog:queued"));
+        setSaving(false);
+        router.push(`/v/${vehicleId}/fill-ups`);
+        router.refresh();
+        return;
+      } catch (err) {
+        setSaving(false);
+        setError(
+          err instanceof Error
+            ? `Offline fronta selhala: ${err.message}`
+            : "Offline fronta selhala.",
+        );
+        return;
+      }
+    }
+
+    const { error } = await supabase.from("fill_ups").insert(payload);
     setSaving(false);
     if (error) {
+      // Network-dropped mid-save: try to queue so we don't lose the entry.
+      if (err_is_network(error)) {
+        try {
+          await enqueueFillUp(payload);
+          window.dispatchEvent(new CustomEvent("fuellog:queued"));
+          router.push(`/v/${vehicleId}/fill-ups`);
+          router.refresh();
+          return;
+        } catch {
+          /* fall through */
+        }
+      }
       setError(error.message);
       return;
     }
@@ -245,6 +347,38 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             Nejprve 3 nejpoužívanější, pak dle abecedy.
           </p>
         )}
+
+        {suggestedCombos.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="text-xs muted">
+              Tady už jsi na <b>{currentBrand}</b> tankoval:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestedCombos.map((c, i) => {
+                const parts = [
+                  regionLabel(c.region, c.country),
+                  c.city,
+                  c.address,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => applyCombo(c)}
+                    className="text-xs px-2 py-1 rounded-full border border-slate-200 bg-white hover:bg-sky-50 hover:border-sky-200
+                      dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
+                    title={`Klikni pro vyplnění (${c.count}×)`}
+                  >
+                    {parts || "(bez místa)"}{" "}
+                    <span className="text-slate-400">· {c.count}×</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -346,7 +480,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={() => router.back()} className="btn-secondary">
@@ -358,4 +492,9 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       </div>
     </form>
   );
+}
+
+function err_is_network(e: { message?: string } | null | undefined): boolean {
+  const m = (e?.message ?? "").toLowerCase();
+  return m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed");
 }

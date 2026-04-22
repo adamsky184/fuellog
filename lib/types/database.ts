@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -100,6 +98,38 @@ export type Database = {
           },
         ]
       }
+      garage_members: {
+        Row: {
+          garage_id: string
+          invited_by: string | null
+          joined_at: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }
+        Insert: {
+          garage_id: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }
+        Update: {
+          garage_id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_members_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garages: {
         Row: {
           created_at: string
@@ -126,6 +156,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      maintenance_entries: {
+        Row: {
+          cost: number | null
+          created_at: string
+          created_by: string
+          currency: string
+          date: string
+          id: string
+          kind: Database["public"]["Enums"]["maintenance_kind"]
+          next_due_date: string | null
+          next_due_km: number | null
+          note: string | null
+          odometer_km: number | null
+          title: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          date: string
+          id?: string
+          kind?: Database["public"]["Enums"]["maintenance_kind"]
+          next_due_date?: string | null
+          next_due_km?: number | null
+          note?: string | null
+          odometer_km?: number | null
+          title?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          date?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["maintenance_kind"]
+          next_due_date?: string | null
+          next_due_km?: number | null
+          note?: string | null
+          odometer_km?: number | null
+          title?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -282,6 +371,14 @@ export type Database = {
       }
     }
     Functions: {
+      add_garage_member: {
+        Args: {
+          p_email: string
+          p_garage_id: string
+          p_role: Database["public"]["Enums"]["member_role"]
+        }
+        Returns: Json
+      }
       add_vehicle_member: {
         Args: {
           p_email: string
@@ -290,8 +387,13 @@ export type Database = {
         }
         Returns: Json
       }
+      can_use_garage: { Args: { g_id: string; u_id: string }; Returns: boolean }
       can_write_vehicle: {
         Args: { u_id: string; v_id: string }
+        Returns: boolean
+      }
+      is_garage_member: {
+        Args: { g_id: string; u_id: string }
         Returns: boolean
       }
       is_garage_owner: {
@@ -301,6 +403,17 @@ export type Database = {
       is_vehicle_member: {
         Args: { u_id: string; v_id: string }
         Returns: boolean
+      }
+      list_garage_members: {
+        Args: { p_garage_id: string }
+        Returns: {
+          display_name: string
+          email: string
+          invited_by: string
+          joined_at: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }[]
       }
       list_vehicle_members: {
         Args: { p_vehicle_id: string }
@@ -313,8 +426,20 @@ export type Database = {
           user_id: string
         }[]
       }
+      remove_garage_member: {
+        Args: { p_garage_id: string; p_user_id: string }
+        Returns: undefined
+      }
       remove_vehicle_member: {
         Args: { p_user_id: string; p_vehicle_id: string }
+        Returns: undefined
+      }
+      set_garage_member_role: {
+        Args: {
+          p_garage_id: string
+          p_role: Database["public"]["Enums"]["member_role"]
+          p_user_id: string
+        }
         Returns: undefined
       }
       set_vehicle_member_role: {
@@ -328,6 +453,16 @@ export type Database = {
     }
     Enums: {
       fuel_type: "gasoline" | "diesel" | "lpg" | "electric" | "hybrid"
+      maintenance_kind:
+        | "oil_change"
+        | "tires_change"
+        | "stk"
+        | "emise"
+        | "service"
+        | "repair"
+        | "insurance"
+        | "highway_sticker"
+        | "other"
       member_role: "owner" | "editor" | "viewer"
     }
     CompositeTypes: {
@@ -335,129 +470,3 @@ export type Database = {
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      fuel_type: ["gasoline", "diesel", "lpg", "electric", "hybrid"],
-      member_role: ["owner", "editor", "viewer"],
-    },
-  },
-} as const

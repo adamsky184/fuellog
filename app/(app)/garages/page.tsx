@@ -488,11 +488,16 @@ export default function GaragesPage() {
                           </form>
                         )}
 
-                        {currentMsg && (
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {currentMsg}
-                          </p>
-                        )}
+                        {currentMsg &&
+                          (currentMsg.startsWith("Chyba") ? (
+                            <div className="rounded-md border border-red-300 bg-red-50 dark:bg-red-950/40 dark:border-red-800 px-3 py-2 text-sm italic text-red-700 dark:text-red-300">
+                              {currentMsg}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              {currentMsg}
+                            </p>
+                          ))}
 
                         {membersLoadingId === g.id && !members.length ? (
                           <p className="text-sm text-slate-500">Načítám členy…</p>

@@ -239,7 +239,14 @@ type MonthlyPoint = {
  * Bar chart over recent months with a metric toggle (km / L / Kč).
  * Months with no data are skipped on the X axis rather than zero-filled.
  */
-export function MonthlyTrends({ data }: { data: MonthlyPoint[] }) {
+export function MonthlyTrends({
+  data,
+  naked = false,
+}: {
+  data: MonthlyPoint[];
+  /** When true, don't render the outer card/title — the caller provides its own. */
+  naked?: boolean;
+}) {
   const [metric, setMetric] = useState<"km" | "liters" | "price">("km");
 
   const metricConfig = {
@@ -252,39 +259,54 @@ export function MonthlyTrends({ data }: { data: MonthlyPoint[] }) {
 
   if (data.length === 0) return null;
 
+  const metricToggle = (
+    <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
+      {(Object.keys(metricConfig) as (keyof typeof metricConfig)[]).map((k) => (
+        <button
+          key={k}
+          onClick={() => setMetric(k)}
+          className={`px-2.5 py-1 ${
+            metric === k
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          {metricConfig[k].label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const chart = (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip formatter={(v: number) => [`${v.toLocaleString("cs-CZ")} ${cfg.unit}`, cfg.label]} />
+          <Bar dataKey={metric} fill={cfg.color} name={cfg.label} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  if (naked) {
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-end">{metricToggle}</div>
+        {chart}
+      </div>
+    );
+  }
+
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <div className="font-semibold">Měsíční přehled</div>
-        <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-          {(Object.keys(metricConfig) as (keyof typeof metricConfig)[]).map((k) => (
-            <button
-              key={k}
-              onClick={() => setMetric(k)}
-              className={`px-2.5 py-1 ${
-                metric === k
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {metricConfig[k].label}
-            </button>
-          ))}
-        </div>
+        {metricToggle}
       </div>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip
-              formatter={(v: number) => [`${v.toLocaleString("cs-CZ")} ${cfg.unit}`, cfg.label]}
-            />
-            <Bar dataKey={metric} fill={cfg.color} name={cfg.label} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {chart}
     </div>
   );
 }

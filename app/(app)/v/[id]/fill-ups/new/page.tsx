@@ -239,22 +239,70 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   }
 
   /** Phase 2: when a user has an AI provider configured, use the edge function
-   *  instead of in-browser Tesseract. Returns the same parsed shape. */
+   *  instead of in-browser Tesseract. Returns the same parsed shape.
+   *
+   *  NOTE: we call fetch() directly instead of `supabase.functions.invoke`
+   *  because invoke wraps non-2xx responses in a generic
+   *  "Edge function returned a non-2xx status code" string and throws away
+   *  the JSON body. We want Adam to see the actual `detail` returned by
+   *  ocr-parse so he knows whether it's a missing key, wrong provider,
+   *  Gemini rejecting the image, etc.
+   */
   async function aiDispatcher(
     file: File,
     kind: "receipt" | "odometer",
   ): Promise<ParsedReceipt | ParsedOdometer> {
     const supabase = createClient();
-    // Encode the image as base64 data URL so the edge fn gets one JSON payload.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Nejsi přihlášen — obnov stránku a zkus to znovu.");
+    }
     const dataUrl = await fileToDataUrl(file);
     const payload: Record<string, unknown> = { image: dataUrl, kind };
     if (kind === "odometer" && previousKm) payload.previous_km = previousKm;
-    const { data, error } = await supabase.functions.invoke("ocr-parse", {
-      body: payload,
-    });
-    if (error) throw new Error(error.message);
-    if (!data) throw new Error("AI nevrátila data.");
-    return data as ParsedReceipt | ParsedOdometer;
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) throw new Error("Chybí NEXT_PUBLIC_SUPABASE_URL.");
+    const url = `${supabaseUrl}/functions/v1/ocr-parse`;
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (netErr) {
+      throw new Error(
+        `Nedošlo k síťovému volání edge function: ${netErr instanceof Error ? netErr.message : String(netErr)}`,
+      );
+    }
+
+    const text = await res.text();
+    let body: unknown;
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = null;
+    }
+
+    if (!res.ok) {
+      const bodyObj = (body && typeof body === "object" ? body : {}) as {
+        error?: string;
+        detail?: string;
+      };
+      const label = bodyObj.error ?? "edge";
+      const detail = bodyObj.detail ?? text.slice(0, 500) ?? "(bez detailu)";
+      throw new Error(`${label} [${res.status}]: ${detail}`);
+    }
+
+    if (!body) throw new Error("AI nevrátila data.");
+    return body as ParsedReceipt | ParsedOdometer;
   }
 
   function applyCombo(c: Combo) {

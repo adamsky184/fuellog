@@ -177,12 +177,12 @@ export function PhotoOcr<K extends Kind>(props: PhotoOcrProps<K>) {
                 </>
               )}
               {error && (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span className="truncate text-amber-700 dark:text-amber-300">
+                <div className="flex items-start gap-2 min-w-0">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-xs text-amber-700 dark:text-amber-300 whitespace-pre-wrap break-words">
                     {error}
                   </span>
-                </>
+                </div>
               )}
             </div>
             {busy && progress?.progress != null && (

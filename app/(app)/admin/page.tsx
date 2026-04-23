@@ -1,41 +1,74 @@
 import Link from "next/link";
-import { Users, Warehouse, Car, Fuel, ArrowRight } from "lucide-react";
+import { Users, Warehouse, Car, Fuel, ArrowRight, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import type { PostgrestError } from "@supabase/supabase-js";
 
 /**
  * Admin overview — top-level counts pulled straight from the tables.
- * Because /admin already checks is_admin in the parent layout, the counts
- * here will succeed (no RLS hurdle for admin profile, but base tables are
- * still RLS-gated, so we use the admin_* RPCs to get system-wide totals).
+ *
+ * IMPORTANT: we run each RPC individually (not via Promise.all) and catch
+ * per-call errors. When a RPC returns `error`, Supabase does NOT throw —
+ * but if we then pass a fat object through `JSON.stringify` or pass
+ * `null.length` we crash the server render, which shows up as a generic
+ * "Server Components render" error in production. So: each RPC gets its
+ * own try/catch AND a null-safe unwrap, and whatever we can't read is
+ * rendered inline as a visible warning so Adam sees the real reason.
  */
+
+type UserRow = {
+  vehicle_count?: number | string | null;
+  fill_up_count?: number | string | null;
+  garage_count?: number | string | null;
+};
+
+async function safeRpc<T>(
+  fn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
+): Promise<{ data: T | null; error: string | null }> {
+  try {
+    const { data, error } = await fn();
+    if (error) {
+      return {
+        data: null,
+        error: `${error.code ?? ""} ${error.message}${error.details ? ` · ${error.details}` : ""}${error.hint ? ` · ${error.hint}` : ""}`.trim(),
+      };
+    }
+    return { data, error: null };
+  } catch (e) {
+    return {
+      data: null,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 export default async function AdminOverviewPage() {
   const supabase = await createClient();
 
-  const [usersRes, garagesRes, vehiclesRes, fillUpsRes] = await Promise.all([
+  const usersRes = await safeRpc<UserRow[]>(() =>
     supabase.rpc("admin_list_users"),
+  );
+  const garagesRes = await safeRpc<unknown[]>(() =>
     supabase.rpc("admin_list_garages"),
+  );
+  const vehiclesRes = await safeRpc<unknown[]>(() =>
     supabase.rpc("admin_list_vehicles"),
-    supabase.rpc("admin_list_fill_ups", { p_vehicle_id: null, p_limit: 1 }),
-  ]);
+  );
 
-  // `admin_list_fill_ups` returns up to p_limit rows, so use COUNT for totals
-  // by asking for a big number and counting — or better, hit the table with a
-  // head count using a DB function. Keep the overview page simple: sum what
-  // each RPC returned and note the fill-up total comes from a separate query.
-  const users = (usersRes.data ?? []) as Array<{
-    vehicle_count: number;
-    fill_up_count: number;
-    garage_count: number;
-  }>;
+  const users = Array.isArray(usersRes.data) ? usersRes.data : [];
   const totalUsers = users.length;
-  const totalGarages = (garagesRes.data ?? []).length;
-  const totalVehicles = (vehiclesRes.data ?? []).length;
+  const totalGarages = Array.isArray(garagesRes.data) ? garagesRes.data.length : 0;
+  const totalVehicles = Array.isArray(vehiclesRes.data)
+    ? vehiclesRes.data.length
+    : 0;
   const totalFillUps = users.reduce(
-    (sum, u) => sum + Number(u.fill_up_count ?? 0),
+    (sum: number, u: UserRow) => sum + Number(u?.fill_up_count ?? 0),
     0,
   );
-  // Suppress unused var
-  void fillUpsRes;
+
+  const errors: Array<{ src: string; msg: string }> = [];
+  if (usersRes.error) errors.push({ src: "admin_list_users", msg: usersRes.error });
+  if (garagesRes.error) errors.push({ src: "admin_list_garages", msg: garagesRes.error });
+  if (vehiclesRes.error) errors.push({ src: "admin_list_vehicles", msg: vehiclesRes.error });
 
   const cards = [
     {
@@ -69,30 +102,50 @@ export default async function AdminOverviewPage() {
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {cards.map((c) => {
-        const Icon = c.icon;
-        return (
-          <Link
-            key={c.href}
-            href={c.href}
-            className="card p-5 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
-          >
-            <span
-              className={`inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br text-white shadow-sm ${c.tone}`}
-            >
-              <Icon className="h-6 w-6" />
+    <div className="space-y-3">
+      {errors.length > 0 && (
+        <div className="card p-4 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 space-y-2">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-semibold">
+              Některé dotazy selhaly — zbytek jede dál
             </span>
-            <div className="flex-1">
-              <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {c.label}
+          </div>
+          <ul className="text-xs space-y-1 text-amber-900 dark:text-amber-100">
+            {errors.map((e) => (
+              <li key={e.src}>
+                <code className="font-mono">{e.src}</code>: {e.msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <Link
+              key={c.href}
+              href={c.href}
+              className="card p-5 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
+            >
+              <span
+                className={`inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br text-white shadow-sm ${c.tone}`}
+              >
+                <Icon className="h-6 w-6" />
+              </span>
+              <div className="flex-1">
+                <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {c.label}
+                </div>
+                <div className="text-2xl font-semibold tabular-nums">{c.count}</div>
               </div>
-              <div className="text-2xl font-semibold tabular-nums">{c.count}</div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        );
-      })}
+              <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -3,11 +3,18 @@
 /**
  * Auto-sync for fill-ups that were queued while offline.
  *
- * Mounted once in the authenticated app shell. When the browser reports
- * `online`, or every 60 s as a safety net, it reads pending records from
- * IndexedDB and inserts them via the authenticated Supabase client. On
- * success the record is removed and a cs-locale toast is fired through a
- * simple CustomEvent so the UI can announce "N tankování synchronizováno".
+ * Mounted once in the authenticated app shell.
+ *
+ * ONLINE DETECTION: `navigator.onLine` is notoriously unreliable on macOS
+ * (often stuck on `false` even on a solid wifi, and Safari's `online` event
+ * rarely fires). So we don't trust it alone — instead we fire an active
+ * HEAD-style fetch against `/manifest.json` every 30 s and flip the badge
+ * based on whether it resolves. `navigator.onLine` is still respected as a
+ * hint: if the browser says offline, we show offline immediately, but we
+ * never show offline just because the browser says so — we wait for a
+ * failed heartbeat to confirm.
+ *
+ * On a successful heartbeat we also flush the IndexedDB queue.
  */
 
 import { useEffect, useState } from "react";
@@ -16,12 +23,29 @@ import { createClient } from "@/lib/supabase/client";
 import { listQueued, removeQueued, type QueuedFillUp } from "@/lib/offline-queue";
 import { useRouter } from "next/navigation";
 
+const HEARTBEAT_MS = 30_000;
+
+async function heartbeatOk(): Promise<boolean> {
+  try {
+    // manifest.json is static and bypassed by middleware; cheap to hit.
+    const res = await fetch("/manifest.json", {
+      method: "GET",
+      cache: "no-store",
+      // Give up quickly so we flip to offline reasonably fast.
+      signal: AbortSignal.timeout(5_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function OfflineSync() {
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
-  const [online, setOnline] = useState<boolean>(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
+  // Start optimistically online — we'd rather show nothing than a false
+  // OFFLINE badge during initial hydration.
+  const [online, setOnline] = useState<boolean>(true);
   const router = useRouter();
 
   async function refreshCount() {
@@ -34,7 +58,6 @@ export function OfflineSync() {
   }
 
   async function flush() {
-    if (typeof navigator !== "undefined" && !navigator.onLine) return;
     let items: QueuedFillUp[] = [];
     try {
       items = await listQueued();
@@ -58,29 +81,56 @@ export function OfflineSync() {
     setSyncing(false);
     await refreshCount();
     if (synced > 0) {
-      // Let the current page pick up the newly-synced rows.
       router.refresh();
     }
   }
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function tick() {
+      const ok = await heartbeatOk();
+      if (cancelled) return;
+      setOnline((prev) => {
+        if (ok && !prev) {
+          // Came back online — flush pending.
+          flush();
+        }
+        return ok;
+      });
+    }
+
     refreshCount();
+    // Initial probe.
+    tick();
+
     const onOnline = () => {
-      setOnline(true);
-      flush();
+      // Browser hint — verify with a heartbeat.
+      tick();
     };
-    const onOffline = () => setOnline(false);
+    const onOffline = () => {
+      // Browser hint says we're offline. Trust it only enough to stop
+      // trying to sync; verify with a heartbeat before flipping the badge.
+      tick();
+    };
     const onQueued = () => refreshCount();
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     window.addEventListener("fuellog:queued", onQueued as EventListener);
-    const interval = setInterval(flush, 60_000);
-    // Attempt a flush on mount in case we loaded fresh online.
-    if (navigator.onLine) flush();
+    document.addEventListener("visibilitychange", onVisible);
+
+    const interval = setInterval(tick, HEARTBEAT_MS);
+
     return () => {
+      cancelled = true;
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("fuellog:queued", onQueued as EventListener);
+      document.removeEventListener("visibilitychange", onVisible);
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

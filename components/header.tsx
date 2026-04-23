@@ -2,7 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fuel, LogOut, BarChart3, Wrench, FileUp, Settings, ClipboardList, ShieldCheck } from "lucide-react";
+import {
+  Fuel,
+  LogOut,
+  BarChart3,
+  Wrench,
+  FileUp,
+  Settings,
+  ClipboardList,
+  ShieldCheck,
+  Plus,
+  UserCircle2,
+  Menu,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VehicleSwitcher, type SwitcherVehicle, type SwitcherGarage } from "@/components/vehicle-switcher";
@@ -20,6 +34,8 @@ export function Header({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   async function signOut() {
     const supabase = createClient();
@@ -34,6 +50,10 @@ export function Header({
     pathname?.match(/^\/v\/([^/]+)/)?.[1] ?? null;
   const inVehicle = currentVehicleId != null;
 
+  // Pick a sensible default for the "+" button: currently-viewed vehicle, or
+  // the first one from the user's list, or null (hide button when no vehicles).
+  const quickAddVehicleId = currentVehicleId ?? vehicles[0]?.id ?? null;
+
   const tabs = inVehicle
     ? [
         { href: `/v/${currentVehicleId}/fill-ups`, label: "Tankování", icon: ClipboardList },
@@ -44,12 +64,37 @@ export function Header({
       ]
     : [];
 
+  // Close the popover on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  // Close the menu on any navigation.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-10 bg-white/85 backdrop-blur-md border-b border-slate-200/80 dark:bg-slate-900/85 dark:border-slate-700/80 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
-      <div className="max-w-5xl mx-auto flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5">
+      <div className="max-w-5xl mx-auto flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-2">
         <Link
           href="/vehicles"
           className="flex items-center gap-2 font-semibold shrink-0"
+          aria-label="FuelLog — vozidla"
         >
           <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white grid place-items-center shadow-sm ring-1 ring-white/20">
             <Fuel className="h-4 w-4" />
@@ -86,33 +131,76 @@ export function Header({
           </nav>
         )}
 
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <Link
-            href="/profile"
-            className="muted hidden lg:block hover:text-slate-700 dark:hover:text-slate-200 hover:underline max-w-[18ch] truncate"
-            title="Můj profil"
-          >
-            {userEmail}
-          </Link>
-          {isAdmin && (
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 text-sm">
+          {quickAddVehicleId && (
             <Link
-              href="/admin"
-              className="btn-secondary text-xs inline-flex items-center gap-1"
-              title="Admin panel"
+              href={`/v/${quickAddVehicleId}/fill-ups/new`}
+              className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition"
+              title="Nové tankování"
+              aria-label="Nové tankování"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Admin</span>
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nové</span>
             </Link>
           )}
+
           <ThemeToggle />
-          <button
-            onClick={signOut}
-            className="btn-secondary text-xs inline-flex items-center gap-1"
-            title="Odhlásit"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Odhlásit</span>
-          </button>
+
+          {/* Unified user menu — visible on ALL breakpoints so mobile users
+              can reach Profil, Admin, Odhlásit. Replaces the old
+              hidden-on-mobile email link + separate Admin/Logout buttons. */}
+          <div ref={menuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1.5"
+              title="Menu"
+              aria-label="Otevřít menu"
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Menu className="h-4 w-4" />
+              )}
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 mt-1.5 w-60 rounded-xl border border-slate-200 bg-white shadow-lg dark:bg-slate-900 dark:border-slate-700 overflow-hidden z-20"
+                role="menu"
+              >
+                {userEmail && (
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800"
+                    role="menuitem"
+                  >
+                    <UserCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
+                    <span className="truncate">{userEmail}</span>
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                    role="menuitem"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-rose-500 shrink-0" />
+                    Admin panel
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 text-left"
+                  role="menuitem"
+                >
+                  <LogOut className="h-4 w-4 text-slate-500 shrink-0" />
+                  Odhlásit
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

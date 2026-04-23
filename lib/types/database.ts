@@ -220,6 +220,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_key_last4: string | null
+          ai_provider: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -228,6 +230,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_key_last4?: string | null
+          ai_provider?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -236,12 +240,38 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_key_last4?: string | null
+          ai_provider?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           is_admin?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_ai_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          provider?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -376,6 +406,13 @@ export type Database = {
       }
     }
     Functions: {
+      _get_ai_key_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          api_key: string
+          provider: string
+        }[]
+      }
       add_garage_member: {
         Args: {
           p_email: string
@@ -480,38 +517,38 @@ export type Database = {
       }
       admin_update_fill_up: {
         Args: {
-          p_date: string | null
+          p_date: string
           p_fill_up_id: string
-          p_liters: number | null
-          p_note: string | null
-          p_odometer_km: number | null
-          p_station_brand: string | null
-          p_total_price: number | null
+          p_liters: number
+          p_note: string
+          p_odometer_km: number
+          p_station_brand: string
+          p_total_price: number
         }
         Returns: undefined
       }
       admin_update_garage: {
-        Args: { p_description: string | null; p_garage_id: string; p_name: string | null }
+        Args: { p_description: string; p_garage_id: string; p_name: string }
         Returns: undefined
       }
       admin_update_profile: {
         Args: {
-          p_avatar_url: string | null
-          p_display_name: string | null
+          p_avatar_url: string
+          p_display_name: string
           p_user_id: string
         }
         Returns: undefined
       }
       admin_update_vehicle: {
         Args: {
-          p_color: string | null
-          p_garage_id: string | null
-          p_license_plate: string | null
-          p_make: string | null
-          p_model: string | null
-          p_name: string | null
+          p_color: string
+          p_garage_id: string
+          p_license_plate: string
+          p_make: string
+          p_model: string
+          p_name: string
           p_vehicle_id: string
-          p_year: number | null
+          p_year: number
         }
         Returns: undefined
       }
@@ -520,6 +557,7 @@ export type Database = {
         Args: { u_id: string; v_id: string }
         Returns: boolean
       }
+      clear_ai_key: { Args: Record<string, never>; Returns: undefined }
       is_admin: { Args: Record<string, never>; Returns: boolean }
       is_garage_member: {
         Args: { g_id: string; u_id: string }
@@ -561,6 +599,10 @@ export type Database = {
       }
       remove_vehicle_member: {
         Args: { p_user_id: string; p_vehicle_id: string }
+        Returns: undefined
+      }
+      set_ai_key: {
+        Args: { p_api_key: string; p_provider: string }
         Returns: undefined
       }
       set_garage_member_role: {

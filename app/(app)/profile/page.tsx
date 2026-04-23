@@ -1,8 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, User } from "lucide-react";
+import { KeyRound, Sparkles, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+type AiProvider = "gemini" | "openai" | "anthropic" | "openrouter";
+
+const PROVIDER_LABELS: Record<AiProvider, string> = {
+  gemini: "Google Gemini",
+  openai: "OpenAI (ChatGPT)",
+  anthropic: "Anthropic (Claude)",
+  openrouter: "OpenRouter",
+};
+
+const PROVIDER_HINTS: Record<AiProvider, { url: string; blurb: string }> = {
+  gemini: {
+    url: "https://aistudio.google.com/app/apikey",
+    blurb: "Doporučeno — 1 500 požadavků/den zdarma pro Gemini 2.0 Flash.",
+  },
+  openai: {
+    url: "https://platform.openai.com/api-keys",
+    blurb: "GPT-4o-mini s vision. Žádný free tier, účtuje se za token.",
+  },
+  anthropic: {
+    url: "https://console.anthropic.com/settings/keys",
+    blurb: "Claude Haiku s vision. Free tier velmi omezený.",
+  },
+  openrouter: {
+    url: "https://openrouter.ai/keys",
+    blurb: "Proxy přes všechny modely. Některé (Qwen-VL, Llama Vision) mají free tier.",
+  },
+};
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -20,6 +48,15 @@ export default function ProfilePage() {
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwInfo, setPwInfo] = useState<string | null>(null);
 
+  // AI key
+  const [aiProvider, setAiProvider] = useState<AiProvider>("gemini");
+  const [aiKeyInput, setAiKeyInput] = useState("");
+  const [aiKeyLast4, setAiKeyLast4] = useState<string | null>(null);
+  const [aiSavedProvider, setAiSavedProvider] = useState<AiProvider | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiInfo, setAiInfo] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       const supabase = createClient();
@@ -36,14 +73,65 @@ export default function ProfilePage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, ai_provider, ai_key_last4")
         .eq("id", user.id)
         .maybeSingle();
 
       setDisplayName(profile?.display_name ?? "");
+      if (profile && "ai_provider" in profile && profile.ai_provider) {
+        const p = (profile.ai_provider as AiProvider) ?? null;
+        if (p && p in PROVIDER_LABELS) {
+          setAiSavedProvider(p);
+          setAiProvider(p);
+        }
+      }
+      if (profile && "ai_key_last4" in profile) {
+        setAiKeyLast4((profile.ai_key_last4 as string | null) ?? null);
+      }
       setLoading(false);
     })();
   }, []);
+
+  async function handleAiSave(e: React.FormEvent) {
+    e.preventDefault();
+    setAiError(null);
+    setAiInfo(null);
+    const key = aiKeyInput.trim();
+    if (key.length < 10) {
+      setAiError("Klíč je příliš krátký.");
+      return;
+    }
+    setAiBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("set_ai_key", {
+      p_provider: aiProvider,
+      p_api_key: key,
+    });
+    setAiBusy(false);
+    if (error) {
+      setAiError(error.message);
+      return;
+    }
+    setAiSavedProvider(aiProvider);
+    setAiKeyLast4(key.slice(-4));
+    setAiKeyInput("");
+    setAiInfo("Klíč uložen. Otevři si „Nové tankování“ a zapni AI u fotky.");
+  }
+
+  async function handleAiClear() {
+    if (!confirm("Opravdu odstranit AI klíč?")) return;
+    setAiBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("clear_ai_key");
+    setAiBusy(false);
+    if (error) {
+      setAiError(error.message);
+      return;
+    }
+    setAiSavedProvider(null);
+    setAiKeyLast4(null);
+    setAiInfo("Klíč odstraněn.");
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -128,6 +216,98 @@ export default function ProfilePage() {
         <div className="flex justify-end pt-2">
           <button type="submit" disabled={saving} className="btn-primary">
             {saving ? "Ukládám…" : "Uložit"}
+          </button>
+        </div>
+      </form>
+
+      <form onSubmit={handleAiSave} className="card p-5 sm:p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-purple-500" />
+          <h2 className="font-semibold">AI asistent — fotky účtenek</h2>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Volitelné. Když sem vložíš vlastní API klíč, appka použije AI pro
+          přesnější rozpoznání údajů z fotky účtenky a tachometru. Bez klíče
+          funguje základní OCR v prohlížeči (zdarma, méně přesné).
+        </p>
+
+        {aiSavedProvider ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-700/40 dark:bg-emerald-900/20 p-3 text-sm">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-emerald-800 dark:text-emerald-200">
+                Uložený klíč: <b>{PROVIDER_LABELS[aiSavedProvider]}</b>
+                {aiKeyLast4 && (
+                  <span className="font-mono text-xs ml-1 text-emerald-700 dark:text-emerald-300">
+                    …{aiKeyLast4}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={handleAiClear}
+                disabled={aiBusy}
+                className="text-xs px-2 py-1 rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+              >
+                Odstranit klíč
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div>
+          <label className="label">Poskytovatel</label>
+          <select
+            className="input"
+            value={aiProvider}
+            onChange={(e) => setAiProvider(e.target.value as AiProvider)}
+          >
+            {(Object.keys(PROVIDER_LABELS) as AiProvider[]).map((p) => (
+              <option key={p} value={p}>
+                {PROVIDER_LABELS[p]}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {PROVIDER_HINTS[aiProvider].blurb}{" "}
+            <a
+              className="underline hover:text-sky-600"
+              href={PROVIDER_HINTS[aiProvider].url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Získat klíč →
+            </a>
+          </p>
+        </div>
+
+        <div>
+          <label className="label">
+            {aiSavedProvider ? "Vložit nový klíč (nahradí starý)" : "API klíč"}
+          </label>
+          <input
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            className="input font-mono"
+            placeholder="AIza… nebo sk-… nebo podobně"
+            value={aiKeyInput}
+            onChange={(e) => setAiKeyInput(e.target.value)}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Klíč je uložen v DB odděleně od profilu a nikdo kromě tebe (přes tuto stránku) ani server-side edge funkce jej nemůže přečíst.
+          </p>
+        </div>
+
+        {aiError && <p className="text-sm text-red-600">{aiError}</p>}
+        {aiInfo && <p className="text-sm text-emerald-600">{aiInfo}</p>}
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            disabled={aiBusy || !aiKeyInput.trim()}
+            className="btn-primary"
+          >
+            {aiBusy ? "Ukládám…" : aiSavedProvider ? "Uložit nový" : "Uložit klíč"}
           </button>
         </div>
       </form>

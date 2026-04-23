@@ -12,6 +12,8 @@ import {
   regionLabel,
 } from "@/lib/regions";
 import { enqueueFillUp } from "@/lib/offline-queue";
+import { PhotoOcr } from "@/components/photo-ocr";
+import type { ParsedReceipt, ParsedOdometer } from "@/lib/ocr/types";
 
 const OTHER_BRAND = "__other__";
 const OTHER_COUNTRY_KEY = "C:__other__";
@@ -45,6 +47,11 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   const [brandSelect, setBrandSelect] = useState<string>("");
   const [brandNew, setBrandNew] = useState<string>("");
   const [customCountry, setCustomCountry] = useState<string>("");
+  const [previousKm, setPreviousKm] = useState<number | undefined>(undefined);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [odometerFile, setOdometerFile] = useState<File | null>(null);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
 
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -59,6 +66,62 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     is_highway: false,
     note: "",
   });
+
+  // Pull last odometer reading — helps OCR disambiguate trip-meter vs total km.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("fill_ups")
+        .select("odometer_km")
+        .eq("vehicle_id", vehicleId)
+        .order("date", { ascending: false })
+        .order("odometer_km", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.odometer_km) setPreviousKm(data.odometer_km);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId]);
+
+  // Check whether the current user has an AI provider configured (phase 2).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from("profiles")
+          // Column exists only after phase-2 migration — ignore errors.
+          .select("ai_provider, ai_key_last4" as "*")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!cancelled && data) {
+          const hasKey =
+            Boolean(
+              (data as unknown as { ai_provider: string | null }).ai_provider,
+            ) &&
+            Boolean(
+              (data as unknown as { ai_key_last4: string | null }).ai_key_last4,
+            );
+          setAiAvailable(hasKey);
+          setAiActive(hasKey); // default ON when configured
+        }
+      } catch {
+        /* phase-1: column might not exist yet, stay disabled */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load station-brand + address + combo history.
   useEffect(() => {
@@ -147,6 +210,53 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       .slice(0, 5);
   }, [currentBrand, combos]);
 
+  function applyReceipt(p: ParsedReceipt, file: File) {
+    setReceiptFile(file);
+    setForm((f) => ({
+      ...f,
+      liters: p.liters != null ? String(p.liters) : f.liters,
+      total_price: p.total_price != null ? String(p.total_price) : f.total_price,
+      currency: p.currency ?? f.currency,
+      date: p.date ?? f.date,
+    }));
+    if (p.station_brand) {
+      const upper = p.station_brand.toUpperCase();
+      const match = brandOptions.find((b) => b.toUpperCase() === upper);
+      if (match) {
+        setBrandSelect(match);
+      } else {
+        setBrandSelect(OTHER_BRAND);
+        setBrandNew(upper);
+      }
+    }
+  }
+
+  function applyOdometer(p: ParsedOdometer, file: File) {
+    setOdometerFile(file);
+    if (p.km != null) {
+      setForm((f) => ({ ...f, odometer_km: String(p.km) }));
+    }
+  }
+
+  /** Phase 2: when a user has an AI provider configured, use the edge function
+   *  instead of in-browser Tesseract. Returns the same parsed shape. */
+  async function aiDispatcher(
+    file: File,
+    kind: "receipt" | "odometer",
+  ): Promise<ParsedReceipt | ParsedOdometer> {
+    const supabase = createClient();
+    // Encode the image as base64 data URL so the edge fn gets one JSON payload.
+    const dataUrl = await fileToDataUrl(file);
+    const payload: Record<string, unknown> = { image: dataUrl, kind };
+    if (kind === "odometer" && previousKm) payload.previous_km = previousKm;
+    const { data, error } = await supabase.functions.invoke("ocr-parse", {
+      body: payload,
+    });
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("AI nevrátila data.");
+    return data as ParsedReceipt | ParsedOdometer;
+  }
+
   function applyCombo(c: Combo) {
     setForm((f) => ({
       ...f,
@@ -229,7 +339,46 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       }
     }
 
-    const { error } = await supabase.from("fill_ups").insert(payload);
+    const { data: inserted, error } = await supabase
+      .from("fill_ups")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    // If we got a row back and any photos were captured, upload them and
+    // stamp the paths onto the fill-up. Photo upload is best-effort — we
+    // never fail the save because a photo didn't land.
+    if (!error && inserted?.id && (receiptFile || odometerFile)) {
+      try {
+        const paths: { receipt_photo_path?: string; odometer_photo_path?: string } = {};
+        if (receiptFile) {
+          const p = await uploadPhoto(
+            supabase,
+            vehicleId,
+            inserted.id,
+            "receipt",
+            receiptFile,
+          );
+          if (p) paths.receipt_photo_path = p;
+        }
+        if (odometerFile) {
+          const p = await uploadPhoto(
+            supabase,
+            vehicleId,
+            inserted.id,
+            "odometer",
+            odometerFile,
+          );
+          if (p) paths.odometer_photo_path = p;
+        }
+        if (Object.keys(paths).length > 0) {
+          await supabase.from("fill_ups").update(paths).eq("id", inserted.id);
+        }
+      } catch {
+        // photo upload errors are non-fatal
+      }
+    }
+
     setSaving(false);
     if (error) {
       // Network-dropped mid-save: try to queue so we don't lose the entry.
@@ -254,6 +403,47 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   return (
     <form onSubmit={handleSubmit} className="card p-5 sm:p-6 space-y-4 max-w-xl">
       <h2 className="text-lg font-semibold">Nové tankování</h2>
+
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-3 bg-gradient-to-br from-sky-50/40 to-transparent dark:from-sky-900/10">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Rychlé vyplnění z fotky
+          </div>
+          {aiAvailable && (
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={aiActive}
+                onChange={(e) => setAiActive(e.target.checked)}
+                className="accent-purple-500"
+              />
+              Použít AI
+            </label>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <PhotoOcr
+            kind="receipt"
+            onParsed={applyReceipt}
+            onClear={() => setReceiptFile(null)}
+            aiDispatcher={aiAvailable ? aiDispatcher : undefined}
+            aiActive={aiActive}
+          />
+          <PhotoOcr
+            kind="odometer"
+            onParsed={applyOdometer}
+            onClear={() => setOdometerFile(null)}
+            previousKm={previousKm}
+            aiDispatcher={aiAvailable ? aiDispatcher : undefined}
+            aiActive={aiActive}
+          />
+        </div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {aiActive
+            ? "AI načte údaje automaticky. Vždy je ale zkontroluj před uložením."
+            : "OCR běží v tvém prohlížeči, nic se nikam neposílá. Výsledky prosím zkontroluj."}
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -497,4 +687,34 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
 function err_is_network(e: { message?: string } | null | undefined): boolean {
   const m = (e?.message ?? "").toLowerCase();
   return m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed");
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function uploadPhoto(
+  supabase: ReturnType<typeof createClient>,
+  vehicleId: string,
+  fillUpId: string,
+  kind: "receipt" | "odometer",
+  file: File,
+): Promise<string | null> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExt = /^(jpe?g|png|webp|heic|heif)$/.test(ext) ? ext : "jpg";
+  const path = `${vehicleId}/${fillUpId}/${kind}-${Date.now()}.${safeExt}`;
+  const { error } = await supabase.storage
+    .from("photos")
+    .upload(path, file, {
+      contentType: file.type || "image/jpeg",
+      cacheControl: "3600",
+      upsert: false,
+    });
+  if (error) return null;
+  return path;
 }

@@ -792,7 +792,7 @@ export function StatsDashboard({
       />
 
       {/* Monthly with horizon selector */}
-      <div className="card p-4">
+      <div className="card p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="font-semibold">Měsíční přehled</div>

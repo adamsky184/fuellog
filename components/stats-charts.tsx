@@ -119,7 +119,7 @@ export function PriceTrend({ data }: { data: PricePoint[] }) {
   }, [data, country]);
 
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <div className="font-semibold">Vývoj ceny za litr</div>
         <select
@@ -154,7 +154,7 @@ export function PriceTrend({ data }: { data: PricePoint[] }) {
 
 export function ConsumptionTrend({ data }: { data: { date: string; consumption: number }[] }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Vývoj spotřeby (L/100 km)</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -175,7 +175,7 @@ export function ConsumptionTrend({ data }: { data: { date: string; consumption: 
 
 export function BrandBreakdown({ data }: { data: { brand: string; liters: number; count: number }[] }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Litry podle značky pumpy</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -208,7 +208,7 @@ export function BrandBreakdown({ data }: { data: { brand: string; liters: number
 
 export function CountryBreakdown({ data }: { data: { country: string; liters: number; count: number }[] }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Litry podle státu</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -301,7 +301,7 @@ export function MonthlyTrends({
   }
 
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <div className="font-semibold">Měsíční přehled</div>
         {metricToggle}
@@ -400,7 +400,7 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
   const arrow = (key: typeof sortBy) => (sortBy === key ? (order === "asc" ? " ↑" : " ↓") : "");
 
   return (
-    <div className="card p-4 md:col-span-2">
+    <div className="card p-4 md:col-span-2 overflow-hidden">
       <div className="font-semibold mb-3">Žebříček pump</div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -486,7 +486,7 @@ export function RegionBreakdown({ data }: { data: RegionRow[] }) {
   if (prepped.length === 0) return null;
 
   return (
-    <div className="card p-4">
+    <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Litry podle regionu</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -523,7 +523,7 @@ type YearlyPoint = {
 export function YearlyChart({ data }: { data: YearlyPoint[] }) {
   if (data.length === 0) return null;
   return (
-    <div className="card p-4 md:col-span-2">
+    <div className="card p-4 md:col-span-2 overflow-hidden">
       <div className="font-semibold mb-3">Roční přehled — km & Kč</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">

@@ -64,6 +64,12 @@ export function Header({
       ]
     : [];
 
+  // On mobile the header only surfaces the two most-used destinations as big
+  // buttons (Tankování + Statistiky). Everything else lives in the hamburger
+  // menu. Adam's feedback: "hlavní je stejně tankování a statistiky, to musí
+  // být dominantní, servis, import/export a nastavení může být v menu".
+  const primaryTabs = tabs.slice(0, 2);
+
   // Close the popover on outside click or Escape.
   useEffect(() => {
     if (!menuOpen) return;
@@ -166,19 +172,51 @@ export function Header({
             </button>
             {menuOpen && (
               <div
-                className="absolute right-0 mt-1.5 w-60 rounded-xl border border-slate-200 bg-white shadow-lg dark:bg-slate-900 dark:border-slate-700 overflow-hidden z-20"
+                className="absolute right-0 mt-1.5 w-64 rounded-xl border border-slate-200 bg-white shadow-lg dark:bg-slate-900 dark:border-slate-700 overflow-hidden z-20"
                 role="menu"
               >
-                {userEmail && (
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800"
-                    role="menuitem"
-                  >
-                    <UserCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
-                    <span className="truncate">{userEmail}</span>
-                  </Link>
+                {/* Vehicle tabs — all of them, ordered so the two primary ones
+                    (Tankování, Statistiky) come first. The same list is the
+                    dominant pair rendered as big buttons below the header on
+                    mobile; we repeat them here for keyboard/accessibility
+                    completeness and so desktop users who've hidden the nav
+                    still have a path. */}
+                {inVehicle &&
+                  tabs.map((t) => {
+                    const Icon = t.icon;
+                    const active = pathname?.startsWith(t.href);
+                    return (
+                      <Link
+                        key={t.href}
+                        href={t.href}
+                        className={`flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                          active ? "bg-slate-50 dark:bg-slate-800 font-medium" : ""
+                        }`}
+                        role="menuitem"
+                      >
+                        <Icon className="h-4 w-4 text-slate-500 shrink-0" />
+                        {t.label}
+                      </Link>
+                    );
+                  })}
+
+                {inVehicle && (
+                  <div className="border-t border-slate-100 dark:border-slate-800" />
                 )}
+
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                  role="menuitem"
+                >
+                  <UserCircle2 className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span className="flex flex-col min-w-0">
+                    <span className="font-medium">Profil</span>
+                    {userEmail && (
+                      <span className="text-xs text-slate-500 truncate">{userEmail}</span>
+                    )}
+                  </span>
+                </Link>
                 {isAdmin && (
                   <Link
                     href="/admin"
@@ -204,24 +242,25 @@ export function Header({
         </div>
       </div>
 
-      {/* Mobile / tablet sub-nav — horizontally scrollable pills */}
+      {/* Mobile / tablet sub-nav — two dominant primary tabs. Servis / Import /
+          Nastavení moved into the user menu to declutter. */}
       {inVehicle && (
-        <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-700/80 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1 px-2 py-1.5 min-w-max">
-            {tabs.map((t) => {
+        <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-700/80 px-2 py-2">
+          <div className="grid grid-cols-2 gap-2">
+            {primaryTabs.map((t) => {
               const active = pathname?.startsWith(t.href);
               const Icon = t.icon;
               return (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className={`px-2.5 py-1 rounded-full inline-flex items-center gap-1 text-xs whitespace-nowrap transition ${
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                     active
-                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                      : "text-slate-600 bg-slate-50 hover:bg-slate-100 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-4 w-4" />
                   {t.label}
                 </Link>
               );

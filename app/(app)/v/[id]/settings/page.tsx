@@ -299,9 +299,9 @@ export default function VehicleSettingsPage({
           <div>
             <label className="label">SPZ</label>
             <input
-              className="input"
+              className="input uppercase"
               value={form.license_plate}
-              onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
+              onChange={(e) => setForm({ ...form, license_plate: e.target.value.toUpperCase() })}
             />
           </div>
         </div>

@@ -7,9 +7,9 @@ import {
   CZ_REGION_OPTIONS,
   FOREIGN_COUNTRIES,
   PRAGUE_DISTRICTS,
+  formatLocation,
   parseRegionKey,
   regionKey,
-  regionLabel,
 } from "@/lib/regions";
 import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
@@ -673,13 +673,8 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             </div>
             <div className="flex flex-wrap gap-1.5">
               {suggestedCombos.map((c, i) => {
-                const parts = [
-                  regionLabel(c.region, c.country),
-                  c.city,
-                  c.address,
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
+                const loc = formatLocation(c.city, c.region, c.country);
+                const parts = [loc, c.address].filter(Boolean).join(" · ");
                 return (
                   <button
                     key={i}

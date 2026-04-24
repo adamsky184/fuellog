@@ -67,32 +67,53 @@ Deno.serve(async (req: Request) => {
     const RESEND_FROM_EMAIL =
       Deno.env.get("RESEND_FROM_EMAIL") ?? "no-reply@fuellog.app";
 
+    // v2.5.1 — one-shot diagnostic. Booleans only (never the secret value).
+    console.log("[forward-receipt] invoked", {
+      has_resend_key: RESEND_API_KEY.length > 0,
+      has_service_role: SUPABASE_SERVICE_ROLE_KEY.length > 0,
+      from: RESEND_FROM_EMAIL,
+    });
+
     // 1) Auth + context via user JWT (the RPC enforces membership).
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: auth } },
     });
     const body = await req.json().catch(() => ({}));
     const fillUpId: string | undefined = body?.fill_up_id;
-    if (!fillUpId) return json({ error: "bad_request" }, 400);
+    if (!fillUpId) {
+      console.warn("[forward-receipt] bad_request: missing fill_up_id");
+      return json({ error: "bad_request" }, 400);
+    }
 
     const { data: ctxRows, error: ctxErr } = await userClient.rpc(
       "get_forward_receipt_context",
       { p_fill_up_id: fillUpId },
     );
     if (ctxErr) {
+      console.warn("[forward-receipt] context_failed", ctxErr.message);
       return json(
         { error: "context_failed", detail: ctxErr.message },
         ctxErr.message.includes("not a vehicle member") ? 403 : 500,
       );
     }
     const ctx = (ctxRows as ForwardContext[] | null)?.[0];
-    if (!ctx) return json({ error: "fill_up_not_found" }, 404);
+    if (!ctx) {
+      console.warn("[forward-receipt] fill_up_not_found", fillUpId);
+      return json({ error: "fill_up_not_found" }, 404);
+    }
+
+    console.log("[forward-receipt] context loaded", {
+      has_forward_to: !!ctx.forward_to,
+      has_receipt: !!ctx.receipt_photo_path,
+    });
 
     // 2) Silent no-op when feature not configured.
     if (!ctx.forward_to) {
+      console.log("[forward-receipt] skipped: not_configured");
       return json({ forwarded: false, to: null, skipped: "not_configured" });
     }
     if (!ctx.receipt_photo_path) {
+      console.log("[forward-receipt] skipped: no_receipt_photo");
       return json({
         forwarded: false,
         to: ctx.forward_to,
@@ -117,6 +138,10 @@ Deno.serve(async (req: Request) => {
       .from("photos")
       .download(ctx.receipt_photo_path);
     if (dlErr || !fileBlob) {
+      console.error("[forward-receipt] download_failed", {
+        detail: dlErr?.message ?? "no_blob",
+        path: ctx.receipt_photo_path,
+      });
       return json(
         { error: "download_failed", detail: dlErr?.message ?? "no_blob" },
         500,
@@ -157,12 +182,20 @@ Deno.serve(async (req: Request) => {
     });
     if (!resendRes.ok) {
       const t = await resendRes.text();
+      console.error("[forward-receipt] resend_failed", {
+        status: resendRes.status,
+        detail: t.slice(0, 400),
+      });
       return json(
         { error: "resend_failed", status: resendRes.status, detail: t.slice(0, 400) },
         502,
       );
     }
     const resendBody = await resendRes.json().catch(() => ({}));
+    console.log("[forward-receipt] forwarded", {
+      to_prefix: ctx.forward_to?.split("@")[0] ?? null,
+      id: resendBody?.id ?? null,
+    });
 
     return json({
       forwarded: true,

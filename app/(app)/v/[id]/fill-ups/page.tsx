@@ -3,7 +3,7 @@ import { Pencil, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
-import { regionLabel } from "@/lib/regions";
+import { formatLocation } from "@/lib/regions";
 
 export default async function FillUpsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -87,7 +87,9 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Td right>{r.is_baseline ? "—" : formatNumber(r.liters, 2)}</Td>
                   <Td right>{r.price_per_liter ? formatNumber(r.price_per_liter, 2) : "—"}</Td>
                   <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
-                  <Td right>{r.consumption_l_per_100km ? formatNumber(r.consumption_l_per_100km, 2) : "—"}</Td>
+                  <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption)}>
+                    {r.consumption_l_per_100km ? formatNumber(r.consumption_l_per_100km, 2) : "—"}
+                  </Td>
                   <Td>
                     {r.station_brand ? (
                       <span className="inline-flex items-center gap-2">
@@ -100,7 +102,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   </Td>
                   <Td>
                     <span className="text-slate-600">
-                      {[r.city, regionLabel(r.region, r.country)].filter((x) => x && x !== "—").join(", ") || "—"}
+                      {formatLocation(r.city, r.region, r.country) || "—"}
                     </span>
                   </Td>
                   <Td right>
@@ -136,4 +138,20 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 }
 function Td({ children, right, className = "" }: { children: React.ReactNode; right?: boolean; className?: string }) {
   return <td className={`px-3 py-2 ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
+}
+
+/**
+ * Color-code a fill-up's consumption vs the fleet average.
+ * Green = meaningfully better, red = meaningfully worse, neutral otherwise.
+ * Thresholds are intentionally wide (±10% better, +15% worse) so normal
+ * variation between city/highway runs doesn't paint the table red.
+ */
+function consumptionClass(
+  value: number | null | undefined,
+  avg: number | null | undefined,
+): string {
+  if (value == null || avg == null || avg <= 0) return "";
+  if (value < avg * 0.9) return "text-emerald-600 font-medium";
+  if (value > avg * 1.15) return "text-rose-600 font-medium";
+  return "";
 }

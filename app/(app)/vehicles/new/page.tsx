@@ -129,10 +129,10 @@ export default function NewVehiclePage() {
           <div>
             <label className="label">SPZ</label>
             <input
-              className="input"
+              className="input uppercase"
               placeholder="1A2 3456"
               value={form.license_plate}
-              onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
+              onChange={(e) => setForm({ ...form, license_plate: e.target.value.toUpperCase() })}
             />
           </div>
         </div>

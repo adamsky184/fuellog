@@ -99,3 +99,34 @@ export function countryLabel(country: string | null | undefined): string {
   const f = FOREIGN_COUNTRIES.find((x) => x.country === country);
   return f ? f.label : country;
 }
+
+/**
+ * Human-friendly "City, Region" label with dedup.
+ *
+ * Needed because many rows store `city="Praha"` AND `region="P7"` — naive
+ * join yields "Praha, Praha 7" which Adam (rightly) called ugly. Rules:
+ *  - if the region label already starts with or equals city → show region only
+ *  - otherwise join `City, Region`
+ *  - missing pieces are dropped silently
+ *  - returns "" when there's nothing to show so callers can coalesce to "—"
+ */
+export function formatLocation(
+  city: string | null | undefined,
+  region: string | null | undefined,
+  country: string | null | undefined,
+): string {
+  const c = (city ?? "").trim();
+  const r = regionLabel(region ?? null, country ?? null);
+  const hasRegion = r && r !== "—";
+  if (c && hasRegion) {
+    // "Praha" ⊂ "Praha 7" → drop city. Compare case-insensitively so
+    // "praha"/"Praha" still dedupes.
+    const cLower = c.toLowerCase();
+    const rLower = r.toLowerCase();
+    if (rLower === cLower || rLower.startsWith(cLower + " ")) return r;
+    return `${c}, ${r}`;
+  }
+  if (c) return c;
+  if (hasRegion) return r;
+  return "";
+}

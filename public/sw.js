@@ -11,7 +11,7 @@
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
 // v2.5.0: station search + auto-forward receipts + OCR location + mobile polish.
-const CACHE_VERSION = "fuellog-v2.5.2";
+const CACHE_VERSION = "fuellog-v2.5.3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

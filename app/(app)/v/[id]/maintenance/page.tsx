@@ -317,58 +317,123 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
           <p className="muted mb-4">Zatím žádný servis. Přidej výměnu oleje, STK, nebo cokoli dalšího.</p>
         </div>
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 text-xs uppercase">
-              <tr>
-                <Th>Datum</Th>
-                <Th>Typ</Th>
-                <Th>Popis</Th>
-                <Th right>Stav km</Th>
-                <Th right>Cena</Th>
-                <Th>Další termín</Th>
-                <Th right>Akce</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                  <Td>{formatDate(r.date)}</Td>
-                  <Td>{MAINTENANCE_LABELS[r.kind]}</Td>
-                  <Td>{r.title ?? "—"}</Td>
-                  <Td right>{r.odometer_km != null ? formatNumber(r.odometer_km, 0) : "—"}</Td>
-                  <Td right>{r.cost != null ? formatCurrency(r.cost, r.currency) : "—"}</Td>
-                  <Td>
-                    {r.next_due_date ? formatDate(r.next_due_date) : ""}
-                    {r.next_due_date && r.next_due_km ? " · " : ""}
-                    {r.next_due_km ? `${formatNumber(r.next_due_km, 0)} km` : ""}
-                    {!r.next_due_date && !r.next_due_km && "—"}
-                  </Td>
-                  <Td right>
-                    <div className="flex gap-1 justify-end">
+        <>
+          {/* Mobile: card per entry. Edit/delete as bigger touch targets. */}
+          <div className="sm:hidden space-y-2">
+            {rows.map((r) => {
+              const dueText = [
+                r.next_due_date ? formatDate(r.next_due_date) : null,
+                r.next_due_km ? `${formatNumber(r.next_due_km, 0)} km` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <div key={r.id} className="card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{formatDate(r.date)}</span>
+                        <span className="text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5">
+                          {MAINTENANCE_LABELS[r.kind]}
+                        </span>
+                      </div>
+                      {r.title && <div className="text-sm mt-1">{r.title}</div>}
+                      <div className="mt-1 flex items-center gap-3 text-xs text-slate-600">
+                        {r.odometer_km != null && (
+                          <span>{formatNumber(r.odometer_km, 0)} km</span>
+                        )}
+                        {r.cost != null && (
+                          <span className="font-medium">
+                            {formatCurrency(r.cost, r.currency)}
+                          </span>
+                        )}
+                      </div>
+                      {dueText && (
+                        <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                          Další: {dueText}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
                       <button
                         onClick={() => openEdit(r)}
-                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
                         title="Upravit"
+                        aria-label="Upravit"
                         type="button"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => remove(r.id)}
-                        className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"
+                        className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"
                         title="Smazat"
+                        aria-label="Smazat"
                         type="button"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                  </Td>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop/tablet: table. */}
+          <div className="card overflow-x-auto hidden sm:block">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 text-xs uppercase">
+                <tr>
+                  <Th>Datum</Th>
+                  <Th>Typ</Th>
+                  <Th>Popis</Th>
+                  <Th right>Stav km</Th>
+                  <Th right>Cena</Th>
+                  <Th>Další termín</Th>
+                  <Th right>Akce</Th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                    <Td>{formatDate(r.date)}</Td>
+                    <Td>{MAINTENANCE_LABELS[r.kind]}</Td>
+                    <Td>{r.title ?? "—"}</Td>
+                    <Td right>{r.odometer_km != null ? formatNumber(r.odometer_km, 0) : "—"}</Td>
+                    <Td right>{r.cost != null ? formatCurrency(r.cost, r.currency) : "—"}</Td>
+                    <Td>
+                      {r.next_due_date ? formatDate(r.next_due_date) : ""}
+                      {r.next_due_date && r.next_due_km ? " · " : ""}
+                      {r.next_due_km ? `${formatNumber(r.next_due_km, 0)} km` : ""}
+                      {!r.next_due_date && !r.next_due_km && "—"}
+                    </Td>
+                    <Td right>
+                      <div className="flex gap-1 justify-end">
+                        <button
+                          onClick={() => openEdit(r)}
+                          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                          title="Upravit"
+                          type="button"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => remove(r.id)}
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"
+                          title="Smazat"
+                          type="button"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

@@ -214,6 +214,9 @@ export function parseReceipt(text: string): ParsedReceipt {
     total_price: total,
     price_per_liter: pricePerLHit?.value ?? null,
     station_brand: brand,
+    // Tesseract fallback doesn't attempt location extraction — the AI path
+    // (Edge function) is the only place station_location gets populated.
+    station_location: null,
     date,
     currency,
     confidence,

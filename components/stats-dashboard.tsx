@@ -14,7 +14,7 @@
  *
  * All numbers recompute via useMemo when the filter changes.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FileDown,
@@ -77,15 +77,64 @@ function daysBetween(fromIso: string, toIso: string): number {
   return Math.max(1, Math.round(ms / 86400000) + 1);
 }
 
-/* ----- Styled info tooltip dot ----- */
+/* ----- Styled info tooltip dot -----
+ *
+ * v2.5.0: rewritten as a click/tap-toggle so it works on mobile (where
+ * `:hover` doesn't fire and focus on a `<span>` is unreliable on iOS Safari).
+ * Desktop keeps hover — clicking is still supported everywhere.
+ * Width is capped to the viewport via `max-w-[min(16rem,calc(100vw-2rem))]`
+ * so the bubble never overflows on a narrow phone.
+ */
 
 function InfoDot({ description }: { description: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement | null>(null);
+
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return;
+    function onDocDown(e: MouseEvent | TouchEvent) {
+      const el = ref.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("touchstart", onDocDown, { passive: true });
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("touchstart", onDocDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <span className="relative inline-flex group align-middle" tabIndex={0}>
-      <span className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-white dark:bg-slate-800 cursor-help" style={{ width: 14, height: 14 }}>
-        <Info className="h-2.5 w-2.5" />
-      </span>
-      <span className="pointer-events-none absolute right-0 top-4 z-20 hidden group-hover:block group-focus:block w-56 p-2 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg">
+    <span
+      ref={ref}
+      className="relative inline-flex group align-middle"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        aria-label="Informace"
+        aria-expanded={open}
+        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-white dark:bg-slate-800 cursor-help focus:outline-none focus:ring-2 focus:ring-sky-400"
+        style={{ width: 18, height: 18 }}
+      >
+        <Info className="h-3 w-3" />
+      </button>
+      <span
+        className={`pointer-events-none absolute right-0 top-6 z-20 w-[16rem] max-w-[calc(100vw-2rem)] p-2 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg ${
+          open ? "block" : "hidden group-hover:block"
+        }`}
+      >
         {description}
       </span>
     </span>

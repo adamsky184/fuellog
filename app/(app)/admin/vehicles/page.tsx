@@ -24,6 +24,8 @@ type VehicleRow = {
   garage_name: string | null;
   created_by: string | null;
   owner_email: string | null;
+  /** v2.5.0 — admin-only per-vehicle auto-forward setting. */
+  forward_receipts_to_email: string | null;
   created_at: string;
   updated_at: string;
   fill_up_count: number;
@@ -56,6 +58,7 @@ export default async function AdminVehiclesPage() {
               <Th>RZ</Th>
               <Th>Garáž</Th>
               <Th>Vlastník</Th>
+              <Th>Forward →</Th>
               <Th>Tankování</Th>
               <Th>Poslední</Th>
               <Th>Vytvořeno</Th>
@@ -93,6 +96,25 @@ export default async function AdminVehiclesPage() {
                 <Td className="text-slate-500 dark:text-slate-400">
                   {v.owner_email ?? "—"}
                 </Td>
+                <Td
+                  className="text-xs text-slate-600 dark:text-slate-300"
+                  title={
+                    v.forward_receipts_to_email
+                      ? `Každá účtenka se přepošle na ${v.forward_receipts_to_email}`
+                      : "Přeposílání vypnuté"
+                  }
+                >
+                  {v.forward_receipts_to_email ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="truncate max-w-[14rem]">
+                        {v.forward_receipts_to_email}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
+                </Td>
                 <Td className="tabular-nums">{v.fill_up_count}</Td>
                 <Td className="text-slate-500 dark:text-slate-400">
                   {v.last_fill_up_at ? formatDate(v.last_fill_up_at) : "—"}
@@ -115,6 +137,11 @@ export default async function AdminVehiclesPage() {
                         { name: "license_plate", label: "RZ", type: "text" },
                         { name: "color", label: "Barva (#hex)", type: "text" },
                         { name: "garage_id", label: "Garage ID", type: "text" },
+                        {
+                          name: "forward_receipts_to_email",
+                          label: "Forward účtenek na e-mail (prázdné = vypnuto)",
+                          type: "text",
+                        },
                       ]}
                     />
                     <Link
@@ -192,11 +219,18 @@ function Th({ children }: { children: React.ReactNode }) {
 function Td({
   children,
   className = "",
+  title,
 }: {
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
-    <td className={`px-3 py-2 whitespace-nowrap align-top ${className}`}>{children}</td>
+    <td
+      className={`px-3 py-2 whitespace-nowrap align-top ${className}`}
+      title={title}
+    >
+      {children}
+    </td>
   );
 }

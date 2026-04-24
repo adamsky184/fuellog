@@ -13,6 +13,7 @@ import {
 } from "@/lib/regions";
 import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
+import { StationSearch, type StationPick } from "@/components/station-search";
 import type { ParsedReceipt, ParsedOdometer } from "@/lib/ocr/types";
 
 const OTHER_BRAND = "__other__";
@@ -212,12 +213,36 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
 
   function applyReceipt(p: ParsedReceipt, file: File) {
     setReceiptFile(file);
+
+    // Split the OCR location string ("Praha - Vršovice, Petrohradská 216") into
+    // (city, address). The comma is the most reliable split on Czech receipts;
+    // without one we drop the whole string into `address` and let the user fix.
+    let ocrCity: string | null = null;
+    let ocrAddress: string | null = null;
+    if (p.station_location) {
+      const raw = p.station_location.trim();
+      const commaIdx = raw.indexOf(",");
+      if (commaIdx > 0) {
+        const leftFull = raw.slice(0, commaIdx).trim();
+        // "Praha - Vršovice" → strip district after a dash so `city` stays
+        // matchable to historical rows (which store just "Praha").
+        const leftCity = leftFull.split(/\s[-–]\s/)[0].trim();
+        ocrCity = leftCity || null;
+        ocrAddress = raw.slice(commaIdx + 1).trim() || null;
+      } else {
+        ocrAddress = raw || null;
+      }
+    }
+
     setForm((f) => ({
       ...f,
       liters: p.liters != null ? String(p.liters) : f.liters,
       total_price: p.total_price != null ? String(p.total_price) : f.total_price,
       currency: p.currency ?? f.currency,
       date: p.date ?? f.date,
+      // Only fill location fields when empty — never clobber user edits.
+      city: !f.city.trim() && ocrCity ? ocrCity : f.city,
+      address: !f.address.trim() && ocrAddress ? ocrAddress : f.address,
     }));
     if (p.station_brand) {
       const upper = p.station_brand.toUpperCase();
@@ -303,6 +328,45 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
 
     if (!body) throw new Error("AI nevrátila data.");
     return body as ParsedReceipt | ParsedOdometer;
+  }
+
+  /**
+   * v2.5.0 — Apply a Photon geocoder station pick to the form.
+   *
+   * Brand: match against the dropdown options first so "shared" stations stay
+   * consolidated; if there's no match we flip to "Jiná…" and prefill the free
+   * text. Location: only fill empty fields so the user's edits are never
+   * clobbered. Country: if we got an ISO code, map CZ → leave region blank
+   * (too coarse to guess a kraj), known foreign → `C:XX`, unknown foreign →
+   * `OTHER_COUNTRY_KEY` with the code stashed in `customCountry`.
+   */
+  function applyStationPick(pick: StationPick) {
+    if (pick.brand) {
+      const upper = pick.brand.toUpperCase();
+      const match = brandOptions.find((b) => b.toUpperCase() === upper);
+      if (match) {
+        setBrandSelect(match);
+        setBrandNew("");
+      } else {
+        setBrandSelect(OTHER_BRAND);
+        setBrandNew(upper);
+      }
+    }
+    const code = pick.country ? pick.country.toUpperCase() : null;
+    const isKnownForeign =
+      !!code && code !== "CZ" && !!FOREIGN_COUNTRIES.find((x) => x.country === code);
+    const isUnknownForeign = !!code && code !== "CZ" && !isKnownForeign;
+    if (isUnknownForeign) setCustomCountry(code!);
+    setForm((f) => {
+      const next = { ...f };
+      if (pick.city && !next.city.trim()) next.city = pick.city;
+      if (pick.address && !next.address.trim()) next.address = pick.address;
+      if (!next.region_key) {
+        if (isKnownForeign) next.region_key = `C:${code}`;
+        else if (isUnknownForeign) next.region_key = OTHER_COUNTRY_KEY;
+      }
+      return next;
+    });
   }
 
   function applyCombo(c: Combo) {
@@ -421,6 +485,15 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         }
         if (Object.keys(paths).length > 0) {
           await supabase.from("fill_ups").update(paths).eq("id", inserted.id);
+        }
+        // v2.5.0 — if a receipt photo just landed, kick off the forward-receipt
+        // edge function. The function itself silently no-ops when the vehicle
+        // has no forward address configured, so calling it on every save is
+        // safe and avoids a second round-trip to read the flag client-side.
+        if (paths.receipt_photo_path) {
+          kickoffForwardReceipt(inserted.id).catch(() => {
+            /* best-effort — never block the user */
+          });
         }
       } catch {
         // photo upload errors are non-fatal
@@ -585,6 +658,13 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             Nejprve 3 nejpoužívanější, pak dle abecedy.
           </p>
         )}
+
+        <div className="mt-3">
+          <StationSearch onPick={applyStationPick} />
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+            Najdi pumpu v mapě (OpenStreetMap) — vyplní značku, město i adresu.
+          </p>
+        </div>
 
         {suggestedCombos.length > 0 && (
           <div className="mt-3 space-y-1.5">
@@ -765,4 +845,37 @@ async function uploadPhoto(
     });
   if (error) return null;
   return path;
+}
+
+/**
+ * v2.5.0 — fire-and-forget kickoff for the `forward-receipt` edge function.
+ *
+ * The edge function itself checks the vehicle's `forward_receipts_to_email`
+ * flag, so we call it unconditionally after any receipt upload. Failures are
+ * swallowed; the feature is purely best-effort — the user can still see the
+ * receipt in the UI either way.
+ */
+async function kickoffForwardReceipt(fillUpId: string): Promise<void> {
+  const supabase = createClient();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) return;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return;
+  const url = `${supabaseUrl}/functions/v1/forward-receipt`;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      },
+      body: JSON.stringify({ fill_up_id: fillUpId }),
+      // Keep the request alive even if the user navigates away immediately.
+      keepalive: true,
+    });
+  } catch {
+    /* best-effort */
+  }
 }

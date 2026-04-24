@@ -31,6 +31,7 @@ Rules:
 - "total_price": total amount paid. null if unreadable.
 - "price_per_liter": unit price per liter. null if unreadable.
 - "station_brand": uppercase brand (SHELL, ORLEN, BENZINA, MOL, OMV, ARAL, EUROOIL, GLOBUS, MAKRO, TOTAL, AGIP, ROBINOIL, STOPKA, HRUBY, PRIM, LUKOIL, TESCO). null if unknown.
+- "station_location": city and/or street the station sits at. Usually printed directly under the logo or brand name at the top of the receipt (e.g. "Praha - Vršovice, Petrohradská 216", "D1, Exit 90 Humpolec", "Brno, Hradecká 14"). Keep diacritics. null if not visible.
 - "date": ISO date yyyy-mm-dd. null if unreadable.
 - "currency": "CZK" | "EUR" | "USD". Default "CZK" for Czech receipts.
 Return only the JSON object, nothing else.`;
@@ -47,10 +48,18 @@ const RECEIPT_SCHEMA = {
     total_price: { type: "number", nullable: true },
     price_per_liter: { type: "number", nullable: true },
     station_brand: { type: "string", nullable: true },
+    station_location: { type: "string", nullable: true },
     date: { type: "string", nullable: true },
     currency: { type: "string", nullable: true, enum: ["CZK", "EUR", "USD"] },
   },
-  required: ["liters", "total_price", "station_brand", "date", "currency"],
+  required: [
+    "liters",
+    "total_price",
+    "station_brand",
+    "station_location",
+    "date",
+    "currency",
+  ],
 };
 
 const ODOMETER_SCHEMA = {
@@ -140,6 +149,7 @@ Deno.serve(async (req: Request) => {
         total_price: numOrNull(parsed.total_price),
         price_per_liter: numOrNull(parsed.price_per_liter),
         station_brand: strOrNull(parsed.station_brand)?.toUpperCase() ?? null,
+        station_location: strOrNull(parsed.station_location),
         date: strOrNull(parsed.date),
         currency: (["CZK", "EUR", "USD"].includes(parsed.currency)
           ? parsed.currency

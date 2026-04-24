@@ -105,7 +105,13 @@ export function PhotoOcr<K extends Kind>(props: PhotoOcrProps<K>) {
     const parts = [] as string[];
     if (r.liters != null) parts.push(`${r.liters} L`);
     if (r.total_price != null) parts.push(`${r.total_price} ${r.currency ?? ""}`);
-    if (r.station_brand) parts.push(r.station_brand);
+    if (r.station_brand) {
+      parts.push(
+        r.station_location ? `${r.station_brand} (${r.station_location})` : r.station_brand,
+      );
+    } else if (r.station_location) {
+      parts.push(r.station_location);
+    }
     if (r.date) parts.push(r.date);
     return parts.length ? `Načteno: ${parts.join(" · ")}` : "Nic se nepodařilo načíst.";
   }

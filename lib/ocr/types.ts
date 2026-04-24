@@ -13,6 +13,12 @@ export type ParsedReceipt = {
   total_price: number | null;
   price_per_liter: number | null;
   station_brand: string | null;
+  /**
+   * City / street the station sits at — typically printed directly under the
+   * brand logo at the top of the receipt. Extracted by the AI OCR (Edge
+   * function); the Tesseract fallback always leaves this null.
+   */
+  station_location: string | null;
   date: string | null; // ISO yyyy-mm-dd
   currency: "CZK" | "EUR" | "USD" | null;
   /** confidence 0–1 for debug/UI hints */

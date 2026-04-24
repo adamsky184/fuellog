@@ -14,6 +14,15 @@ type Member = {
   invited_by: string | null;
 };
 
+// v2.6.0 — invitations for e-mails that haven't registered yet.
+type PendingInvite = {
+  invite_id: string;
+  invited_email: string;
+  role: Member["role"];
+  created_at: string;
+  expires_at: string;
+};
+
 const ROLE_LABEL: Record<Member["role"], string> = {
   owner: "Vlastník",
   editor: "Může upravovat",
@@ -52,6 +61,8 @@ export default function VehicleSettingsPage({
   const [inviteRole, setInviteRole] = useState<Member["role"]>("editor");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  // v2.6.0 — pending (unregistered-invitee) invites for this vehicle.
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
 
   // Delete-zone
   const [confirmName, setConfirmName] = useState("");
@@ -111,8 +122,19 @@ export default function VehicleSettingsPage({
     setMembersLoading(false);
   }
 
+  // v2.6.0 — load pending (unregistered-invitee) invites for this vehicle.
+  async function loadPendingVehicleInvites() {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("list_pending_vehicle_invites", {
+      p_vehicle_id: vehicleId,
+    });
+    if (error) return; // silent — a failure here is not worth a toast
+    setPendingInvites((data ?? []) as PendingInvite[]);
+  }
+
   useEffect(() => {
     refreshMembers();
+    loadPendingVehicleInvites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId]);
 
@@ -163,25 +185,90 @@ export default function VehicleSettingsPage({
       p_email: inviteEmail.trim().toLowerCase(),
       p_role: inviteRole,
     });
+    if (error) {
+      setInviteBusy(false);
+      setInviteMsg(`Chyba: ${error.message}`);
+      return;
+    }
+    // v2.6.0 — RPC now always returns ok:true; pending:true means the
+    // invitee has no FuelLog account and we need to send them an e-mail
+    // via the send-invite edge function (Resend from admin address).
+    const res = data as
+      | { ok: true; pending: false; user_id: string }
+      | { ok: true; pending: true; invite_id: string; token: string; invited_email: string }
+      | null;
+    if (res?.ok && res.pending === false) {
+      setInviteMsg(`Přidáno: ${inviteEmail}`);
+      setInviteEmail("");
+      await Promise.all([refreshMembers(), loadPendingVehicleInvites()]);
+      setInviteBusy(false);
+      return;
+    }
+    if (res?.ok && res.pending === true) {
+      let emailDelivered = false;
+      let skippedReason: string | null = null;
+      try {
+        const fn = await supabase.functions.invoke("send-invite", {
+          body: { invite_id: res.invite_id },
+        });
+        const body = fn.data as
+          | { sent: boolean; skipped?: string; to?: string }
+          | undefined;
+        emailDelivered = Boolean(body?.sent);
+        skippedReason = body?.skipped ?? null;
+      } catch {
+        /* swallow — fallback message below */
+      }
+      const label = inviteEmail;
+      setInviteMsg(
+        emailDelivered
+          ? `Pozvánka odeslána e-mailem: ${label}. Jakmile si založí účet, automaticky se připojí.`
+          : skippedReason === "no_resend_key"
+            ? `Pozvánka uložena, ale e-mail nelze odeslat (chybí RESEND_API_KEY). Pošli link ${label} ručně.`
+            : `Pozvánka uložena pro ${label}. E-mail se nepodařilo odeslat — zkus „Odeslat znovu" níže.`,
+      );
+      setInviteEmail("");
+      await loadPendingVehicleInvites();
+      setInviteBusy(false);
+      return;
+    }
     setInviteBusy(false);
+    setInviteMsg("Neznámá odpověď serveru.");
+  }
+
+  // v2.6.0 — resend invite e-mail for an existing pending invite.
+  async function handleResendInvite(inviteId: string, email: string) {
+    setInviteMsg(null);
+    const supabase = createClient();
+    try {
+      const fn = await supabase.functions.invoke("send-invite", {
+        body: { invite_id: inviteId },
+      });
+      const body = fn.data as { sent: boolean; skipped?: string } | undefined;
+      if (body?.sent) {
+        setInviteMsg(`Pozvánka znovu odeslána: ${email}`);
+      } else if (body?.skipped === "no_resend_key") {
+        setInviteMsg("E-mail nelze odeslat (chybí RESEND_API_KEY).");
+      } else {
+        setInviteMsg("E-mail se nepodařilo odeslat.");
+      }
+    } catch (err) {
+      setInviteMsg(`Chyba: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function handleCancelInvite(inviteId: string, email: string) {
+    if (!confirm(`Zrušit pozvánku pro ${email}?`)) return;
+    const supabase = createClient();
+    const { error } = await supabase.rpc("cancel_pending_invite", {
+      p_invite_id: inviteId,
+    });
     if (error) {
       setInviteMsg(`Chyba: ${error.message}`);
       return;
     }
-    const res = data as { ok: boolean; reason?: string } | null;
-    if (res?.ok === false && res.reason === "not_registered") {
-      setInviteMsg(
-        "Tento e-mail zatím nemá účet ve FuelLog — požádej ho, ať se nejdřív registruje, pak ho pozvi znovu.",
-      );
-      return;
-    }
-    if (res?.ok) {
-      setInviteMsg(`Pozváno: ${inviteEmail}`);
-      setInviteEmail("");
-      await refreshMembers();
-      return;
-    }
-    setInviteMsg("Neznámá odpověď serveru.");
+    setInviteMsg("Pozvánka zrušena.");
+    await loadPendingVehicleInvites();
   }
 
   async function handleChangeRole(userId: string, role: Member["role"]) {
@@ -385,7 +472,8 @@ export default function VehicleSettingsPage({
         </div>
         <p className="text-sm text-slate-500">
           Pozvi další uživatele, ať mohou prohlížet nebo doplňovat tankování.
-          Musí mít už účet ve FuelLog.
+          Pokud ještě nemají účet ve FuelLog, pošleme jim e-mailem pozvánku —
+          jakmile se zaregistrují, automaticky se připojí.
         </p>
 
         {isOwner && (
@@ -494,6 +582,49 @@ export default function VehicleSettingsPage({
               <li className="p-3 text-sm text-slate-500">Zatím nikdo.</li>
             )}
           </ul>
+        )}
+
+        {/* v2.6.0 — pending invites (invitee hasn't signed up yet). */}
+        {isOwner && pendingInvites.length > 0 && (
+          <div>
+            <div className="text-xs text-slate-500 mb-1">
+              Čekající pozvánky (ještě nemají účet)
+            </div>
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+              {pendingInvites.map((p) => (
+                <li
+                  key={p.invite_id}
+                  className="flex flex-wrap items-center gap-2 p-3 text-sm"
+                >
+                  <div className="flex-1 min-w-[180px]">
+                    <div className="font-medium truncate">{p.invited_email}</div>
+                    <div className="text-xs text-slate-500">
+                      {ROLE_LABEL[p.role]} · pozvánka platí do{" "}
+                      {new Date(p.expires_at).toLocaleDateString("cs-CZ")}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs"
+                    onClick={() =>
+                      handleResendInvite(p.invite_id, p.invited_email)
+                    }
+                  >
+                    Odeslat znovu
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs text-rose-600"
+                    onClick={() =>
+                      handleCancelInvite(p.invite_id, p.invited_email)
+                    }
+                  >
+                    Zrušit
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
 

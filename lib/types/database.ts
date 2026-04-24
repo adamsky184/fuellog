@@ -218,6 +218,60 @@ export type Database = {
           },
         ]
       }
+      pending_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          expires_at: string
+          garage_id: string | null
+          id: string
+          invited_by: string
+          invited_email: string
+          role: Database["public"]["Enums"]["member_role"]
+          token: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          garage_id?: string | null
+          id?: string
+          invited_by: string
+          invited_email: string
+          role: Database["public"]["Enums"]["member_role"]
+          token?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          garage_id?: string | null
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          token?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_invites_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_invites_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ai_key_last4: string | null
@@ -312,6 +366,7 @@ export type Database = {
           color: string | null
           created_at: string
           created_by: string
+          forward_receipts_to_email: string | null
           fuel_type: Database["public"]["Enums"]["fuel_type"]
           garage_id: string | null
           id: string
@@ -327,6 +382,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           created_by: string
+          forward_receipts_to_email?: string | null
           fuel_type?: Database["public"]["Enums"]["fuel_type"]
           garage_id?: string | null
           id?: string
@@ -342,6 +398,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           created_by?: string
+          forward_receipts_to_email?: string | null
           fuel_type?: Database["public"]["Enums"]["fuel_type"]
           garage_id?: string | null
           id?: string
@@ -413,6 +470,7 @@ export type Database = {
           provider: string
         }[]
       }
+      accept_pending_invites: { Args: Record<string, never>; Returns: Json }
       add_garage_member: {
         Args: {
           p_email: string
@@ -497,6 +555,7 @@ export type Database = {
           created_at: string
           created_by: string
           fill_up_count: number
+          forward_receipts_to_email: string
           fuel_type: string
           garage_id: string
           garage_name: string
@@ -539,25 +598,75 @@ export type Database = {
         }
         Returns: undefined
       }
-      admin_update_vehicle: {
-        Args: {
-          p_color: string
-          p_garage_id: string
-          p_license_plate: string
-          p_make: string
-          p_model: string
-          p_name: string
-          p_vehicle_id: string
-          p_year: number
-        }
-        Returns: undefined
-      }
+      admin_update_vehicle:
+        | {
+            Args: {
+              p_color: string
+              p_garage_id: string
+              p_license_plate: string
+              p_make: string
+              p_model: string
+              p_name: string
+              p_vehicle_id: string
+              p_year: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_color: string
+              p_forward_receipts_to_email?: string
+              p_garage_id: string
+              p_license_plate: string
+              p_make: string
+              p_model: string
+              p_name: string
+              p_vehicle_id: string
+              p_year: number
+            }
+            Returns: undefined
+          }
       can_use_garage: { Args: { g_id: string; u_id: string }; Returns: boolean }
       can_write_vehicle: {
         Args: { u_id: string; v_id: string }
         Returns: boolean
       }
+      cancel_pending_invite: { Args: { p_invite_id: string }; Returns: Json }
       clear_ai_key: { Args: Record<string, never>; Returns: undefined }
+      get_forward_receipt_context: {
+        Args: { p_fill_up_id: string }
+        Returns: {
+          address: string
+          city: string
+          currency: string
+          fill_up_date: string
+          forward_to: string
+          liters: number
+          receipt_photo_path: string
+          station_brand: string
+          total_price: number
+          vehicle_name: string
+          vehicle_plate: string
+        }[]
+      }
+      get_invite_context: {
+        Args: { p_invite_id: string }
+        Returns: {
+          expires_at: string
+          garage_id: string
+          garage_name: string
+          invite_id: string
+          invited_email: string
+          inviter_display_name: string
+          inviter_email: string
+          inviter_id: string
+          role: Database["public"]["Enums"]["member_role"]
+          token: string
+          vehicle_id: string
+          vehicle_name: string
+          vehicle_plate: string
+        }[]
+      }
       is_admin: { Args: Record<string, never>; Returns: boolean }
       is_garage_member: {
         Args: { g_id: string; u_id: string }
@@ -580,6 +689,26 @@ export type Database = {
           joined_at: string
           role: Database["public"]["Enums"]["member_role"]
           user_id: string
+        }[]
+      }
+      list_pending_garage_invites: {
+        Args: { p_garage_id: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          invite_id: string
+          invited_email: string
+          role: Database["public"]["Enums"]["member_role"]
+        }[]
+      }
+      list_pending_vehicle_invites: {
+        Args: { p_vehicle_id: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          invite_id: string
+          invited_email: string
+          role: Database["public"]["Enums"]["member_role"]
         }[]
       }
       list_vehicle_members: {

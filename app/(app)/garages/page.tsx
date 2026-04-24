@@ -33,6 +33,16 @@ type Member = {
   invited_by: string | null;
 };
 
+// v2.6.0 — row from list_pending_garage_invites RPC. These are invites to
+// e-mail addresses that don't have a FuelLog account yet.
+type PendingInvite = {
+  invite_id: string;
+  invited_email: string;
+  role: Member["role"];
+  created_at: string;
+  expires_at: string;
+};
+
 const ROLE_LABEL: Record<Member["role"], string> = {
   owner: "Vlastník",
   editor: "Může upravovat",
@@ -59,6 +69,8 @@ export default function GaragesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [membersByGarage, setMembersByGarage] = useState<Record<string, Member[]>>({});
   const [membersLoadingId, setMembersLoadingId] = useState<string | null>(null);
+  // v2.6.0 — pending invites (unregistered invitees) per garage.
+  const [pendingByGarage, setPendingByGarage] = useState<Record<string, PendingInvite[]>>({});
   const [inviteForm, setInviteForm] = useState<{
     garageId: string | null;
     email: string;
@@ -197,6 +209,11 @@ export default function GaragesPage() {
       if (!membersByGarage[garageId]) {
         loadMembers(garageId);
       }
+      // v2.6.0 — also load pending invites so the owner sees everyone who
+      // was invited but hasn't signed up yet.
+      if (!pendingByGarage[garageId]) {
+        loadPendingGarageInvites(garageId);
+      }
     }
   }
 
@@ -210,26 +227,111 @@ export default function GaragesPage() {
       p_email: inviteForm.email.trim().toLowerCase(),
       p_role: inviteForm.role,
     });
+    if (error) {
+      setInviteBusy(false);
+      setMemberMsg({ garageId, text: `Chyba: ${error.message}` });
+      return;
+    }
+    // v2.6.0 — RPC now always returns ok:true; pending:true means the
+    // invitee has no FuelLog account and we need to send them an e-mail
+    // via the send-invite edge function (Resend from admin address).
+    const res = data as
+      | { ok: true; pending: false; user_id: string }
+      | { ok: true; pending: true; invite_id: string; token: string; invited_email: string }
+      | null;
+    if (res?.ok && res.pending === false) {
+      setMemberMsg({ garageId, text: `Přidáno: ${inviteForm.email}` });
+      setInviteForm({ garageId, email: "", role: inviteForm.role });
+      await Promise.all([loadMembers(garageId), loadPendingGarageInvites(garageId)]);
+      setInviteBusy(false);
+      return;
+    }
+    if (res?.ok && res.pending === true) {
+      // Fire the e-mail; invite row is already in the DB regardless of
+      // whether Resend succeeds, so the user can re-send later.
+      let emailDelivered = false;
+      let skippedReason: string | null = null;
+      try {
+        const fn = await supabase.functions.invoke("send-invite", {
+          body: { invite_id: res.invite_id },
+        });
+        const body = fn.data as
+          | { sent: boolean; skipped?: string; to?: string }
+          | undefined;
+        emailDelivered = Boolean(body?.sent);
+        skippedReason = body?.skipped ?? null;
+      } catch {
+        /* swallow — we'll surface a fallback message */
+      }
+      const label = inviteForm.email;
+      setMemberMsg({
+        garageId,
+        text: emailDelivered
+          ? `Pozvánka odeslána e-mailem: ${label}. Jakmile si založí účet, automaticky se připojí.`
+          : skippedReason === "no_resend_key"
+            ? `Pozvánka uložena, ale e-mail nelze odeslat (chybí RESEND_API_KEY). Pošli link ${label} ručně.`
+            : `Pozvánka uložena pro ${label}. E-mail se nepodařilo odeslat — zkus „Odeslat znovu" níže.`,
+      });
+      setInviteForm({ garageId, email: "", role: inviteForm.role });
+      await loadPendingGarageInvites(garageId);
+      setInviteBusy(false);
+      return;
+    }
     setInviteBusy(false);
+    setMemberMsg({ garageId, text: "Neznámá odpověď serveru." });
+  }
+
+  // v2.6.0 — load pending (unregistered-invitee) invites for a garage.
+  async function loadPendingGarageInvites(garageId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("list_pending_garage_invites", {
+      p_garage_id: garageId,
+    });
+    if (error) return; // silent — a failure here is not worth a toast
+    setPendingByGarage((prev) => ({
+      ...prev,
+      [garageId]: (data ?? []) as PendingInvite[],
+    }));
+  }
+
+  async function handleResendInvite(garageId: string, inviteId: string, email: string) {
+    setMemberMsg(null);
+    const supabase = createClient();
+    try {
+      const fn = await supabase.functions.invoke("send-invite", {
+        body: { invite_id: inviteId },
+      });
+      const body = fn.data as { sent: boolean; skipped?: string } | undefined;
+      if (body?.sent) {
+        setMemberMsg({ garageId, text: `Pozvánka znovu odeslána: ${email}` });
+      } else if (body?.skipped === "no_resend_key") {
+        setMemberMsg({
+          garageId,
+          text: `E-mail nelze odeslat (chybí RESEND_API_KEY).`,
+        });
+      } else {
+        setMemberMsg({ garageId, text: `E-mail se nepodařilo odeslat.` });
+      }
+    } catch (e) {
+      setMemberMsg({
+        garageId,
+        text: `Chyba: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
+
+  async function handleCancelInvite(garageId: string, inviteId: string, email: string) {
+    if (!confirm(`Zrušit pozvánku pro ${email}?`)) return;
+    const supabase = createClient();
+    const { error } = await supabase.rpc("cancel_pending_invite", {
+      p_invite_id: inviteId,
+    });
     if (error) {
       setMemberMsg({ garageId, text: `Chyba: ${error.message}` });
       return;
     }
-    const res = data as { ok: boolean; reason?: string } | null;
-    if (res?.ok === false && res.reason === "not_registered") {
-      setMemberMsg({
-        garageId,
-        text: "Tento e-mail zatím nemá účet ve FuelLog — požádej ho, ať se nejdřív registruje, pak ho pozvi znovu.",
-      });
-      return;
-    }
-    if (res?.ok) {
-      setMemberMsg({ garageId, text: `Pozváno: ${inviteForm.email}` });
-      setInviteForm({ garageId, email: "", role: inviteForm.role });
-      await loadMembers(garageId);
-      return;
-    }
-    setMemberMsg({ garageId, text: "Neznámá odpověď serveru." });
+    setMemberMsg({ garageId, text: `Pozvánka zrušena.` });
+    await loadPendingGarageInvites(garageId);
   }
 
   async function handleChangeRole(
@@ -428,7 +530,8 @@ export default function GaragesPage() {
                         </div>
                         <p className="text-xs text-slate-500">
                           Pozvaní členové uvidí a (podle role) budou moci upravovat
-                          všechna vozidla v této garáži. Musí mít už účet ve FuelLog.
+                          všechna vozidla v této garáži. Pokud ještě nemají účet,
+                          pošleme jim e-mail — po registraci se připojí automaticky.
                         </p>
 
                         {isOwner && (
@@ -563,6 +666,52 @@ export default function GaragesPage() {
                               <li className="p-3 text-sm text-slate-500">Zatím nikdo.</li>
                             )}
                           </ul>
+                        )}
+
+                        {/* v2.6.0 — pending invites. These are e-mails the
+                            owner invited before the recipient had a FuelLog
+                            account. Shown with a Resend / Cancel affordance
+                            so the owner isn't blind to "awaiting signup". */}
+                        {isOwner && (pendingByGarage[g.id]?.length ?? 0) > 0 && (
+                          <div className="mt-3">
+                            <div className="text-xs text-slate-500 mb-1">
+                              Čekající pozvánky (ještě nemají účet)
+                            </div>
+                            <ul className="divide-y divide-slate-100 dark:divide-slate-800 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                              {(pendingByGarage[g.id] ?? []).map((p) => (
+                                <li
+                                  key={p.invite_id}
+                                  className="flex flex-wrap items-center gap-2 p-3 text-sm"
+                                >
+                                  <div className="flex-1 min-w-[180px]">
+                                    <div className="font-medium truncate">{p.invited_email}</div>
+                                    <div className="text-xs text-slate-500">
+                                      {ROLE_LABEL[p.role]} · pozvánka platí do{" "}
+                                      {new Date(p.expires_at).toLocaleDateString("cs-CZ")}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="btn-secondary text-xs"
+                                    onClick={() =>
+                                      handleResendInvite(g.id, p.invite_id, p.invited_email)
+                                    }
+                                  >
+                                    Odeslat znovu
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-secondary text-xs text-rose-600"
+                                    onClick={() =>
+                                      handleCancelInvite(g.id, p.invite_id, p.invited_email)
+                                    }
+                                  >
+                                    Zrušit
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         )}
                       </div>
                     )}

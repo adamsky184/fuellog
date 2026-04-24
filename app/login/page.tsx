@@ -79,6 +79,12 @@ function LoginForm() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // v2.6.0 — drain any pending invites addressed to this e-mail.
+        try {
+          await supabase.rpc("accept_pending_invites");
+        } catch {
+          /* non-fatal */
+        }
         router.push(nextPath);
         router.refresh();
         return;
@@ -100,6 +106,12 @@ function LoginForm() {
         if (error) throw error;
         // Pokud je v Supabase vypnuté povinné potvrzení e-mailu, dostaneme rovnou session.
         if (data.session) {
+          // v2.6.0 — drain any pending invites; fresh account may have been invited.
+          try {
+            await supabase.rpc("accept_pending_invites");
+          } catch {
+            /* non-fatal */
+          }
           router.push(nextPath);
           router.refresh();
           return;

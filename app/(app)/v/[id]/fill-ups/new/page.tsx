@@ -15,6 +15,7 @@ import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
 import { StationSearch, type StationPick } from "@/components/station-search";
 import type { ParsedReceipt, ParsedOdometer } from "@/lib/ocr/types";
+import { MapPin, Check } from "lucide-react";
 
 const OTHER_BRAND = "__other__";
 const OTHER_COUNTRY_KEY = "C:__other__";
@@ -53,6 +54,11 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   const [odometerFile, setOdometerFile] = useState<File | null>(null);
   const [aiActive, setAiActive] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
+  // v2.6.0 — transient "✓ vyplněno z mapy" banner after a station pick, so
+  // the user gets a visible ack that the map lookup actually did something.
+  // Adam's feedback: "nic to nepředvyplňuji" — the fill actually worked but
+  // happened silently into fields the user wasn't looking at.
+  const [pickedStationLabel, setPickedStationLabel] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -367,6 +373,13 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       }
       return next;
     });
+    // Show a transient "✓ Vyplněno z mapy: …" banner for 4 s so the user
+    // sees that the lookup actually filled fields below the search box.
+    const parts = [pick.brand, pick.city, pick.country]
+      .filter(Boolean)
+      .join(" · ");
+    setPickedStationLabel(parts || pick.displayName);
+    window.setTimeout(() => setPickedStationLabel(null), 4000);
   }
 
   function applyCombo(c: Combo) {
@@ -659,11 +672,38 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
           </p>
         )}
 
-        <div className="mt-3">
+        {/*
+          v2.6.0 — Station search panel. Before the redesign this was just a
+          bare <StationSearch> with an 11-px hint underneath. Adam's feedback
+          was that it wasn't clear what the thing did or that it was even
+          interactive. Now it has: a labeled section with a MapPin icon, a
+          readable description above the input, and a transient success
+          banner after a pick so the fill into Město/Region/Adresa below is
+          actually visible.
+        */}
+        <div className="mt-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-3">
+          <div className="flex items-start gap-2 mb-2">
+            <MapPin className="h-4 w-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                Najít pumpu v mapě (nepovinné)
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Napiš část názvu a města — dotáhneme značku, město i adresu.
+              </p>
+            </div>
+          </div>
           <StationSearch onPick={applyStationPick} />
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            Najdi pumpu v mapě (OpenStreetMap) — vyplní značku, město i adresu.
-          </p>
+          {pickedStationLabel && (
+            <div
+              className="mt-2 flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1.5 text-xs text-emerald-700 dark:text-emerald-300"
+              role="status"
+              aria-live="polite"
+            >
+              <Check className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Vyplněno z mapy: {pickedStationLabel}</span>
+            </div>
+          )}
         </div>
 
         {suggestedCombos.length > 0 && (

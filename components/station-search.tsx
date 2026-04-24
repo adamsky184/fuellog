@@ -135,10 +135,18 @@ export function StationSearch({
   return (
     <div className="relative" ref={containerRef}>
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        {/*
+          v2.6.0 — `.input` class applies `@apply px-3`, which in Tailwind's
+          generated stylesheet order overrides plain `pl-8 pr-8` utility
+          classes. That caused the magnifying-glass icon to sit right on top
+          of the placeholder text (Adam's screenshot 2026-04-24). Using the
+          `!` important modifier on the padding utilities wins against the
+          `@apply`d defaults without touching the global `.input` class.
+        */}
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
         <input
           type="search"
-          className="input pl-8 pr-8"
+          className="input !pl-9 !pr-9"
           value={q}
           placeholder={placeholder}
           onChange={(e) => setQ(e.target.value)}
@@ -161,6 +169,17 @@ export function StationSearch({
           </button>
         )}
       </div>
+      {/*
+        v2.6.0 — Empty-state hint when the user has typed something but we
+        haven't got any hits back. Adam's feedback: "nevím kde jak hledat a
+        pracovat s tím". Without this, a miss looks the same as the idle
+        state — the user can't tell whether the tool even did anything.
+      */}
+      {open && !loading && !error && q.trim().length >= 3 && results.length === 0 && (
+        <div className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+          Žádná pumpa nenalezena. Vyplň značku a město ručně níže.
+        </div>
+      )}
       {open && (results.length > 0 || error) && (
         <div className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg overflow-hidden">
           {error && (

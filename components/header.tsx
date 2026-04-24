@@ -140,7 +140,7 @@ export function Header({
               aria-label="Nové tankování"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Nové</span>
+              <span className="hidden sm:inline">Tankování</span>
             </Link>
           )}
 

@@ -2,6 +2,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ShieldCheck, Users, Warehouse, Car, Fuel, AlertTriangle, Stethoscope } from "lucide-react";
 import { AdminTabLink } from "@/components/admin-tab-link";
+import { rethrowIfNextInternal } from "@/lib/next-errors";
+
+// Admin routes depend on cookies() via createClient() — mark the whole
+// segment dynamic so Next never attempts a static pre-render. Without this
+// the DYNAMIC_SERVER_USAGE signal gets eaten by our try/catch at build
+// time and can surface as a masked "Server Components render error" at
+// runtime (digest 1715506935 on Vercel).
+export const dynamic = "force-dynamic";
 
 /**
  * Admin-only layout.
@@ -39,6 +47,7 @@ export default async function AdminLayout({
         userEmail = data.user?.email ?? null;
       }
     } catch (e) {
+      rethrowIfNextInternal(e);
       userError = e instanceof Error ? e.message : String(e);
       console.error("[admin layout] auth threw", e);
     }
@@ -60,6 +69,7 @@ export default async function AdminLayout({
           isAdmin = Boolean((data as { is_admin?: boolean } | null)?.is_admin);
         }
       } catch (e) {
+        rethrowIfNextInternal(e);
         profileError = e instanceof Error ? e.message : String(e);
         console.error("[admin layout] profile query threw", e);
       }
@@ -174,6 +184,7 @@ export default async function AdminLayout({
   } catch (e) {
     // Absolute last line of defence — any synchronous/render-time error
     // surfaces here with the real message, instead of the masked digest.
+    rethrowIfNextInternal(e);
     console.error("[admin layout] OUTER catch", e);
     const msg = e instanceof Error ? e.message : String(e);
     const stack = e instanceof Error ? e.stack : null;

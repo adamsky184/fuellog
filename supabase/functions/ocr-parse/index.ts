@@ -171,8 +171,11 @@ async function callGemini(
   base64: string,
   mime: string,
 ): Promise<any> {
+  // NOTE 2026-04-23: gemini-2.0-flash is "no longer available to new users"
+  // (Google retired it). Switched to gemini-2.5-flash — current recommended
+  // replacement with same JSON schema / inlineData support.
   const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
     encodeURIComponent(apiKey);
   const res = await fetch(url, {
     method: "POST",
@@ -254,7 +257,7 @@ async function callOpenRouter(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "google/gemini-2.0-flash-exp:free",
+      model: "google/gemini-2.5-flash",
       temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [

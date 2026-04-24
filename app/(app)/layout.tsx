@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
 import { OfflineSync } from "@/components/offline-sync";
 import { AlertTriangle } from "lucide-react";
+import { rethrowIfNextInternal } from "@/lib/next-errors";
+
+// All authenticated routes touch cookies() via createClient() — mark the
+// whole segment as dynamic so Next never attempts a static pre-render.
+// Without this, cookies() throws DYNAMIC_SERVER_USAGE during build, our
+// try/catch swallows it, and the resulting static fallback can leak into
+// the served page at runtime.
+export const dynamic = "force-dynamic";
 
 /**
  * App-wide layout for authenticated routes.
@@ -44,6 +52,7 @@ export default async function AppLayout({
       userEmail = data.user?.email ?? null;
     }
   } catch (e) {
+    rethrowIfNextInternal(e);
     authError = e instanceof Error ? e.message : String(e);
     console.error("[(app) layout] auth threw", e);
   }
@@ -118,6 +127,7 @@ export default async function AppLayout({
       }));
     }
   } catch (e) {
+    rethrowIfNextInternal(e);
     loadErrors.push({
       src: "vehicles",
       msg: e instanceof Error ? e.message : String(e),
@@ -141,6 +151,7 @@ export default async function AppLayout({
       }));
     }
   } catch (e) {
+    rethrowIfNextInternal(e);
     loadErrors.push({
       src: "garages",
       msg: e instanceof Error ? e.message : String(e),
@@ -162,6 +173,7 @@ export default async function AppLayout({
       isAdmin = Boolean((data as { is_admin?: boolean } | null)?.is_admin);
     }
   } catch (e) {
+    rethrowIfNextInternal(e);
     loadErrors.push({
       src: "profile",
       msg: e instanceof Error ? e.message : String(e),

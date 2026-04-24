@@ -141,12 +141,23 @@ export default async function AdminLayout({
       );
     }
 
+    // Render icons as JSX elements HERE (server side) so the client
+    // component AdminTabLink only receives serializable ReactNodes, not raw
+    // LucideIcon component functions. Passing a function reference across
+    // the RSC boundary was the cause of the masked digest-1715506935 crash
+    // on every /admin page — see components/admin-tab-link.tsx header.
+    const iconCls = "h-4 w-4";
     const tabs = [
-      { href: "/admin", label: "Přehled", icon: ShieldCheck, exact: true },
-      { href: "/admin/users", label: "Uživatelé", icon: Users },
-      { href: "/admin/garages", label: "Garáže", icon: Warehouse },
-      { href: "/admin/vehicles", label: "Vozidla", icon: Car },
-      { href: "/admin/fill-ups", label: "Tankování", icon: Fuel },
+      {
+        href: "/admin",
+        label: "Přehled",
+        icon: <ShieldCheck className={iconCls} />,
+        exact: true,
+      },
+      { href: "/admin/users", label: "Uživatelé", icon: <Users className={iconCls} /> },
+      { href: "/admin/garages", label: "Garáže", icon: <Warehouse className={iconCls} /> },
+      { href: "/admin/vehicles", label: "Vozidla", icon: <Car className={iconCls} /> },
+      { href: "/admin/fill-ups", label: "Tankování", icon: <Fuel className={iconCls} /> },
     ];
 
     return (

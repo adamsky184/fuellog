@@ -6,5 +6,5 @@
  *   minor (1.x.0) — new feature
  *   major (x.0.0) — big change / redesign / DB schema migration
  */
-export const APP_VERSION = "2.4.6";
+export const APP_VERSION = "2.4.7";
 export const APP_BUILD_DATE = "2026-04-24";

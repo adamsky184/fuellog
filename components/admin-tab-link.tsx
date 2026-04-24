@@ -2,22 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 /**
  * Tab link for the admin nav. Client component because `usePathname` is the
  * cleanest way to highlight the active tab — the admin layout stays a server
  * component (needed for the auth check) and hands off just this one bit.
+ *
+ * `icon` is a pre-rendered JSX element (ReactNode), NOT a component function.
+ * v2.4.7: passing a LucideIcon component function across the server→client
+ * boundary is the RSC anti-pattern that throws "Functions cannot be passed
+ * directly to Client Components" at render time — after our outer try/catch
+ * has already returned — which showed up in production as the masked
+ * digest-1715506935 crash on every /admin hit.
  */
 export function AdminTabLink({
   href,
   label,
-  icon: Icon,
+  icon,
   exact,
 }: {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: ReactNode;
   exact?: boolean;
 }) {
   const pathname = usePathname();
@@ -32,7 +39,7 @@ export function AdminTabLink({
           : "border-transparent text-slate-600 hover:text-ink hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
       }`}
     >
-      <Icon className="h-4 w-4" />
+      {icon}
       {label}
     </Link>
   );

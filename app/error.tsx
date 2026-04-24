@@ -11,6 +11,7 @@
  */
 
 import { useEffect } from "react";
+import { APP_VERSION } from "@/lib/version";
 
 export default function GlobalError({
   error,
@@ -37,6 +38,7 @@ export default function GlobalError({
       <pre className="rounded-lg bg-slate-900 text-slate-100 p-4 text-xs whitespace-pre-wrap break-all">
         {error.message || "(bez zprávy)"}
         {error.digest ? `\n\nDigest: ${error.digest}` : ""}
+        {`\n\nClient bundle: v${APP_VERSION}`}
         {error.stack ? `\n\n${error.stack}` : ""}
       </pre>
       <div className="flex gap-2">

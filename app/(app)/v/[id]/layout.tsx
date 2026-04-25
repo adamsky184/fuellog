@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { VehicleAvatar } from "@/components/vehicle-avatar";
 
 /**
  * Vehicle-scoped layout.
@@ -21,7 +22,7 @@ export default async function VehicleLayout({
   const supabase = await createClient();
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("id, name, make, model, year, license_plate, fuel_type, color")
+    .select("id, name, make, model, year, license_plate, fuel_type, color, photo_path")
     .eq("id", id)
     .maybeSingle();
 
@@ -34,10 +35,13 @@ export default async function VehicleLayout({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <span
-          className="inline-block h-6 w-6 rounded-full border border-slate-200 dark:border-slate-700 shrink-0"
-          style={{ backgroundColor: vehicle.color ?? "#e2e8f0" }}
-          aria-hidden
+        {/* v2.9.2 — replace plain colour swatch with the VehicleAvatar so the
+            uploaded logo (Audi, Mini, Octavia, …) shows up on every per-car
+            page (Tankování / Statistiky / Servis / …). */}
+        <VehicleAvatar
+          photoPath={(vehicle as { photo_path: string | null }).photo_path ?? null}
+          color={vehicle.color}
+          size="lg"
         />
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold truncate">{vehicle.name}</h1>

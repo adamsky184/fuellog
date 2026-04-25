@@ -84,12 +84,28 @@ export function VehicleSwitcher({
     : null;
 
   // Group by garage, with null (Bez garáže) last.
+  // v2.9.2 — within each group, sort by last_year DESC (newest first), then
+  // first_year DESC. Active cars (has_recent_fillup) bubble above archived.
   const byGarage = new Map<string | null, SwitcherVehicle[]>();
   for (const v of vehicles) {
     const key = v.garage_id ?? null;
     const bucket = byGarage.get(key) ?? [];
     bucket.push(v);
     byGarage.set(key, bucket);
+  }
+  for (const list of byGarage.values()) {
+    list.sort((a, b) => {
+      const aActive = a.has_recent_fillup ? 1 : 0;
+      const bActive = b.has_recent_fillup ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive;
+      const aLast = a.last_year ?? 0;
+      const bLast = b.last_year ?? 0;
+      if (aLast !== bLast) return bLast - aLast;
+      const aFirst = a.first_year ?? 0;
+      const bFirst = b.first_year ?? 0;
+      if (aFirst !== bFirst) return bFirst - aFirst;
+      return a.name.localeCompare(b.name, "cs");
+    });
   }
   // v2.9.0 — honour the per-user `sort_order` from garage_user_settings.
   // Garages without a user-set order fall to the bottom alphabetically;
@@ -153,7 +169,7 @@ export function VehicleSwitcher({
           className="absolute left-0 mt-1.5 w-[min(88vw,20rem)] max-h-[70vh] overflow-auto
             rounded-xl border border-slate-200 bg-white shadow-lg
             dark:bg-slate-900 dark:border-slate-700
-            py-1 z-30"
+            py-1 z-50"
         >
           {groups.map(([gid, list]) => {
             const gname =

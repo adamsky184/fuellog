@@ -417,6 +417,7 @@ export type Database = {
           model: string | null
           name: string
           photo_path: string | null
+          archived_at: string | null
           tank_capacity_liters: number | null
           updated_at: string
           year: number | null
@@ -434,6 +435,7 @@ export type Database = {
           model?: string | null
           name: string
           photo_path?: string | null
+          archived_at?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null
@@ -451,6 +453,7 @@ export type Database = {
           model?: string | null
           name?: string
           photo_path?: string | null
+          archived_at?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null

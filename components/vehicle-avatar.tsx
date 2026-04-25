@@ -63,16 +63,24 @@ export function VehicleAvatar({
   }, [photoPath]);
 
   if (photoPath && url) {
+    // v2.9.2 — `object-contain` instead of `object-cover` so wide logos
+    // (Škoda, Infiniti, Lambo) aren't cropped. Tile background = white so
+    // the logo still has a clean frame regardless of source colour.
     return (
-      <Image
-        src={url}
-        alt=""
-        width={px}
-        height={px}
-        unoptimized
-        className={`rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 ${className}`}
+      <span
+        className={`rounded-full border border-slate-200 dark:border-slate-700 shrink-0 grid place-items-center bg-white overflow-hidden ${className}`}
         style={{ width: px, height: px }}
-      />
+      >
+        <Image
+          src={url}
+          alt=""
+          width={px}
+          height={px}
+          unoptimized
+          className="object-contain"
+          style={{ maxWidth: "82%", maxHeight: "82%" }}
+        />
+      </span>
     );
   }
   return (

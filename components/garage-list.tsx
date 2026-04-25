@@ -33,6 +33,8 @@ export type GarageListVehicle = {
   last_year: number | null;
   /** True when last fill-up was within the last ~120 days. */
   has_recent_fillup: boolean;
+  /** ISO timestamp; non-null when the user archived this vehicle. */
+  archived_at?: string | null;
 };
 
 export type GarageListGroup = {

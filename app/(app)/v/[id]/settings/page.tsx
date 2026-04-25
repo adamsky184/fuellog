@@ -43,6 +43,7 @@ export default function VehicleSettingsPage({
   const [error, setError] = useState<string | null>(null);
   const [garages, setGarages] = useState<{ id: string; name: string }[]>([]);
   const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [archivedAt, setArchivedAt] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     make: "",
@@ -104,6 +105,7 @@ export default function VehicleSettingsPage({
         garage_id: v.garage_id ?? "",
       });
       setPhotoPath(v.photo_path ?? null);
+      setArchivedAt((v as { archived_at: string | null }).archived_at ?? null);
       setLoading(false);
     })();
     return () => {
@@ -634,6 +636,41 @@ export default function VehicleSettingsPage({
           </div>
         )}
       </section>
+
+      {/* v2.9.2 — archive vs unarchive a vehicle. Doesn't delete data; just
+          flips `vehicles.archived_at`. Archived cars get an "ukončen YYYY"
+          badge in lists and don't auto-show "still driving" decorations. */}
+      {isOwner && (
+        <section className="card p-5 sm:p-6 space-y-3">
+          <h2 className="text-lg font-semibold">Stav vozidla</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {archivedAt
+              ? `Vůz je ukončen ${new Date(archivedAt).toLocaleDateString("cs-CZ")}. Tankování i statistiky zůstávají k dispozici.`
+              : "Vůz je aktivní. Pokud už ho nemáš nebo nevyužíváš, můžeš ho ukončit — záznamy zůstanou."}
+          </p>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                const newVal = archivedAt ? null : new Date().toISOString();
+                const { error } = await supabase
+                  .from("vehicles")
+                  .update({ archived_at: newVal })
+                  .eq("id", vehicleId);
+                if (error) setError(error.message);
+                else {
+                  setArchivedAt(newVal);
+                  router.refresh();
+                }
+              }}
+              className="btn-secondary text-sm"
+            >
+              {archivedAt ? "Obnovit jako aktivní" : "Ukončit / archivovat"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Danger zone */}
       {isOwner && (

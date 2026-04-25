@@ -118,7 +118,7 @@ export default async function AppLayout({
     const [vRes, drRes] = await Promise.all([
       supabase
         .from("vehicles")
-        .select("id, name, color, make, model, garage_id, photo_path, created_at")
+        .select("id, name, color, make, model, garage_id, photo_path, archived_at, created_at")
         .order("created_at", { ascending: false }),
       supabase
         .from("vehicle_date_range_v")
@@ -135,10 +135,17 @@ export default async function AppLayout({
       const today = new Date();
       vehicles = (vRes.data ?? []).map((v) => {
         const meta = dr.get(v.id as string);
+        const archivedAt = (v as { archived_at: string | null }).archived_at;
         const lastDate = meta?.last_date ? new Date(meta.last_date) : null;
-        const recent = lastDate
+        // Archived vehicles never count as "still driving" so they sort
+        // below active cars in the switcher.
+        const recent = !archivedAt && lastDate
           ? today.getTime() - lastDate.getTime() < 120 * 24 * 60 * 60 * 1000
           : false;
+        const archivedYear = archivedAt ? new Date(archivedAt).getFullYear() : null;
+        const lastYear = archivedYear != null
+          ? Math.max(meta?.last_year ?? 0, archivedYear) || archivedYear
+          : meta?.last_year ?? null;
         return {
           id: v.id as string,
           name: v.name as string,
@@ -148,7 +155,7 @@ export default async function AppLayout({
           garage_id: (v.garage_id as string | null) ?? null,
           photo_path: (v.photo_path as string | null) ?? null,
           first_year: meta?.first_year ?? null,
-          last_year: meta?.last_year ?? null,
+          last_year: lastYear,
           has_recent_fillup: recent,
         };
       });

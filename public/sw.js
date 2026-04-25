@@ -10,9 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.1: year badge in cards, sort dropdown, units in headers, country flag,
-// 6-tile strip with Celkem L, BP+ESSO logos, vehicle logos auto-assigned.
-const CACHE_VERSION = "fuellog-v2.9.1";
+// v2.9.2: actually-sticky thead, per-row units, vehicle archive flag,
+// switcher z-index, switcher year sort, vehicle logo on every per-car page,
+// inline garage CRUD on homepage, "Moje garáže".
+const CACHE_VERSION = "fuellog-v2.9.2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Plus, Warehouse } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DueReminders } from "@/components/due-reminders";
 import { GarageList, type GarageListGroup, type GarageListVehicle } from "@/components/garage-list";
+import { GarageManager } from "@/components/garage-manager";
 
 type VehicleRow = {
   id: string;
@@ -15,6 +16,7 @@ type VehicleRow = {
   color: string | null;
   garage_id: string | null;
   photo_path: string | null;
+  archived_at: string | null;
 };
 
 type GarageRow = { id: string; name: string; description: string | null };
@@ -35,7 +37,7 @@ export default async function VehiclesPage({
     supabase
       .from("vehicles")
       .select(
-        "id, name, make, model, year, license_plate, fuel_type, color, garage_id, photo_path",
+        "id, name, make, model, year, license_plate, fuel_type, color, garage_id, photo_path, archived_at",
       )
       .order("created_at", { ascending: false }),
     supabase.from("garages").select("id, name, description").order("created_at", { ascending: true }),
@@ -69,9 +71,16 @@ export default async function VehiclesPage({
   for (const v of shown) {
     const meta = dateMap.get(v.id);
     const lastDate = meta?.last_date ? new Date(meta.last_date) : null;
-    const recent = lastDate
+    const archived = !!v.archived_at;
+    // Archived → never show "still driving"; instead clamp the year-range to
+    // archived_at's year if it's later than the last fill-up.
+    const recent = !archived && lastDate
       ? today.getTime() - lastDate.getTime() < 120 * 24 * 60 * 60 * 1000
       : false;
+    const archivedYear = v.archived_at ? new Date(v.archived_at).getFullYear() : null;
+    const lastYear = archivedYear != null
+      ? Math.max(meta?.last_year ?? 0, archivedYear) || archivedYear
+      : meta?.last_year ?? null;
     const veh: GarageListVehicle = {
       id: v.id,
       name: v.name,
@@ -84,8 +93,9 @@ export default async function VehiclesPage({
       garage_id: v.garage_id,
       photo_path: v.photo_path,
       first_year: meta?.first_year ?? null,
-      last_year: meta?.last_year ?? null,
+      last_year: lastYear,
       has_recent_fillup: recent,
+      archived_at: v.archived_at,
     };
     const key = v.garage_id ?? null;
     const bucket = byGarage.get(key) ?? [];
@@ -134,7 +144,7 @@ export default async function VehiclesPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Moje garáž</h1>
+          <h1 className="text-2xl font-semibold">Moje garáže</h1>
           <p className="text-slate-500 text-sm">
             {vehicles.length
               ? `${vehicles.length} ${vehicles.length === 1 ? "auto" : vehicles.length < 5 ? "auta" : "aut"}`
@@ -150,10 +160,6 @@ export default async function VehiclesPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/garages" className="btn-secondary inline-flex items-center gap-1">
-            <Warehouse className="h-4 w-4" />
-            Garáže
-          </Link>
           <Link href="/vehicles/new" className="btn-primary inline-flex items-center gap-1">
             <Plus className="h-4 w-4" />
             Přidat auto
@@ -162,6 +168,20 @@ export default async function VehiclesPage({
       </div>
 
       <DueReminders />
+
+      {/* v2.9.2 — inline garage CRUD so users don't have to hop to /garages
+          for the basics (rename, create, delete). Sharing & members still
+          live on /garages. */}
+      {garages.length > 0 || vehicles.length === 0 ? (
+        <GarageManager
+          initialGarages={garages.map((g) => ({
+            id: g.id,
+            name: g.name,
+            description: g.description,
+            vehicle_count: vehicles.filter((v) => v.garage_id === g.id).length,
+          }))}
+        />
+      ) : null}
 
       {!shown.length ? (
         <div className="card p-8 text-center space-y-4">

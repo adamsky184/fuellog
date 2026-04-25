@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, UserPlus, Users, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { VehiclePhotoUploader } from "@/components/vehicle-photo-uploader";
 
 type Member = {
   user_id: string;
@@ -41,6 +42,7 @@ export default function VehicleSettingsPage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [garages, setGarages] = useState<{ id: string; name: string }[]>([]);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     make: "",
@@ -101,6 +103,7 @@ export default function VehicleSettingsPage({
         color: v.color ?? "#0ea5e9",
         garage_id: v.garage_id ?? "",
       });
+      setPhotoPath(v.photo_path ?? null);
       setLoading(false);
     })();
     return () => {
@@ -454,6 +457,10 @@ export default function VehicleSettingsPage({
             />
           </div>
         </div>
+
+        {/* v2.9.0 — vehicle photo. Lives outside the form's onSubmit so the
+            upload-and-update happens immediately rather than on Save. */}
+        <VehiclePhotoUploader vehicleId={vehicleId} initialPath={photoPath} onChange={setPhotoPath} />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

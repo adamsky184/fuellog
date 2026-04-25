@@ -222,10 +222,19 @@ function Stat({
       <Hash className="h-4 w-4" />
     ) : null);
 
+  // v2.9.0 — moved the gradient into a self-clipping overlay so the
+  // outer card no longer needs overflow-hidden. Without that, the
+  // InfoDot tooltip was being clipped against the card edge — Adam's
+  // "popisky občas divně zarovnané" complaint. Tooltip now spills
+  // freely outside the card.
   return (
-    <div
-      className={`card p-3 relative overflow-hidden isolate before:absolute before:inset-0 before:rounded-2xl before:pointer-events-none ${t?.gradient ?? ""}`}
-    >
+    <div className="card p-3 relative isolate">
+      {t?.gradient && (
+        <span
+          aria-hidden
+          className={`absolute inset-0 rounded-2xl pointer-events-none ${t.gradient}`}
+        />
+      )}
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">

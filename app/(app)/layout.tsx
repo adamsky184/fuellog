@@ -99,8 +99,12 @@ export default async function AppLayout({
     make: string | null;
     model: string | null;
     garage_id: string | null;
+    photo_path: string | null;
+    first_year: number | null;
+    last_year: number | null;
+    has_recent_fillup: boolean;
   };
-  type GRow = { id: string; name: string };
+  type GRow = { id: string; name: string; sort_order: number | null };
 
   let vehicles: VRow[] = [];
   let garages: GRow[] = [];
@@ -109,22 +113,45 @@ export default async function AppLayout({
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("vehicles")
-      .select("id, name, color, make, model, garage_id, created_at")
-      .order("created_at", { ascending: false });
-    if (error) {
-      loadErrors.push({ src: "vehicles", msg: error.message });
-      console.error("[(app) layout] vehicles query error", error);
+    // v2.9.0 — also pull photo_path; merge with vehicle_date_range_v for the
+    // year-range badge in the switcher.
+    const [vRes, drRes] = await Promise.all([
+      supabase
+        .from("vehicles")
+        .select("id, name, color, make, model, garage_id, photo_path, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("vehicle_date_range_v")
+        .select("vehicle_id, first_year, last_year, last_date"),
+    ]);
+    if (vRes.error) {
+      loadErrors.push({ src: "vehicles", msg: vRes.error.message });
+      console.error("[(app) layout] vehicles query error", vRes.error);
     } else {
-      vehicles = (data ?? []).map((v) => ({
-        id: v.id as string,
-        name: v.name as string,
-        color: (v.color as string | null) ?? null,
-        make: (v.make as string | null) ?? null,
-        model: (v.model as string | null) ?? null,
-        garage_id: (v.garage_id as string | null) ?? null,
-      }));
+      const dr = new Map<string, { first_year: number | null; last_year: number | null; last_date: string | null }>();
+      for (const r of (drRes.data ?? []) as { vehicle_id: string; first_year: number | null; last_year: number | null; last_date: string | null }[]) {
+        dr.set(r.vehicle_id, { first_year: r.first_year, last_year: r.last_year, last_date: r.last_date });
+      }
+      const today = new Date();
+      vehicles = (vRes.data ?? []).map((v) => {
+        const meta = dr.get(v.id as string);
+        const lastDate = meta?.last_date ? new Date(meta.last_date) : null;
+        const recent = lastDate
+          ? today.getTime() - lastDate.getTime() < 120 * 24 * 60 * 60 * 1000
+          : false;
+        return {
+          id: v.id as string,
+          name: v.name as string,
+          color: (v.color as string | null) ?? null,
+          make: (v.make as string | null) ?? null,
+          model: (v.model as string | null) ?? null,
+          garage_id: (v.garage_id as string | null) ?? null,
+          photo_path: (v.photo_path as string | null) ?? null,
+          first_year: meta?.first_year ?? null,
+          last_year: meta?.last_year ?? null,
+          has_recent_fillup: recent,
+        };
+      });
     }
   } catch (e) {
     rethrowIfNextInternal(e);
@@ -137,17 +164,22 @@ export default async function AppLayout({
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("garages")
-      .select("id, name")
-      .order("created_at", { ascending: true });
-    if (error) {
-      loadErrors.push({ src: "garages", msg: error.message });
-      console.error("[(app) layout] garages query error", error);
+    const [gRes, gusRes] = await Promise.all([
+      supabase.from("garages").select("id, name").order("created_at", { ascending: true }),
+      supabase.from("garage_user_settings").select("garage_id, sort_order").eq("user_id", userId),
+    ]);
+    if (gRes.error) {
+      loadErrors.push({ src: "garages", msg: gRes.error.message });
+      console.error("[(app) layout] garages query error", gRes.error);
     } else {
-      garages = (data ?? []).map((g) => ({
+      const orderMap = new Map<string, number>();
+      for (const r of (gusRes.data ?? []) as { garage_id: string; sort_order: number }[]) {
+        orderMap.set(r.garage_id, r.sort_order);
+      }
+      garages = (gRes.data ?? []).map((g) => ({
         id: g.id as string,
         name: g.name as string,
+        sort_order: orderMap.get(g.id as string) ?? null,
       }));
     }
   } catch (e) {

@@ -10,8 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.8.1: historical ČNB rates + live ≈ Kč preview + highway kraje backfill.
-const CACHE_VERSION = "fuellog-v2.8.1";
+// v2.9.0: garage drag-order, vehicle photos, year-range badge, sticky thead,
+// fill-up tile units, "Ujeto km", D1/D5 highway labels, infobox alignment.
+const CACHE_VERSION = "fuellog-v2.9.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

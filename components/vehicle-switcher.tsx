@@ -23,6 +23,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Plus, Warehouse } from "lucide-react";
+import { VehicleAvatar } from "@/components/vehicle-avatar";
 
 export type SwitcherVehicle = {
   id: string;
@@ -31,8 +32,13 @@ export type SwitcherVehicle = {
   make: string | null;
   model: string | null;
   garage_id: string | null;
+  /** v2.9.0 — optional fields, populated from server when available. */
+  photo_path?: string | null;
+  first_year?: number | null;
+  last_year?: number | null;
+  has_recent_fillup?: boolean;
 };
-export type SwitcherGarage = { id: string; name: string };
+export type SwitcherGarage = { id: string; name: string; sort_order?: number | null };
 
 export function VehicleSwitcher({
   vehicles,
@@ -85,12 +91,20 @@ export function VehicleSwitcher({
     bucket.push(v);
     byGarage.set(key, bucket);
   }
+  // v2.9.0 — honour the per-user `sort_order` from garage_user_settings.
+  // Garages without a user-set order fall to the bottom alphabetically;
+  // "Bez garáže" always last.
   const groups = Array.from(byGarage.entries()).sort((a, b) => {
     if (a[0] == null) return 1;
     if (b[0] == null) return -1;
-    const an = garages.find((g) => g.id === a[0])?.name ?? "";
-    const bn = garages.find((g) => g.id === b[0])?.name ?? "";
-    return an.localeCompare(bn, "cs");
+    const ga = garages.find((g) => g.id === a[0]);
+    const gb = garages.find((g) => g.id === b[0]);
+    const oa = ga?.sort_order;
+    const ob = gb?.sort_order;
+    if (oa != null && ob != null) return oa - ob;
+    if (oa != null) return -1;
+    if (ob != null) return 1;
+    return (ga?.name ?? "").localeCompare(gb?.name ?? "", "cs");
   });
 
   const label = current?.name ?? "Vyber auto";
@@ -119,10 +133,11 @@ export function VehicleSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span
-          className="inline-block h-3 w-3 rounded-full border border-slate-300 dark:border-slate-600 shrink-0"
-          style={{ backgroundColor: current?.color ?? "#cbd5e1" }}
-          aria-hidden
+        <VehicleAvatar
+          photoPath={current?.photo_path ?? null}
+          color={current?.color ?? null}
+          size="sm"
+          className="!w-4 !h-4"
         />
         <span className="truncate font-medium">{label}</span>
         <ChevronDown
@@ -153,8 +168,17 @@ export function VehicleSwitcher({
                 </div>
                 {list.map((v) => {
                   const active = v.id === currentVehicleId;
-                  const subtitle =
-                    [v.make, v.model].filter(Boolean).join(" ") || null;
+                  const subtitle = [v.make, v.model].filter(Boolean).join(" ") || null;
+                  // v2.9.0 — year-range badge: "1995–1997" or "2020 –" if last
+                  // fill-up was within ~120 days (i.e. still actively driven).
+                  const yearRange =
+                    v.first_year && v.last_year
+                      ? v.has_recent_fillup
+                        ? `${v.first_year} –`
+                        : v.first_year === v.last_year
+                          ? `${v.first_year}`
+                          : `${v.first_year}–${v.last_year}`
+                      : null;
                   return (
                     <button
                       key={v.id}
@@ -169,13 +193,21 @@ export function VehicleSwitcher({
                           active ? "bg-slate-50 dark:bg-slate-800" : ""
                         }`}
                     >
-                      <span
-                        className="inline-block h-4 w-4 rounded-full border border-slate-300 dark:border-slate-600 shrink-0"
-                        style={{ backgroundColor: v.color ?? "#cbd5e1" }}
-                        aria-hidden
+                      <VehicleAvatar
+                        photoPath={v.photo_path ?? null}
+                        color={v.color ?? null}
+                        size="md"
+                        className="!w-7 !h-7"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block font-medium truncate">{v.name}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-medium truncate">{v.name}</span>
+                          {yearRange && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums shrink-0 font-normal">
+                              {yearRange}
+                            </span>
+                          )}
+                        </span>
                         {subtitle && (
                           <span className="block text-xs text-slate-500 dark:text-slate-400 truncate">
                             {subtitle}

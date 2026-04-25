@@ -121,6 +121,27 @@ export type Database = {
         }
         Relationships: []
       }
+      garage_user_settings: {
+        Row: {
+          user_id: string
+          garage_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          garage_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          garage_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       garage_members: {
         Row: {
           garage_id: string
@@ -395,6 +416,7 @@ export type Database = {
           make: string | null
           model: string | null
           name: string
+          photo_path: string | null
           tank_capacity_liters: number | null
           updated_at: string
           year: number | null
@@ -411,6 +433,7 @@ export type Database = {
           make?: string | null
           model?: string | null
           name: string
+          photo_path?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null
@@ -427,6 +450,7 @@ export type Database = {
           make?: string | null
           model?: string | null
           name?: string
+          photo_path?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null
@@ -443,6 +467,18 @@ export type Database = {
       }
     }
     Views: {
+      vehicle_date_range_v: {
+        Row: {
+          vehicle_id: string | null
+          first_date: string | null
+          last_date: string | null
+          first_year: number | null
+          last_year: number | null
+          fill_up_count: number | null
+          current_odometer: number | null
+        }
+        Relationships: []
+      }
       fill_up_stats_v: {
         Row: {
           address: string | null

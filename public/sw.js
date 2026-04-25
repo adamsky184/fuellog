@@ -10,10 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.6: stretched-link rows (no AKCE column), header padding align,
-// vehicle color stripe, pump leaderboard sort=count desc, garage stats
-// drops Tachometr, multi-select for vehicles+garages.
-const CACHE_VERSION = "fuellog-v2.9.6";
+// v2.9.7: PostgREST 1000-row cap fix on stats queries, multi-select polish,
+// avatar color ring (replaced left stripe), back-to-top button, pump
+// leaderboard with units.
+const CACHE_VERSION = "fuellog-v2.9.7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

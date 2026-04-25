@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
 import { OfflineSync } from "@/components/offline-sync";
+import { BackToTop } from "@/components/back-to-top";
 import { AlertTriangle } from "lucide-react";
 import { rethrowIfNextInternal } from "@/lib/next-errors";
 
@@ -249,6 +250,7 @@ export default async function AppLayout({
         {children}
       </main>
       <OfflineSync />
+      <BackToTop />
     </>
   );
 }

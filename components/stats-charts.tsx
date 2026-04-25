@@ -56,6 +56,18 @@ function initialsForBrand(brand: string): string {
 }
 
 /**
+ * v2.9.7 — small grey unit suffix used inline next to numeric values
+ * across the various stats components (leaderboard, charts, breakdown).
+ */
+function U({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-1 text-[10px] text-slate-400 dark:text-slate-500 font-normal normal-case">
+      {children}
+    </span>
+  );
+}
+
+/**
  * Compact "logo" for a fuel-station brand.
  * Colored circle with brand initials. Consistent per brand via BRAND_COLORS.
  */
@@ -414,18 +426,18 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
               >
                 Tankování{arrow("count")}
               </th>
-              <th className="text-right px-2 py-1">Litry</th>
+              <th className="text-right px-2 py-1">Litry <U>l</U></th>
               <th
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("price")}
               >
-                Ø Kč/l{arrow("price")}
+                Ø cena <U>Kč/l</U>{arrow("price")}
               </th>
               <th
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("consumption")}
               >
-                Ø L/100{arrow("consumption")}
+                Ø spotřeba <U>l/100</U>{arrow("consumption")}
               </th>
             </tr>
           </thead>
@@ -438,13 +450,17 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
                     <span className="font-medium">{r.brand}</span>
                   </div>
                 </td>
-                <td className="px-2 py-1 text-right tabular-nums">{r.count}</td>
-                <td className="px-2 py-1 text-right tabular-nums">{r.liters.toFixed(1)}</td>
                 <td className="px-2 py-1 text-right tabular-nums">
-                  {r.avgPricePerL != null ? r.avgPricePerL.toFixed(2) : "—"}
+                  {r.count}<U>×</U>
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
-                  {r.avgL100 != null ? r.avgL100.toFixed(2) : "—"}
+                  {r.liters.toFixed(1)}<U>l</U>
+                </td>
+                <td className="px-2 py-1 text-right tabular-nums">
+                  {r.avgPricePerL != null ? <>{r.avgPricePerL.toFixed(2)}<U>Kč/l</U></> : "—"}
+                </td>
+                <td className="px-2 py-1 text-right tabular-nums">
+                  {r.avgL100 != null ? <>{r.avgL100.toFixed(2)}<U>l/100</U></> : "—"}
                 </td>
               </tr>
             ))}

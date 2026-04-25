@@ -10,7 +10,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare, Square } from "lucide-react";
+import { CheckSquare } from "lucide-react";
 import { VehicleAvatar } from "@/components/vehicle-avatar";
 
 export type VehicleOption = {
@@ -54,24 +54,30 @@ export function VehicleMultiSelect({
   if (vehicles.length <= 1) return null;
 
   return (
-    <div className="card p-3 space-y-2">
+    <div className="card p-3 sm:p-4 space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wide font-medium text-slate-500 dark:text-slate-400">
-          Vozidla{" "}
-          <span className="font-normal text-slate-400">
-            · {allSelected ? "vše" : `${selected.size}/${vehicles.length}`}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+            Vozidla
           </span>
-        </span>
+          <span className="text-[11px] text-slate-400 tabular-nums">
+            {allSelected ? `vše · ${vehicles.length}` : `${selected.size}/${vehicles.length}`}
+          </span>
+        </div>
         {!allSelected && (
           <button
             type="button"
             onClick={selectAll}
-            className="text-xs text-slate-500 hover:text-sky-600"
+            className="text-[11px] text-sky-600 hover:underline"
           >
             Vybrat vše
           </button>
         )}
       </div>
+      {/* v2.9.7 — cleaner chip design: avatar + name + small check icon. Selected
+           = solid filled (high contrast), unselected = ghost (faded). No
+           leftover left-border accent — the avatar itself already carries the
+           car's identity. */}
       <div className="flex flex-wrap gap-1.5">
         {vehicles.map((v) => {
           const on = allSelected || selected.has(v.id);
@@ -80,25 +86,21 @@ export function VehicleMultiSelect({
               key={v.id}
               type="button"
               onClick={() => toggle(v.id)}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border transition ${
+              aria-pressed={on}
+              className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs border transition ${
                 on
-                  ? "bg-sky-50 border-sky-300 text-sky-800 dark:bg-sky-900/40 dark:border-sky-700 dark:text-sky-200"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+                  : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300"
               }`}
-              style={{ borderLeft: v.color ? `3px solid ${v.color}` : undefined }}
             >
-              {on ? (
-                <CheckSquare className="h-3.5 w-3.5" />
-              ) : (
-                <Square className="h-3.5 w-3.5" />
-              )}
               <VehicleAvatar
                 photoPath={v.photo_path}
                 color={v.color}
                 size="sm"
-                className="!w-4 !h-4"
+                className="!w-5 !h-5 ring-2 ring-white dark:ring-slate-900"
               />
               <span className="truncate max-w-[160px]">{v.name}</span>
+              {on && <CheckSquare className="h-3 w-3 opacity-70" />}
             </button>
           );
         })}

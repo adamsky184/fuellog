@@ -297,23 +297,26 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
                 return (
-                  <li
-                    key={v.id}
-                    className="card relative overflow-hidden"
-                    style={{
-                      // v2.9.6 — vehicle's color is rendered as a thin accent
-                      // bar along the left edge of the card. Subtle but
-                      // distinguishes cars at a glance, especially when two
-                      // share the same name (multiple Audis, …).
-                      borderLeft: v.color ? `4px solid ${v.color}` : undefined,
-                    }}
-                  >
+                  <li key={v.id} className="card">
                     <Link
                       href={`/v/${v.id}/fill-ups`}
                       className="block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
                     >
                       <div className="flex items-center gap-3">
-                        <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
+                        {/* v2.9.7 — vehicle color is rendered as a 2px ring
+                             around the avatar instead of a left-edge stripe
+                             on the card. Cleaner; the colour reads as a
+                             personal accent on the brand mark rather than
+                             industrial racing tape. */}
+                        <span
+                          className="rounded-full"
+                          style={{
+                            padding: v.color ? 2 : 0,
+                            backgroundColor: v.color ?? "transparent",
+                          }}
+                        >
+                          <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
+                        </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-base sm:text-lg truncate">

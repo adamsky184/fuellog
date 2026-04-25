@@ -56,6 +56,7 @@ export default async function CrossGarageStatsPage({
 
   let rowsAll: RawStatsRow[] = [];
   if (selectedIds.length > 0) {
+    // v2.9.7 — see /garages/[id]/stats; same PostgREST 1000-row cap fix.
     const { data: rowsRaw } = await supabase
       .from("fill_up_stats_v")
       .select(
@@ -64,7 +65,8 @@ export default async function CrossGarageStatsPage({
           "station_brand, country, region, is_baseline, is_highway",
       )
       .in("vehicle_id", selectedIds)
-      .order("date", { ascending: true });
+      .order("date", { ascending: true })
+      .range(0, 99999);
     rowsAll = (rowsRaw ?? []) as unknown as RawStatsRow[];
   }
 

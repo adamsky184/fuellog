@@ -7,7 +7,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare, Square, Warehouse } from "lucide-react";
+import { CheckSquare, Warehouse } from "lucide-react";
 
 export type GarageOption = {
   id: string;
@@ -43,19 +43,21 @@ export function GarageMultiSelect({ garages }: { garages: GarageOption[] }) {
   if (garages.length <= 1) return null;
 
   return (
-    <div className="card p-3 space-y-2">
+    <div className="card p-3 sm:p-4 space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs uppercase tracking-wide font-medium text-slate-500 dark:text-slate-400">
-          Garáže{" "}
-          <span className="font-normal text-slate-400">
-            · {allSelected ? "vše" : `${selected.size}/${garages.length}`}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+            Garáže
           </span>
-        </span>
+          <span className="text-[11px] text-slate-400 tabular-nums">
+            {allSelected ? `vše · ${garages.length}` : `${selected.size}/${garages.length}`}
+          </span>
+        </div>
         {!allSelected && (
           <button
             type="button"
             onClick={selectAll}
-            className="text-xs text-slate-500 hover:text-sky-600"
+            className="text-[11px] text-sky-600 hover:underline"
           >
             Vybrat vše
           </button>
@@ -69,19 +71,16 @@ export function GarageMultiSelect({ garages }: { garages: GarageOption[] }) {
               key={g.id}
               type="button"
               onClick={() => toggle(g.id)}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs border transition ${
+              aria-pressed={on}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition ${
                 on
-                  ? "bg-sky-50 border-sky-300 text-sky-800 dark:bg-sky-900/40 dark:border-sky-700 dark:text-sky-200"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"
+                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+                  : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300"
               }`}
             >
-              {on ? (
-                <CheckSquare className="h-3.5 w-3.5" />
-              ) : (
-                <Square className="h-3.5 w-3.5" />
-              )}
-              <Warehouse className="h-3.5 w-3.5" />
+              <Warehouse className="h-3.5 w-3.5 opacity-70" />
               <span className="truncate max-w-[180px]">{g.name}</span>
+              {on && <CheckSquare className="h-3 w-3 opacity-70" />}
             </button>
           );
         })}

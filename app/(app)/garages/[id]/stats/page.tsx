@@ -45,6 +45,11 @@ export default async function GarageStatsPage({
 
   let rowsAll: RawStatsRow[] = [];
   if (selectedIds.length > 0) {
+    // v2.9.7 — bump beyond PostgREST's default 1000-row cap. With 10 cars
+    // × 1700+ fill-ups in Milan's "PAST" garage we'd hit the cap on the
+    // OLDEST records (date asc), which all happen to have total_price=NULL
+    // — that's why "Kč v období" was reading as 0 Kč. .range() forces the
+    // server to return up to the explicit upper bound.
     const { data: rowsRaw } = await supabase
       .from("fill_up_stats_v")
       .select(
@@ -53,7 +58,8 @@ export default async function GarageStatsPage({
           "station_brand, country, region, is_baseline, is_highway",
       )
       .in("vehicle_id", selectedIds)
-      .order("date", { ascending: true });
+      .order("date", { ascending: true })
+      .range(0, 99999);
     rowsAll = (rowsRaw ?? []) as unknown as RawStatsRow[];
   }
 

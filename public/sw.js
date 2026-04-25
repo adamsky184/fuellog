@@ -10,9 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.12: row hover via client onClick instead of absolute-link; sortable
-// Roční souhrn + units; brand chart litry + name sortable.
-const CACHE_VERSION = "fuellog-v2.9.12";
+// v2.9.13: garage members now inherit vehicle visibility via updated RLS
+// helpers (is_vehicle_member / can_write_vehicle).
+const CACHE_VERSION = "fuellog-v2.9.13";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

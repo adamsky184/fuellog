@@ -144,7 +144,7 @@ export default async function VehiclesPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">Moje garáže</h1>
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">Moje garáže</h1>
           <p className="text-slate-500 text-sm">
             {vehicles.length
               ? `${vehicles.length} ${vehicles.length === 1 ? "auto" : vehicles.length < 5 ? "auta" : "aut"}`

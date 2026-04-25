@@ -38,6 +38,9 @@ const LOGOS: Record<string, Logo> = {
   aral: { file: "ARAL.png", bg: "#ffffff" },
   benzina: { file: "BENZINA.png", bg: "#ffffff" },
   orlenbenzina: { file: "BENZINA.png", bg: "#ffffff" },
+  // v2.9.1 — added BP + ESSO logos.
+  bp: { file: "BP.png", bg: "#ffffff" },
+  esso: { file: "ESSO.png", bg: "#ffffff" },
   eurooil: { file: "EUROOIL.png", bg: "#ffffff" },
   euroil: { file: "EUROOIL.png", bg: "#ffffff" },
   globus: { file: "GLOBUS.png", bg: "#ffffff" },

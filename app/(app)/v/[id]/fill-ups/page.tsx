@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { DueReminders } from "@/components/due-reminders";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { formatLocation } from "@/lib/regions";
+import { countryFlag } from "@/lib/country-flags";
 
 export default async function FillUpsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,25 +30,21 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
   );
 
   const avgConsumption = totals && totals.km > 0 ? (totals.liters / totals.km) * 100 : null;
-  // v2.9.0 — current-odometer tile uses the highest stav we've seen.
   const currentOdometer = rows && rows.length > 0
     ? Math.max(...rows.map((r) => Number(r.odometer_km ?? 0)))
     : 0;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-        {/* v2.9.0 — added current odometer tile + units rendered as smaller suffix. */}
-        <Stat label="Tachometr" value={formatNumber(currentOdometer, 0)} unit="km" tone="km" />
-        <Stat label="Tankování" value={String(totals?.count ?? 0)} tone="count" />
-        <Stat label="Ujeto" value={formatNumber(totals?.km, 0)} unit="km" tone="km" />
-        <Stat label="Celkem" value={formatNumber(totals?.price, 0)} unit="Kč" tone="money" />
-        <Stat
-          label="Ø spotřeba"
-          value={formatNumber(avgConsumption, 2)}
-          unit="L/100 km"
-          tone="fuel"
-        />
+      {/* v2.9.1 — six-tile strip in the order Adam asked for:
+          TACHOMETR / UJETO / TANKOVÁNÍ / CELKEM Kč / CELKEM L / Ø spotřeba */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 text-sm">
+        <Stat label="Tachometr"    value={formatNumber(currentOdometer, 0)}        unit="km"      tone="km" />
+        <Stat label="Ujeto"        value={formatNumber(totals?.km, 0)}              unit="km"      tone="km" />
+        <Stat label="Tankování"    value={`${totals?.count ?? 0}×`}                                 tone="count" />
+        <Stat label="Celkem"       value={formatNumber(totals?.price, 0)}           unit="Kč"      tone="money" />
+        <Stat label="Celkem"       value={formatNumber(totals?.liters, 1)}          unit="L"       tone="fuel" />
+        <Stat label="Ø spotřeba"   value={formatNumber(avgConsumption, 2)}          unit="L/100"   tone="fuel" />
       </div>
       <div className="flex justify-end">
         <Link
@@ -59,7 +56,6 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
         </Link>
       </div>
 
-      {/* v2.7.0 — pojištění / dálniční známka / STK připomínky pro tohle vozidlo. */}
       <DueReminders vehicleId={id} showVehicleName={false} />
 
       {!rows?.length ? (
@@ -76,6 +72,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
           <div className="sm:hidden space-y-2">
             {rows.map((r) => {
               const hwLabel = highwayLabel(r.address, r.is_highway);
+              const flag = countryFlag(r.country);
               return (
                 <Link
                   key={r.id!}
@@ -84,7 +81,8 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      {/* v2.9.1 — keep date + highway badge on a single line. */}
+                      <div className="flex items-center gap-2 whitespace-nowrap">
                         <span className="font-medium">{formatDate(r.date)}</span>
                         {hwLabel && (
                           <span className="inline-block rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
@@ -95,7 +93,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                           {formatNumber(r.odometer_km, 0)} km
                         </span>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-sm text-slate-700">
+                      <div className="mt-1 flex items-center gap-2 text-sm text-slate-700 min-w-0">
                         {r.station_brand ? (
                           <span className="inline-flex items-center gap-1.5 min-w-0">
                             <BrandLogo brand={r.station_brand} size={18} />
@@ -106,7 +104,10 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         )}
                         {(r.city || r.region || stripHighwayPrefix(r.address)) && (
                           <span className="text-slate-500 text-xs truncate">
-                            · {[stripHighwayPrefix(r.address), formatLocation(r.city, r.region, r.country)].filter(Boolean).join(" · ")}
+                            · {flag && <span className="mr-0.5">{flag}</span>}
+                            {[stripHighwayPrefix(r.address), formatLocation(r.city, r.region, r.country)]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </span>
                         )}
                       </div>
@@ -149,80 +150,95 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
             })}
           </div>
 
-          {/* Desktop/tablet: dense table with sticky header. */}
-          <div className="card overflow-x-auto hidden sm:block">
-            <table className="w-full text-sm">
-              {/* v2.9.0 — sticky header so column labels stay visible while scrolling. */}
-              <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 text-xs uppercase sticky top-0 z-10 backdrop-blur">
-                <tr>
-                  <Th>Datum</Th>
-                  <Th right>Stav (km)</Th>
-                  <Th right>Ujeto</Th>
-                  <Th right>Litrů</Th>
-                  <Th right>Kč/l</Th>
-                  <Th right>Celkem</Th>
-                  <Th right>L/100</Th>
-                  <Th>Pumpa</Th>
-                  <Th>Místo</Th>
-                  <Th>Adresa</Th>
-                  <Th right>Akce</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const hwLabel = highwayLabel(r.address, r.is_highway);
-                  return (
-                    <tr key={r.id!} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                      <Td>
-                        {formatDate(r.date)}
-                        {hwLabel && (
-                          <span className="ml-2 inline-block rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
-                            {hwLabel}
+          {/* Desktop/tablet table.
+              v2.9.1 — the previous `overflow-x-auto` parent established a
+              new scrolling context, which silently broke `position: sticky`
+              on <thead>. Splitting the card into a non-scrolling outer
+              shell and a scroll-only-on-x inner wrapper keeps the rounded
+              card decoration AND lets sticky resolve against page scroll.
+              `style={{ overflowY: "visible" }}` is explicit about not
+              clipping the y-axis even though we set overflow-x:auto. */}
+          <div className="card hidden sm:block">
+            <div
+              className="rounded-2xl"
+              style={{ overflowX: "auto", overflowY: "visible" }}
+            >
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur text-slate-600 dark:text-slate-300 text-xs uppercase">
+                  <tr>
+                    <Th>Datum</Th>
+                    <Th right unit="km">Stav</Th>
+                    <Th right unit="km">Ujeto</Th>
+                    <Th right unit="L">Litrů</Th>
+                    <Th right unit="Kč/l">Cena</Th>
+                    <Th right unit="Kč">Celkem</Th>
+                    <Th right unit="L/100">Spotřeba</Th>
+                    <Th>Pumpa</Th>
+                    <Th>Místo</Th>
+                    <Th>Adresa</Th>
+                    <Th right>Akce</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const hwLabel = highwayLabel(r.address, r.is_highway);
+                    const flag = countryFlag(r.country);
+                    return (
+                      <tr key={r.id!} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                        <Td>
+                          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                            <span>{formatDate(r.date)}</span>
+                            {hwLabel && (
+                              <span className="inline-block rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
+                                {hwLabel}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </Td>
-                      <Td right>{formatNumber(r.odometer_km, 0)}</Td>
-                      <Td right className="text-slate-500">{r.km_since_last ? formatNumber(r.km_since_last, 0) : "—"}</Td>
-                      <Td right>{r.is_baseline ? "—" : formatNumber(r.liters, 2)}</Td>
-                      <Td right>{r.price_per_liter ? formatNumber(r.price_per_liter, 2) : "—"}</Td>
-                      <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
-                      <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption)}>
-                        {r.consumption_l_per_100km ? formatNumber(r.consumption_l_per_100km, 2) : "—"}
-                      </Td>
-                      <Td>
-                        {r.station_brand ? (
-                          <span className="inline-flex items-center gap-2">
-                            <BrandLogo brand={r.station_brand} size={22} />
-                            <span>{r.station_brand}</span>
+                        </Td>
+                        <Td right>{formatNumber(r.odometer_km, 0)}</Td>
+                        <Td right className="text-slate-500">{r.km_since_last ? formatNumber(r.km_since_last, 0) : "—"}</Td>
+                        <Td right>{r.is_baseline ? "—" : formatNumber(r.liters, 2)}</Td>
+                        <Td right>{r.price_per_liter ? formatNumber(r.price_per_liter, 2) : "—"}</Td>
+                        <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
+                        <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption)}>
+                          {r.consumption_l_per_100km ? formatNumber(r.consumption_l_per_100km, 2) : "—"}
+                        </Td>
+                        <Td>
+                          {r.station_brand ? (
+                            <span className="inline-flex items-center gap-2">
+                              <BrandLogo brand={r.station_brand} size={22} />
+                              <span>{r.station_brand}</span>
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </Td>
+                        <Td>
+                          <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                            {flag && <span aria-hidden>{flag}</span>}
+                            <span>{formatLocation(r.city, r.region, r.country) || "—"}</span>
                           </span>
-                        ) : (
-                          "—"
-                        )}
-                      </Td>
-                      <Td>
-                        <span className="text-slate-600 dark:text-slate-300">
-                          {formatLocation(r.city, r.region, r.country) || "—"}
-                        </span>
-                      </Td>
-                      <Td>
-                        <span className="text-slate-500 dark:text-slate-400 text-xs">
-                          {stripHighwayPrefix(r.address) || "—"}
-                        </span>
-                      </Td>
-                      <Td right>
-                        <Link
-                          href={`/v/${id}/fill-ups/${r.id}/edit`}
-                          className="text-sky-600 hover:underline text-xs inline-flex items-center gap-1"
-                        >
-                          <Pencil className="h-3 w-3" />
-                          Upravit
-                        </Link>
-                      </Td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </Td>
+                        <Td>
+                          <span className="text-slate-500 dark:text-slate-400 text-xs">
+                            {stripHighwayPrefix(r.address) || "—"}
+                          </span>
+                        </Td>
+                        <Td right>
+                          <Link
+                            href={`/v/${id}/fill-ups/${r.id}/edit`}
+                            className="text-sky-600 hover:underline text-xs inline-flex items-center gap-1"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Upravit
+                          </Link>
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
@@ -232,12 +248,6 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
 
 /* ----- helpers ----- */
 
-/**
- * v2.9.0 — extract the specific highway code from a fill-up's address.
- * Addresses like "D1 · Pávov" or "D 5 · Svojkovice" are common after the
- * Milan import. Falls back to the generic "D" only when the row is flagged
- * is_highway but we can't read the number.
- */
 function highwayLabel(address: string | null | undefined, isHighway: boolean | null | undefined): string | null {
   if (!isHighway) return null;
   if (!address) return "D";
@@ -245,18 +255,11 @@ function highwayLabel(address: string | null | undefined, isHighway: boolean | n
   return m ? `D${m[1]}` : "D";
 }
 
-/** Strip the highway prefix from address text so the rest reads cleanly. */
 function stripHighwayPrefix(address: string | null | undefined): string {
   if (!address) return "";
   return String(address).replace(/^D\s?\d{1,2}\s*·?\s*/i, "").trim();
 }
 
-/**
- * v2.9.0 — Stat tile: value + small unit suffix + tone-aware accent.
- *  - `value` is the headline number (Kč, km, L, count, …)
- *  - `unit`  is the optional smaller unit suffix ("km", "L", "Kč", "Kč/l", …)
- *  - `tone`  toggles a faint colour accent so the four tiles aren't a wall of grey
- */
 type StatTone = "km" | "fuel" | "money" | "count";
 const TONE_BG: Record<StatTone, string> = {
   km: "bg-sky-50/60 dark:bg-sky-950/20",
@@ -278,12 +281,12 @@ function Stat({
 }) {
   const bg = tone ? TONE_BG[tone] : "";
   return (
-    <div className={`card p-3 ${bg}`}>
-      <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
-      <div className="font-semibold text-base mt-0.5">
+    <div className={`card p-2.5 sm:p-3 ${bg}`}>
+      <div className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</div>
+      <div className="font-semibold text-base sm:text-lg mt-0.5 leading-tight">
         <span className="tabular-nums">{value}</span>
         {unit && (
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-normal ml-1">
+          <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-normal ml-1">
             {unit}
           </span>
         )}
@@ -292,19 +295,32 @@ function Stat({
   );
 }
 
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
-  return <th className={`px-3 py-2 ${right ? "text-right" : "text-left"} font-medium`}>{children}</th>;
+function Th({
+  children,
+  right,
+  unit,
+}: {
+  children: React.ReactNode;
+  right?: boolean;
+  unit?: string;
+}) {
+  return (
+    <th className={`px-3 py-2 ${right ? "text-right" : "text-left"} font-medium`}>
+      {children}
+      {/* v2.9.1 — small grey unit suffix in every header so the table is
+          self-explanatory even after scrolling. */}
+      {unit && (
+        <span className="ml-1 text-[10px] text-slate-400 dark:text-slate-500 font-normal normal-case">
+          ({unit})
+        </span>
+      )}
+    </th>
+  );
 }
 function Td({ children, right, className = "" }: { children: React.ReactNode; right?: boolean; className?: string }) {
   return <td className={`px-3 py-2 ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
-/**
- * Color-code a fill-up's consumption vs the fleet average.
- * Green = meaningfully better, red = meaningfully worse, neutral otherwise.
- * Thresholds are intentionally wide (±10% better, +15% worse) so normal
- * variation between city/highway runs doesn't paint the table red.
- */
 function consumptionClass(
   value: number | null | undefined,
   avg: number | null | undefined,

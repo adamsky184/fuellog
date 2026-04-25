@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DueReminders } from "@/components/due-reminders";
-import { GarageList, type GarageListGroup } from "@/components/garage-list";
+import { GarageList, type GarageListGroup, type GarageListVehicle } from "@/components/garage-list";
 
 type VehicleRow = {
   id: string;
@@ -31,7 +31,7 @@ export default async function VehiclesPage({
   const { data: u } = await supabase.auth.getUser();
   const userId = u.user?.id;
 
-  const [vehRes, garRes, settingsRes] = await Promise.all([
+  const [vehRes, garRes, settingsRes, dateRes] = await Promise.all([
     supabase
       .from("vehicles")
       .select(
@@ -45,26 +45,51 @@ export default async function VehiclesPage({
           .select("garage_id, sort_order")
           .eq("user_id", userId)
       : Promise.resolve({ data: [] }),
+    supabase.from("vehicle_date_range_v").select("vehicle_id, first_year, last_year, last_date"),
   ]);
 
   const vehicles: VehicleRow[] = vehRes.data ?? [];
   const garages: GarageRow[] = garRes.data ?? [];
   const orderRows = (settingsRes.data ?? []) as { garage_id: string; sort_order: number }[];
   const orderMap = new Map(orderRows.map((r) => [r.garage_id, r.sort_order]));
+  const dateMap = new Map<string, { first_year: number | null; last_year: number | null; last_date: string | null }>();
+  for (const r of (dateRes.data ?? []) as { vehicle_id: string; first_year: number | null; last_year: number | null; last_date: string | null }[]) {
+    dateMap.set(r.vehicle_id, { first_year: r.first_year, last_year: r.last_year, last_date: r.last_date });
+  }
+  const today = new Date();
 
-  // Optional filter by single garage
   const shown = garageFilter
     ? vehicles.filter((v) =>
         garageFilter === "none" ? !v.garage_id : v.garage_id === garageFilter,
       )
     : vehicles;
 
-  // Group by garage
-  const byGarage = new Map<string | null, VehicleRow[]>();
+  // Build per-garage groups; carry first_year/last_year/has_recent flags onto each vehicle.
+  const byGarage = new Map<string | null, GarageListVehicle[]>();
   for (const v of shown) {
+    const meta = dateMap.get(v.id);
+    const lastDate = meta?.last_date ? new Date(meta.last_date) : null;
+    const recent = lastDate
+      ? today.getTime() - lastDate.getTime() < 120 * 24 * 60 * 60 * 1000
+      : false;
+    const veh: GarageListVehicle = {
+      id: v.id,
+      name: v.name,
+      make: v.make,
+      model: v.model,
+      year: v.year,
+      license_plate: v.license_plate,
+      fuel_type: v.fuel_type,
+      color: v.color,
+      garage_id: v.garage_id,
+      photo_path: v.photo_path,
+      first_year: meta?.first_year ?? null,
+      last_year: meta?.last_year ?? null,
+      has_recent_fillup: recent,
+    };
     const key = v.garage_id ?? null;
     const bucket = byGarage.get(key) ?? [];
-    bucket.push(v);
+    bucket.push(veh);
     byGarage.set(key, bucket);
   }
 
@@ -73,14 +98,21 @@ export default async function VehiclesPage({
     return garages.find((g) => g.id === id)?.name ?? "Neznámá garáž";
   };
 
-  // v2.9.0 — sort by user's chosen `sort_order`. Garages without a user
-  // ordering fall to the bottom in alphabetical order. "Bez garáže" always last.
+  // Build groups and pre-sort by user's saved order (used as the initial
+  // "vlastní" view; client can flip to year/abc).
   const groups: GarageListGroup[] = Array.from(byGarage.entries())
-    .map(([gid, list]) => ({
-      garage_id: gid,
-      garage_name: garageName(gid),
-      vehicles: list,
-    }))
+    .map(([gid, list]) => {
+      const newest = list.reduce<number | null>(
+        (acc, v) => (v.last_year != null && (acc == null || v.last_year > acc) ? v.last_year : acc),
+        null,
+      );
+      return {
+        garage_id: gid,
+        garage_name: garageName(gid),
+        vehicles: list,
+        newest_year: newest,
+      };
+    })
     .sort((a, b) => {
       if (a.garage_id == null) return 1;
       if (b.garage_id == null) return -1;
@@ -129,7 +161,6 @@ export default async function VehiclesPage({
         </div>
       </div>
 
-      {/* v2.7.0 — overdue / upcoming maintenance reminders across all vehicles. */}
       <DueReminders />
 
       {!shown.length ? (

@@ -21,6 +21,9 @@ const SIGNED_URL_CACHE = new Map<string, { url: string; expiresAt: number }>();
 const TTL_MS = 55 * 60 * 1000; // 55 minutes; bucket signs for 1h
 
 async function signPath(path: string): Promise<string | null> {
+  // v2.9.1 — paths beginning with "/" are bundled public assets (e.g.
+  // /vehicle-logos/audi.png) and don't need a signed URL.
+  if (path.startsWith("/")) return path;
   const cached = SIGNED_URL_CACHE.get(path);
   if (cached && cached.expiresAt > Date.now()) return cached.url;
   const supabase = createClient();

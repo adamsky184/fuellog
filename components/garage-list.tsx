@@ -1,19 +1,18 @@
 /**
- * v2.9.0 — GarageList (client component)
+ * v2.9.0 → v2.9.1 — GarageList (client component)
  *
- * Renders the user's garages with their vehicles and lets the user
- * reorder garages by drag-and-drop. The order is persisted per user in
- * `garage_user_settings(user_id, garage_id, sort_order)` so each member
- * of a shared garage keeps their own preference.
+ * Renders the user's garages with their vehicles. v2.9.1 adds:
+ *  - sort selector: rok / abc / vlastní (custom drag)
+ *  - year-range badge ("1995–1997" / "2020 –") next to each vehicle
+ *  - drag-and-drop garage reordering only when sort = "vlastní"
  *
- * The vehicle switcher in the header reads the same table, so the
- * switcher list reflects the same custom order.
+ * Per-user ordering persists in `garage_user_settings`.
  */
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { GripVertical, Warehouse } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDownAZ, CalendarRange, GripVertical, Move, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleAvatar } from "@/components/vehicle-avatar";
 
@@ -28,35 +27,82 @@ export type GarageListVehicle = {
   color: string | null;
   garage_id: string | null;
   photo_path: string | null;
+  /** Earliest fill-up year (vehicle_date_range_v.first_year). */
+  first_year: number | null;
+  /** Latest fill-up year. */
+  last_year: number | null;
+  /** True when last fill-up was within the last ~120 days. */
+  has_recent_fillup: boolean;
 };
 
 export type GarageListGroup = {
-  garage_id: string | null; // null = "Bez garáže"
+  garage_id: string | null;
   garage_name: string;
   vehicles: GarageListVehicle[];
+  /** Used by the "by age, newest first" sort: max last_year across cars. */
+  newest_year: number | null;
 };
 
+type SortKey = "year" | "abc" | "custom";
+
+const SORT_KEY_STORAGE = "fuellog-garage-sort";
+
 export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[] }) {
+  // Persist sort selection across page loads (just a UX nicety).
+  const [sortKey, setSortKey] = useState<SortKey>("year");
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(SORT_KEY_STORAGE);
+      if (v === "year" || v === "abc" || v === "custom") setSortKey(v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function setAndStoreSort(k: SortKey) {
+    setSortKey(k);
+    try {
+      localStorage.setItem(SORT_KEY_STORAGE, k);
+    } catch {
+      /* ignore */
+    }
+  }
+
   const [groups, setGroups] = useState(initialGroups);
   const [dragId, setDragId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
-
-  // Re-sync when server props change (after a router.refresh).
   useEffect(() => setGroups(initialGroups), [initialGroups]);
 
+  // Build the displayed order based on sortKey. "Bez garáže" always last.
+  const ordered = useMemo(() => {
+    const noGarage = groups.find((g) => g.garage_id == null);
+    const real = groups.filter((g) => g.garage_id != null);
+    const sorted = [...real];
+    if (sortKey === "abc") {
+      sorted.sort((a, b) => a.garage_name.localeCompare(b.garage_name, "cs"));
+    } else if (sortKey === "year") {
+      // Newest first: max last_year across the garage's vehicles.
+      sorted.sort((a, b) => (b.newest_year ?? 0) - (a.newest_year ?? 0));
+    }
+    // For "custom", keep the order the parent passed in (already
+    // sorted by user's saved sort_order).
+    return noGarage ? [...sorted, noGarage] : sorted;
+  }, [groups, sortKey]);
+
+  // ----- drag-drop (only meaningful in "custom") -----
   function onDragStart(garageId: string | null) {
-    if (garageId == null) return; // "Bez garáže" can't be reordered
+    if (sortKey !== "custom") return;
+    if (garageId == null) return;
     setDragId(garageId);
   }
   function onDragOver(e: React.DragEvent) {
-    if (dragId) e.preventDefault();
+    if (sortKey === "custom" && dragId) e.preventDefault();
   }
   async function onDrop(targetId: string | null) {
+    if (sortKey !== "custom") return;
     if (!dragId || dragId === targetId || targetId == null) {
       setDragId(null);
       return;
     }
-    // Reorder in local state.
     const next = [...groups];
     const fromIdx = next.findIndex((g) => g.garage_id === dragId);
     const toIdx = next.findIndex((g) => g.garage_id === targetId);
@@ -68,8 +114,6 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
     next.splice(toIdx, 0, moved);
     setGroups(next);
     setDragId(null);
-
-    // Persist new order — write sort_order = index for every real garage.
     setSavingOrder(true);
     const supabase = createClient();
     const { data: u } = await supabase.auth.getUser();
@@ -89,16 +133,55 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
     setSavingOrder(false);
   }
 
+  // Within each group, sort vehicles by sortKey too: year (newest first),
+  // abc, or by created_at (the order from the server) for "custom".
+  function sortedVehicles(vs: GarageListVehicle[]): GarageListVehicle[] {
+    if (sortKey === "abc") {
+      return [...vs].sort((a, b) => a.name.localeCompare(b.name, "cs"));
+    }
+    if (sortKey === "year") {
+      return [...vs].sort((a, b) => (b.last_year ?? 0) - (a.last_year ?? 0));
+    }
+    return vs;
+  }
+
   return (
-    <div className="space-y-6">
-      {groups.map((group) => {
+    <div className="space-y-5">
+      {/* Sort selector */}
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-slate-500 dark:text-slate-400 mr-1">Řadit:</span>
+        <SortChip
+          active={sortKey === "year"}
+          onClick={() => setAndStoreSort("year")}
+          icon={<CalendarRange className="h-3.5 w-3.5" />}
+        >
+          dle stáří
+        </SortChip>
+        <SortChip
+          active={sortKey === "abc"}
+          onClick={() => setAndStoreSort("abc")}
+          icon={<ArrowDownAZ className="h-3.5 w-3.5" />}
+        >
+          abecedně
+        </SortChip>
+        <SortChip
+          active={sortKey === "custom"}
+          onClick={() => setAndStoreSort("custom")}
+          icon={<Move className="h-3.5 w-3.5" />}
+        >
+          vlastní
+        </SortChip>
+      </div>
+
+      {ordered.map((group) => {
         const isReal = group.garage_id != null;
-        const isDraggingMe = dragId === group.garage_id;
-        const isDropTarget = dragId && dragId !== group.garage_id && isReal;
+        const isDraggingMe = sortKey === "custom" && dragId === group.garage_id;
+        const isDropTarget =
+          sortKey === "custom" && dragId && dragId !== group.garage_id && isReal;
         return (
           <section
             key={group.garage_id ?? "none"}
-            draggable={isReal}
+            draggable={sortKey === "custom" && isReal}
             onDragStart={() => onDragStart(group.garage_id)}
             onDragOver={onDragOver}
             onDrop={() => onDrop(group.garage_id)}
@@ -107,7 +190,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             } ${isDropTarget ? "ring-2 ring-sky-400/50 ring-offset-2 ring-offset-transparent" : ""}`}
           >
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {isReal && (
+              {sortKey === "custom" && isReal && (
                 <GripVertical
                   className="h-4 w-4 text-slate-300 dark:text-slate-600 cursor-grab active:cursor-grabbing"
                   aria-label="Přetáhni pro změnu pořadí"
@@ -129,31 +212,82 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             </div>
 
             <ul className="grid gap-3 sm:grid-cols-2">
-              {group.vehicles.map((v) => (
-                <li key={v.id} className="card">
-                  <Link
-                    href={`/v/${v.id}/fill-ups`}
-                    className="block p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
-                      <div className="min-w-0">
-                        <div className="font-semibold text-lg truncate">{v.name}</div>
-                        <div className="text-sm text-slate-500 truncate">
-                          {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1 uppercase tracking-wide truncate">
-                          {v.license_plate || ""} · {v.fuel_type}
+              {sortedVehicles(group.vehicles).map((v) => {
+                const yearRange = formatYearRange(v);
+                return (
+                  <li key={v.id} className="card">
+                    <Link
+                      href={`/v/${v.id}/fill-ups`}
+                      className="block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-base sm:text-lg truncate">
+                              {v.name}
+                            </span>
+                            {yearRange && (
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums shrink-0 font-normal">
+                                {yearRange}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-500 truncate">
+                            {[v.make, v.model].filter(Boolean).join(" ") || "—"}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5 uppercase tracking-wide truncate">
+                            {v.license_plate || ""} · {v.fuel_type}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         );
       })}
     </div>
   );
+}
+
+function SortChip({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border transition ${
+        active
+          ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+          : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+      }`}
+    >
+      {icon}
+      <span>{children}</span>
+    </button>
+  );
+}
+
+function formatYearRange(v: GarageListVehicle): string | null {
+  const fy = v.first_year;
+  const ly = v.last_year;
+  if (!fy && !ly) return v.year ? String(v.year) : null;
+  if (fy && ly) {
+    if (v.has_recent_fillup) return `${fy} –`;
+    if (fy === ly) return String(fy);
+    return `${fy}–${ly}`;
+  }
+  return null;
 }

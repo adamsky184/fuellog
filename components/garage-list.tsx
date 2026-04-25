@@ -296,11 +296,14 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             <ul id={`garage-${group.garage_id}`} className="grid gap-3 sm:grid-cols-2">
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
+                // v2.9.9 — flex on the <li> so the inner <Link> can stretch
+                //   to fill the full height. Without this, taller cards in
+                //   the same grid row left a gap where the hover bg didn't reach.
                 return (
-                  <li key={v.id} className="card">
+                  <li key={v.id} className="card flex">
                     <Link
                       href={`/v/${v.id}/fill-ups`}
-                      className="block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
+                      className="flex-1 block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
                     >
                       <div className="flex items-center gap-3">
                         {/* v2.9.7 — vehicle color is rendered as a 2px ring

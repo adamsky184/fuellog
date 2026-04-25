@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StatsDashboard, type RawStatsRow } from "@/components/stats-dashboard";
 import { VehicleMultiSelect, type VehicleOption } from "@/components/vehicle-multi-select";
 import { GarageMultiSelect, type GarageOption } from "@/components/garage-multi-select";
+import { fetchAllStatsRows } from "@/lib/fetch-all-stats";
 
 export default async function CrossGarageStatsPage({
   searchParams,
@@ -54,21 +55,8 @@ export default async function CrossGarageStatsPage({
       ? reqVehicles.filter((vid) => allowedVehicleIds.has(vid))
       : vehiclesInGarages.map((v) => v.id);
 
-  let rowsAll: RawStatsRow[] = [];
-  if (selectedIds.length > 0) {
-    // v2.9.7 — see /garages/[id]/stats; same PostgREST 1000-row cap fix.
-    const { data: rowsRaw } = await supabase
-      .from("fill_up_stats_v")
-      .select(
-        "date, odometer_km, liters, total_price, total_price_czk, currency, " +
-          "price_per_liter, price_per_liter_czk, consumption_l_per_100km, km_since_last, " +
-          "station_brand, country, region, is_baseline, is_highway",
-      )
-      .in("vehicle_id", selectedIds)
-      .order("date", { ascending: true })
-      .range(0, 99999);
-    rowsAll = (rowsRaw ?? []) as unknown as RawStatsRow[];
-  }
+  // v2.9.9 — paginated fetch (Supabase clamps single-request range to 1000).
+  const rowsAll: RawStatsRow[] = await fetchAllStatsRows(supabase, selectedIds);
 
   const titleSuffix =
     garageIds.length === allGarages.length
@@ -86,8 +74,10 @@ export default async function CrossGarageStatsPage({
           Zpět na garáže
         </Link>
       </div>
-      <GarageMultiSelect garages={allGarages} />
-      <VehicleMultiSelect vehicles={vehiclesInGarages} />
+      <div className="flex flex-wrap gap-2 items-stretch">
+        <GarageMultiSelect garages={allGarages} />
+        <VehicleMultiSelect vehicles={vehiclesInGarages} />
+      </div>
       <StatsDashboard
         rows={rowsAll}
         currentOdometer={0}

@@ -1,16 +1,17 @@
 /**
- * v2.9.6 — VehicleMultiSelect
+ * v2.9.9 — VehicleMultiSelect (dropdown popover).
  *
- * Pill-style chip selector for filtering which vehicles contribute to a
- * stats view. Updates `?vehicles=v1,v2` in the URL, which the server-side
- * stats page reads and uses for the IN clause.
+ * Compact button reading "Vozidla · vše · N" by default; click opens a
+ * popover with check-box rows (one per vehicle). Sits next to the period
+ * selector so the two filter controls share one row.
  *
- * Empty selection (no `?vehicles`) means "all vehicles".
+ * Updates `?vehicles=v1,v2` in the URL (empty = all).
  */
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare } from "lucide-react";
+import { Car, Check, ChevronDown } from "lucide-react";
 import { VehicleAvatar } from "@/components/vehicle-avatar";
 
 export type VehicleOption = {
@@ -31,18 +32,36 @@ export function VehicleMultiSelect({
   const params = useSearchParams();
   const raw = params.get(paramName);
   const selected = new Set((raw ?? "").split(",").filter(Boolean));
-  const allSelected = selected.size === 0; // "all" when empty
+  const allSelected = selected.size === 0;
+
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent | TouchEvent) {
+      const el = ref.current;
+      if (el && e.target instanceof Node && !el.contains(e.target)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   function toggle(id: string) {
     const next = new Set(selected.size === 0 ? vehicles.map((v) => v.id) : selected);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     const sp = new URLSearchParams(params.toString());
-    if (next.size === 0 || next.size === vehicles.length) {
-      sp.delete(paramName);
-    } else {
-      sp.set(paramName, [...next].join(","));
-    }
+    if (next.size === 0 || next.size === vehicles.length) sp.delete(paramName);
+    else sp.set(paramName, [...next].join(","));
     router.replace(`?${sp.toString()}`, { scroll: false });
   }
   function selectAll() {
@@ -53,58 +72,87 @@ export function VehicleMultiSelect({
 
   if (vehicles.length <= 1) return null;
 
+  const summary = allSelected
+    ? `vše · ${vehicles.length}`
+    : `${selected.size}/${vehicles.length}`;
+
   return (
-    <div className="card p-3 sm:p-4 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
-            Vozidla
-          </span>
-          <span className="text-[11px] text-slate-400 tabular-nums">
-            {allSelected ? `vše · ${vehicles.length}` : `${selected.size}/${vehicles.length}`}
-          </span>
+    <div ref={ref} className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="card inline-flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+      >
+        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-sm">
+          <Car className="h-4 w-4" />
+        </span>
+        <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+          Vozidla
+        </span>
+        <span className="font-semibold tabular-nums">{summary}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-multiselectable
+          className="absolute left-0 mt-1.5 w-[min(90vw,22rem)] max-h-[60vh] overflow-auto
+                     rounded-xl border border-slate-200 bg-white shadow-lg
+                     dark:bg-slate-900 dark:border-slate-700
+                     py-1 z-30"
+        >
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
+            <span className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 dark:text-slate-400">
+              {allSelected ? `vše vybráno · ${vehicles.length}` : `vybráno ${selected.size}/${vehicles.length}`}
+            </span>
+            {!allSelected && (
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-[11px] text-sky-600 hover:underline"
+              >
+                Vybrat vše
+              </button>
+            )}
+          </div>
+          <ul className="py-1">
+            {vehicles.map((v) => {
+              const on = allSelected || selected.has(v.id);
+              return (
+                <li key={v.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggle(v.id)}
+                    role="option"
+                    aria-selected={on}
+                    className="w-full text-left px-3 py-2 flex items-center gap-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                  >
+                    <span
+                      className={`inline-flex items-center justify-center h-4 w-4 rounded border ${
+                        on
+                          ? "bg-sky-600 border-sky-600 text-white"
+                          : "border-slate-300 dark:border-slate-600"
+                      }`}
+                    >
+                      {on && <Check className="h-3 w-3" />}
+                    </span>
+                    <VehicleAvatar
+                      photoPath={v.photo_path}
+                      color={v.color}
+                      size="sm"
+                      className="!w-6 !h-6"
+                    />
+                    <span className="truncate flex-1">{v.name}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        {!allSelected && (
-          <button
-            type="button"
-            onClick={selectAll}
-            className="text-[11px] text-sky-600 hover:underline"
-          >
-            Vybrat vše
-          </button>
-        )}
-      </div>
-      {/* v2.9.7 — cleaner chip design: avatar + name + small check icon. Selected
-           = solid filled (high contrast), unselected = ghost (faded). No
-           leftover left-border accent — the avatar itself already carries the
-           car's identity. */}
-      <div className="flex flex-wrap gap-1.5">
-        {vehicles.map((v) => {
-          const on = allSelected || selected.has(v.id);
-          return (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => toggle(v.id)}
-              aria-pressed={on}
-              className={`inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs border transition ${
-                on
-                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
-                  : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300"
-              }`}
-            >
-              <VehicleAvatar
-                photoPath={v.photo_path}
-                color={v.color}
-                size="sm"
-                className="!w-5 !h-5 ring-2 ring-white dark:ring-slate-900"
-              />
-              <span className="truncate max-w-[160px]">{v.name}</span>
-              {on && <CheckSquare className="h-3 w-3 opacity-70" />}
-            </button>
-          );
-        })}
-      </div>
+      )}
     </div>
   );
 }

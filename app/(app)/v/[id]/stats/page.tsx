@@ -1,20 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { StatsDashboard, type RawStatsRow } from "@/components/stats-dashboard";
+import { StatsDashboard } from "@/components/stats-dashboard";
+import { fetchAllStatsRowsForVehicle } from "@/lib/fetch-all-stats";
 
 export default async function StatsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-
-  const { data: rowsRaw } = await supabase
-    .from("fill_up_stats_v")
-    .select(
-      "date, odometer_km, liters, total_price, total_price_czk, currency, price_per_liter, price_per_liter_czk, consumption_l_per_100km, km_since_last, station_brand, country, region, is_baseline, is_highway",
-    )
-    .eq("vehicle_id", id)
-    .order("date", { ascending: true })
-    .range(0, 99999);
-
-  const rowsAll = (rowsRaw ?? []) as RawStatsRow[];
+  // v2.9.9 — page through 1000-row chunks; see lib/fetch-all-stats.ts.
+  const rowsAll = await fetchAllStatsRowsForVehicle(supabase, id);
 
   // Current odometer = highest odometer reading (including baseline).
   const currentOdometer = rowsAll.reduce(

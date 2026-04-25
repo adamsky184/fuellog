@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { StatsDashboard, type RawStatsRow } from "@/components/stats-dashboard";
 import { VehicleMultiSelect, type VehicleOption } from "@/components/vehicle-multi-select";
+import { fetchAllStatsRows } from "@/lib/fetch-all-stats";
 
 export default async function GarageStatsPage({
   params,
@@ -43,25 +44,11 @@ export default async function GarageStatsPage({
     ? requested.filter((vid) => allowed.has(vid))
     : allVehicles.map((v) => v.id);
 
-  let rowsAll: RawStatsRow[] = [];
-  if (selectedIds.length > 0) {
-    // v2.9.7 — bump beyond PostgREST's default 1000-row cap. With 10 cars
-    // × 1700+ fill-ups in Milan's "PAST" garage we'd hit the cap on the
-    // OLDEST records (date asc), which all happen to have total_price=NULL
-    // — that's why "Kč v období" was reading as 0 Kč. .range() forces the
-    // server to return up to the explicit upper bound.
-    const { data: rowsRaw } = await supabase
-      .from("fill_up_stats_v")
-      .select(
-        "date, odometer_km, liters, total_price, total_price_czk, currency, " +
-          "price_per_liter, price_per_liter_czk, consumption_l_per_100km, km_since_last, " +
-          "station_brand, country, region, is_baseline, is_highway",
-      )
-      .in("vehicle_id", selectedIds)
-      .order("date", { ascending: true })
-      .range(0, 99999);
-    rowsAll = (rowsRaw ?? []) as unknown as RawStatsRow[];
-  }
+  // v2.9.9 — paginated fetch (Supabase has a hard 1000-row PostgREST cap;
+  // .range() is silently clamped). fetchAllStatsRows loops pages until
+  // every record is in. Without this, "Kč v období" was 0 Kč on the
+  // larger PAST garage because only the oldest 1000 rows came back.
+  const rowsAll: RawStatsRow[] = await fetchAllStatsRows(supabase, selectedIds);
 
   return (
     <div className="space-y-4">
@@ -74,7 +61,9 @@ export default async function GarageStatsPage({
           Zpět na garáže
         </Link>
       </div>
-      <VehicleMultiSelect vehicles={allVehicles} />
+      <div className="flex flex-wrap gap-2 items-stretch">
+        <VehicleMultiSelect vehicles={allVehicles} />
+      </div>
       <StatsDashboard
         rows={rowsAll}
         currentOdometer={0}

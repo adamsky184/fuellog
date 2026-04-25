@@ -10,10 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.3: header z-40 (so sticky thead doesn't bleed through dropdowns),
-// fill-ups table fits 1024px container (icon-only Akce, ADRESA hidden < lg),
-// L → l everywhere, bubble icons, MOJE GARÁŽE uppercase.
-const CACHE_VERSION = "fuellog-v2.9.3";
+// v2.9.4: per-cell sticky thead inside an overflow-x:auto/overflow-y:visible
+// wrapper — table can horizontal-scroll inside the card while column labels
+// stay anchored to the page top.
+const CACHE_VERSION = "fuellog-v2.9.4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

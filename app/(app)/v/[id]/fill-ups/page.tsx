@@ -157,30 +157,39 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/*
-            Desktop table.
-            v2.9.3 — dropped Akce column (whole row is clickable now),
-            ADRESA hidden at <lg widths so table fits the 1024px container,
-            tighter padding (px-2 instead of px-3), text-[13px] body.
-            sticky thead is z-20 — under the global header (z-40) so it
-            doesn't bleed through dropdowns.
+            Desktop table — v2.9.4
+            ─ Outer card has no overflow rule, just rounded-corner styling.
+            ─ Inline wrapper has `overflowX: auto; overflowY: visible` so the
+              wide table can horizontal-scroll WITHIN the card while the
+              <th> cells stay sticky against the *page* vertical scroll.
+              `overflow-y: visible` is an explicit override of the implicit
+              `auto` that browsers normally apply when one axis is clipped;
+              modern Chrome/Firefox/Safari respect it.
+            ─ Each <th> is individually `sticky top-0` (per-cell pattern),
+              which is the most reliable cross-browser approach for sticky
+              column headers. `<thead>` itself stays a plain wrapper.
           */}
-          <div className="card hidden sm:block">
-            <table className="w-full text-[13px]">
-              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 backdrop-blur text-slate-600 dark:text-slate-300 text-xs uppercase">
-                <tr>
-                  <Th>Datum</Th>
-                  <Th right unit="km">Stav</Th>
-                  <Th right unit="km">Ujeto</Th>
-                  <Th right unit="l">Litrů</Th>
-                  <Th right unit="Kč/l">Cena</Th>
-                  <Th right unit="Kč">Celkem</Th>
-                  <Th right unit="l/100">Spotřeba</Th>
-                  <Th>Pumpa</Th>
-                  <Th>Místo</Th>
-                  <Th className="hidden lg:table-cell">Adresa</Th>
-                  <Th right>{""}</Th>
-                </tr>
-              </thead>
+          <div className="card hidden sm:block rounded-2xl">
+            <div
+              className="rounded-2xl"
+              style={{ overflowX: "auto", overflowY: "visible" }}
+            >
+              <table className="w-full text-[13px] min-w-[920px]">
+                <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
+                  <tr>
+                    <Th sticky>Datum</Th>
+                    <Th sticky right unit="km">Stav</Th>
+                    <Th sticky right unit="km">Ujeto</Th>
+                    <Th sticky right unit="l">Litrů</Th>
+                    <Th sticky right unit="Kč/l">Cena</Th>
+                    <Th sticky right unit="Kč">Celkem</Th>
+                    <Th sticky right unit="l/100">Spotřeba</Th>
+                    <Th sticky>Pumpa</Th>
+                    <Th sticky>Místo</Th>
+                    <Th sticky className="hidden lg:table-cell">Adresa</Th>
+                    <Th sticky right>{""}</Th>
+                  </tr>
+                </thead>
               <tbody>
                 {rows.map((r) => {
                   const hwLabel = highwayLabel(r.address, r.is_highway);
@@ -248,6 +257,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
@@ -332,15 +342,21 @@ function Th({
   children,
   right,
   unit,
+  sticky,
   className = "",
 }: {
   children: React.ReactNode;
   right?: boolean;
   unit?: string;
+  /** v2.9.4 — per-cell sticky for the header row. */
+  sticky?: boolean;
   className?: string;
 }) {
+  const stickyCls = sticky
+    ? "sticky top-0 z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur"
+    : "";
   return (
-    <th className={`px-2 py-2 ${right ? "text-right" : "text-left"} font-medium whitespace-nowrap ${className}`}>
+    <th className={`px-2 py-2 ${right ? "text-right" : "text-left"} font-medium whitespace-nowrap ${stickyCls} ${className}`}>
       {children}
       {unit && (
         <span className="ml-1 text-[10px] text-slate-400 dark:text-slate-500 font-normal normal-case">

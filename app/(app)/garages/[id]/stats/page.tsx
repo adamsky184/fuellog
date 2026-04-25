@@ -61,9 +61,6 @@ export default async function GarageStatsPage({
           Zpět na garáže
         </Link>
       </div>
-      <div className="flex flex-wrap gap-2 items-stretch">
-        <VehicleMultiSelect vehicles={allVehicles} />
-      </div>
       <StatsDashboard
         rows={rowsAll}
         currentOdometer={0}
@@ -72,6 +69,7 @@ export default async function GarageStatsPage({
             ? ` (${selectedIds.length}/${allVehicles.length} vozů)`
             : ""
         }`}
+        filtersSlot={<VehicleMultiSelect vehicles={allVehicles} />}
       />
       {allVehicles.length === 0 && (
         <div className="card p-8 text-center text-slate-500">

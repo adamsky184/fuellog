@@ -296,30 +296,22 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             <ul id={`garage-${group.garage_id}`} className="grid gap-3 sm:grid-cols-2">
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
-                // v2.9.9 — flex on the <li> so the inner <Link> can stretch
-                //   to fill the full height. Without this, taller cards in
-                //   the same grid row left a gap where the hover bg didn't reach.
+                // v2.9.10 — back to the left-edge stripe (Adam: ring around
+                //   avatar didn't land). Stripe sits on the <li> with
+                //   `overflow-hidden` so the rounded-2xl corners stay clean
+                //   while still showing the colour band at full card height.
                 return (
-                  <li key={v.id} className="card flex">
+                  <li
+                    key={v.id}
+                    className="card flex overflow-hidden"
+                    style={{ borderLeft: v.color ? `4px solid ${v.color}` : undefined }}
+                  >
                     <Link
                       href={`/v/${v.id}/fill-ups`}
                       className="flex-1 block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
                     >
                       <div className="flex items-center gap-3">
-                        {/* v2.9.7 — vehicle color is rendered as a 2px ring
-                             around the avatar instead of a left-edge stripe
-                             on the card. Cleaner; the colour reads as a
-                             personal accent on the brand mark rather than
-                             industrial racing tape. */}
-                        <span
-                          className="rounded-full"
-                          style={{
-                            padding: v.color ? 2 : 0,
-                            backgroundColor: v.color ?? "transparent",
-                          }}
-                        >
-                          <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
-                        </span>
+                        <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-base sm:text-lg truncate">

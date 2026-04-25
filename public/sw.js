@@ -10,9 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.9: paginated stats fetch (Supabase 1000-row hard cap), card hover
-// fills full grid-cell height, vehicle/garage selectors as dropdowns.
-const CACHE_VERSION = "fuellog-v2.9.9";
+// v2.9.10: stats refresh after multi-select toggle, selectors inside period
+// card, brand dedupe (Robin Oil), case-insensitive brand colours, country
+// chart top-N, chart animations off, stronger row hover, color stripe back.
+const CACHE_VERSION = "fuellog-v2.9.10";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

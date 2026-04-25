@@ -22,27 +22,58 @@ import { BrandLogo } from "@/components/brand-logo";
  * Brand colors — used for per-brand bar coloring and the BrandBadge component.
  * Unknown brands fall through to the neutral accent.
  */
+// v2.9.10 — keys normalised to lowercase + non-alphanum stripped so the
+// lookup matches "SHELL", "Shell", "Shell Praha" all to the same colour.
+// Expanded coverage for AGIP, ARAL, BP, ESSO, JET, ROBIN OIL, etc. so the
+// "Litry podle značky pumpy" chart renders distinct hues per brand.
 export const BRAND_COLORS: Record<string, string> = {
-  Shell: "#fbbf24",
-  OMV: "#1d4ed8",
-  Benzina: "#15803d",
-  MOL: "#dc2626",
-  EuroOil: "#0ea5e9",
-  "Euro Oil": "#0ea5e9",
-  Slovnaft: "#0284c7",
-  ONO: "#f97316",
-  Orlen: "#db2777",
-  Agip: "#6d28d9",
-  Lukoil: "#b91c1c",
-  Total: "#e11d48",
-  Globus: "#059669",
-  Tesco: "#1e40af",
-  Makro: "#0f766e",
+  shell: "#fbbf24",        // amber
+  omv: "#1d4ed8",          // royal blue
+  benzina: "#15803d",      // green
+  mol: "#dc2626",          // red
+  eurooil: "#0ea5e9",      // sky
+  slovnaft: "#0284c7",     // dark sky
+  ono: "#f97316",          // orange
+  orlen: "#db2777",        // pink
+  agip: "#6d28d9",         // purple
+  lukoil: "#b91c1c",       // dark red
+  total: "#e11d48",        // rose
+  globus: "#059669",       // teal
+  tesco: "#1e40af",        // navy
+  makro: "#0f766e",        // dark teal
+  aral: "#0c4a6e",         // deep blue
+  bp: "#65a30d",           // lime
+  esso: "#1e3a8a",         // indigo
+  jet: "#fde047",          // yellow
+  dea: "#a3a3a3",          // grey
+  robinoil: "#ea580c",     // burnt orange
+  shell_csprim: "#fbbf24", // ČS PRIM (Shell)
+  prim: "#7c3aed",         // violet
+  cprim: "#7c3aed",
+  csprim: "#7c3aed",
+  cspr: "#7c3aed",
+  petrol: "#a16207",
+  petra: "#9333ea",
+  cs: "#525252",
+  rasthauspentling: "#0d9488",
+  q8: "#facc15",
+  cepsa: "#16a34a",
+  parmo: "#52525b",
+  paramo: "#52525b",
+  ralf: "#71717a",
+  hruby: "#84cc16",
+  stopka: "#a855f7",
+  avia: "#3b82f6",
+  avanti: "#84cc16",
+  jiná: "#94a3b8",
 };
 const DEFAULT_BAR = "#0ea5e9";
 
 function colorForBrand(brand: string): string {
-  return BRAND_COLORS[brand] ?? DEFAULT_BAR;
+  // Normalise: lowercase, strip non-alphanumeric (handles "Robin Oil",
+  // "RobinOil", "ROBIN OIL" → "robinoil").
+  const key = brand.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return BRAND_COLORS[key] ?? DEFAULT_BAR;
 }
 
 function initialsForBrand(brand: string): string {
@@ -153,7 +184,7 @@ export function PriceTrend({ data }: { data: PricePoint[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-            <Tooltip />
+            <Tooltip isAnimationActive={false} />
             <Line type="monotone" dataKey="pricePerLiter" stroke="#0ea5e9" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -174,7 +205,7 @@ export function ConsumptionTrend({ data }: { data: { date: string; consumption: 
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-            <Tooltip />
+            <Tooltip isAnimationActive={false} />
             <Line type="monotone" dataKey="consumption" stroke="#10b981" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -202,7 +233,7 @@ export function BrandBreakdown({ data }: { data: { brand: string; liters: number
               height={50}
             />
             <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip />
+            <Tooltip isAnimationActive={false} />
             <Legend />
             <Bar dataKey="liters" name="Litry">
               {data.map((d) => (
@@ -219,18 +250,36 @@ export function BrandBreakdown({ data }: { data: { brand: string; liters: number
 /* --------------------------- Country breakdown ------------------------------ */
 
 export function CountryBreakdown({ data }: { data: { country: string; liters: number; count: number }[] }) {
+  // v2.9.10 — when there's a long tail of countries (Adam's PAST garage
+  // hits ~14), the X-axis labels collide. Cap to top 8 + roll the rest
+  // into "Ostatní". Sort desc by liters before slicing.
+  const prepped = useMemo(() => {
+    const sorted = [...data].sort((a, b) => b.liters - a.liters);
+    if (sorted.length <= 8) return sorted;
+    const top = sorted.slice(0, 8);
+    const rest = sorted.slice(8);
+    const restLiters = rest.reduce((acc, r) => acc + r.liters, 0);
+    const restCount = rest.reduce((acc, r) => acc + r.count, 0);
+    return [
+      ...top,
+      { country: "Ostatní", liters: Number(restLiters.toFixed(1)), count: restCount },
+    ];
+  }, [data]);
+
   return (
     <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Litry podle státu</div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+          <BarChart data={prepped} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="country" interval={0} tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="liters" fill="#f59e0b" name="Litry" />
+            <Tooltip
+              formatter={(v: number) => `${v.toLocaleString("cs-CZ")} l`}
+              isAnimationActive={false}
+            />
+            <Bar dataKey="liters" fill="#f59e0b" name="Litry" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -297,7 +346,7 @@ export function MonthlyTrends({
           <XAxis dataKey="month" tick={{ fontSize: 10 }} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip formatter={(v: number) => [`${v.toLocaleString("cs-CZ")} ${cfg.unit}`, cfg.label]} />
-          <Bar dataKey={metric} fill={cfg.color} name={cfg.label} />
+          <Bar dataKey={metric} fill={cfg.color} name={cfg.label}  isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -516,7 +565,7 @@ export function RegionBreakdown({ data }: { data: RegionRow[] }) {
             <XAxis type="number" tick={{ fontSize: 10 }} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={80} />
             <Tooltip formatter={(v: number) => `${v.toLocaleString("cs-CZ")} l`} />
-            <Bar dataKey="liters" fill="#8b5cf6" name="Litry" />
+            <Bar dataKey="liters" fill="#8b5cf6" name="Litry"  isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -566,7 +615,7 @@ export function YearlyChart({ data }: { data: YearlyPoint[] }) {
               }}
             />
             <Legend />
-            <Bar yAxisId="left" dataKey="km" fill="#0ea5e9" name="km" />
+            <Bar yAxisId="left" dataKey="km" fill="#0ea5e9" name="km"  isAnimationActive={false} />
             <Line
               yAxisId="right"
               type="monotone"

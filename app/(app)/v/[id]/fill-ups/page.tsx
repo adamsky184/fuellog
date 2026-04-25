@@ -189,11 +189,11 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 {rows.map((r) => {
                   const hwLabel = highwayLabel(r.address, r.is_highway);
                   const flag = countryFlag(r.country);
-                  // v2.9.8 — `group` lets the chevron in the last cell
-                  //   brighten on row hover. Strong hover bg so the row
-                  //   visibly responds to the cursor even before scrolling.
+                  // v2.9.10 — bumped hover bg from sky-50/60 (almost
+                  //   invisible) to slate-100 (clearly visible) so the
+                  //   row response shows up even before scrolling.
                   return (
-                    <tr key={r.id!} className="group relative border-t border-slate-100 dark:border-slate-800 hover:bg-sky-50/60 dark:hover:bg-sky-950/20 cursor-pointer transition-colors">
+                    <tr key={r.id!} className="group relative border-t border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors">
                       <Td>
                         {/* Stretched link covers the whole row for click-anywhere edit. */}
                         <Link

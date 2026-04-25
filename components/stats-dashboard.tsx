@@ -367,16 +367,18 @@ export function StatsDashboard({
   rows,
   vehicleId,
   currentOdometer,
-  /** v2.9.5 — when set, renders this above the dashboard so a garage-level view
-   *  can title itself ("Souhrnné statistiky · MILANOVA GARÁŽ - PAST"). */
   title,
+  filtersSlot,
 }: {
   rows: RawStatsRow[];
-  /** v2.9.5 — optional. When undefined, the "Roční report" link is hidden
-   *  (per-vehicle PDF doesn't apply to garage aggregates). */
+  /** Optional. When undefined, the "Roční report" link is hidden. */
   vehicleId?: string;
   currentOdometer: number;
   title?: string;
+  /** v2.9.10 — extra filter controls (vehicle/garage selectors) injected
+   *  next to the period selector inside the same card. Lets the garage
+   *  stats pages keep all filters on a single visual row. */
+  filtersSlot?: React.ReactNode;
 }) {
   const [preset, setPreset] = useState<PeriodPreset>("all");
   const [customFrom, setCustomFrom] = useState<string>("");
@@ -692,6 +694,10 @@ export function StatsDashboard({
             <Route className="h-3 w-3 opacity-60" />
             {formatNumber(totalAgg.km, 0)} km
           </span>
+          {/* v2.9.10 — extra filter controls (vehicle/garage selectors)
+              live next to the period chips so the row reads as
+              "Období | Vozidla | Garáže | totals". */}
+          {filtersSlot}
         </div>
         {vehicleId && (
           <Link

@@ -74,14 +74,16 @@ export default async function CrossGarageStatsPage({
           Zpět na garáže
         </Link>
       </div>
-      <div className="flex flex-wrap gap-2 items-stretch">
-        <GarageMultiSelect garages={allGarages} />
-        <VehicleMultiSelect vehicles={vehiclesInGarages} />
-      </div>
       <StatsDashboard
         rows={rowsAll}
         currentOdometer={0}
         title={`Souhrn · ${titleSuffix}`}
+        filtersSlot={
+          <>
+            <GarageMultiSelect garages={allGarages} />
+            <VehicleMultiSelect vehicles={vehiclesInGarages} />
+          </>
+        }
       />
     </div>
   );

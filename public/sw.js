@@ -10,9 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.14: replaced flaky HTML5 drag-drop on the homepage with explicit
-// up/down arrow buttons in "vlastní" sort mode.
-const CACHE_VERSION = "fuellog-v2.9.14";
+// v2.10.0: bundled release — security tightening (admin-probe gate,
+// open-redirect fix, security_invoker on stats views), paginated fetches
+// for fill-ups list / xlsx export / brand history, year-of-manufacture
+// surfaced in homepage fleet summary + per-vehicle annual report,
+// and tap-target sizes bumped to 36 px.
+const CACHE_VERSION = "fuellog-v2.10.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

@@ -78,13 +78,6 @@ type DeleteRpc =
   | "admin_delete_vehicle"
   | "admin_delete_fill_up";
 
-const DELETE_PARAM: Record<DeleteRpc, string> = {
-  admin_delete_user: "p_user_id",
-  admin_delete_garage: "p_garage_id",
-  admin_delete_vehicle: "p_vehicle_id",
-  admin_delete_fill_up: "p_fill_up_id",
-};
-
 export function AdminDeleteButton({
   rpc,
   id,
@@ -103,9 +96,20 @@ export function AdminDeleteButton({
     if (!window.confirm(confirm)) return;
     setError(null);
     const supabase = createClient();
-    const param = DELETE_PARAM[rpc];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc(rpc, { [param]: id });
+    // v2.10.0 — supabase-js types each RPC's args individually, so we
+    //   branch on the rpc name to satisfy the typed signature.
+    const { error } = await (async () => {
+      switch (rpc) {
+        case "admin_delete_user":
+          return supabase.rpc("admin_delete_user", { p_user_id: id });
+        case "admin_delete_garage":
+          return supabase.rpc("admin_delete_garage", { p_garage_id: id });
+        case "admin_delete_vehicle":
+          return supabase.rpc("admin_delete_vehicle", { p_vehicle_id: id });
+        case "admin_delete_fill_up":
+          return supabase.rpc("admin_delete_fill_up", { p_fill_up_id: id });
+      }
+    })();
     if (error) {
       setError(error.message);
       return;
@@ -155,8 +159,7 @@ export function AdminToggleButton({
   async function toggle() {
     setError(null);
     const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("admin_set_user_admin", {
+    const { error } = await supabase.rpc("admin_set_user_admin", {
       p_user_id: userId,
       p_is_admin: !isAdmin,
     });
@@ -243,8 +246,14 @@ export function AdminEditButton<T extends Record<string, unknown>>({
         payload[`p_${f.name}`] = empty ? null : raw;
       }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc(rpc, payload);
+    // v2.10.0 — `rpc` here is the caller-supplied edit RPC string; the
+    //   payload is dynamic. We narrow the rpc name via a runtime guard
+    //   would need a closed enum on caller side; instead we keep one
+    //   targeted cast — the supabase client itself is no longer `any`.
+    const { error } = await (supabase.rpc as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: { message: string } | null }>)(rpc, payload);
     if (error) {
       setError(error.message);
       return;

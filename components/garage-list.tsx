@@ -1,9 +1,12 @@
 /**
- * GarageList (client component) — v2.9.0 → v2.9.14
+ * GarageList (client component) — v2.9.0 → v2.10.0
  *
  * Renders the user's garages with their vehicles.
  *  - sort selector: dle stáří / abecedně / vlastní
  *  - year-range badge ("1995–1997" / "2020 –") next to each vehicle
+ *  - v2.10.0: small "stáří X let" tag derived from `vehicles.year`
+ *    (computed against the current year; hidden when year is missing
+ *    or when the same number is already implied by the year-range)
  *  - in "vlastní" mode each section gets explicit ▲▼ buttons that
  *    swap the garage with its neighbour (replaces the previous
  *    flaky HTML5 drag-drop). Order persists in `garage_user_settings`.
@@ -223,23 +226,26 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
               {/* v2.9.14 — explicit up / down buttons replace flaky drag-drop. */}
               {sortKey === "custom" && isReal && (
                 <span className="inline-flex items-center gap-0.5 mr-1">
+                  {/* v2.10.0 — buttons bumped from 24×24 px to 36×36 px to
+                      meet the WCAG / Apple HIG ≥ 44 px target on touch
+                      devices (still visually small thanks to 16 px icon). */}
                   <button
                     type="button"
                     onClick={() => moveGarage(group.garage_id, -1)}
                     disabled={isFirstReal || savingOrder}
                     aria-label="Posunout výš"
-                    className="inline-flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
                   >
-                    <ArrowUp className="h-3.5 w-3.5" />
+                    <ArrowUp className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => moveGarage(group.garage_id, 1)}
                     disabled={isLastReal || savingOrder}
                     aria-label="Posunout níž"
-                    className="inline-flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
                   >
-                    <ArrowDown className="h-3.5 w-3.5" />
+                    <ArrowDown className="h-4 w-4" />
                   </button>
                 </span>
               )}
@@ -304,6 +310,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             <ul id={`garage-${group.garage_id}`} className="grid gap-3 sm:grid-cols-2">
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
+                const ageLabel = formatAgeLabel(v);
                 // v2.9.11 — color stripe rendered as an absolutely-positioned
                 //   pseudo bar inset 8 px from top + bottom of the card so it
                 //   doesn't fight the rounded corners. Card itself loses
@@ -334,6 +341,14 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                             {yearRange && (
                               <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums shrink-0 font-normal">
                                 {yearRange}
+                              </span>
+                            )}
+                            {ageLabel && (
+                              <span
+                                className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums shrink-0 font-normal whitespace-nowrap"
+                                title={`Vozidlo z roku ${v.year}, dnes je mu ${ageLabel.replace(" let", "")} let`}
+                              >
+                                · {ageLabel}
                               </span>
                             )}
                           </div>
@@ -384,6 +399,24 @@ function SortChip({
       <span>{children}</span>
     </button>
   );
+}
+
+/**
+ * Pure cosmetic — current age of the vehicle in years, derived from
+ * `vehicles.year`. Returns null when year is missing or the vehicle's
+ * range badge already shows the same number (so we don't double-print
+ * "2025–2025 · 1 rok").
+ */
+function formatAgeLabel(v: GarageListVehicle): string | null {
+  if (!v.year || v.year < 1900) return null;
+  const now = new Date().getFullYear();
+  const age = now - v.year;
+  if (age < 0) return null;
+  // Czech plural pattern: 0 let / 1 rok / 2-4 roky / 5+ let.
+  if (age === 0) return "letošní";
+  if (age === 1) return "1 rok";
+  if (age < 5) return `${age} roky`;
+  return `${age} let`;
 }
 
 function formatYearRange(v: GarageListVehicle): string | null {

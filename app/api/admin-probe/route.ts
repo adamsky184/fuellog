@@ -34,6 +34,23 @@ async function step<T>(
 }
 
 export async function GET() {
+  // v2.10.0 — gate to admins ONLY before exposing env-state, query-counts,
+  // or schema diagnostics. Previously any authenticated user could call
+  // this. Anonymous → 401, non-admin → 403, admin → full diagnostics.
+  const supabaseGate = await createClient();
+  const { data: gateUser } = await supabaseGate.auth.getUser();
+  if (!gateUser.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const { data: gateProfile } = await supabaseGate
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", gateUser.user.id)
+    .maybeSingle();
+  if (!gateProfile?.is_admin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const out: Record<string, unknown> = {
     now: new Date().toISOString(),
     env: {
@@ -70,12 +87,14 @@ export async function GET() {
     return NextResponse.json(out, { status: 200 });
   }
 
-  // 3) profile + is_admin
+  // 3) profile + is_admin (kept for diagnostic completeness — the gate
+  //    above already proved admin-ness for this user, but the report
+  //    still surfaces if the SELECT can be reached at all.)
   const profileStep = await step("profiles.is_admin", async () => {
     const c = await createClient();
     const { data, error } = await c
       .from("profiles")
-      .select("is_admin, email")
+      .select("is_admin")
       .eq("id", userId)
       .maybeSingle();
     return {

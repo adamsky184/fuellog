@@ -21,11 +21,31 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: rows } = await supabase
+  // v2.10.0 — paginated fetch (PostgREST caps a single response at 1000 rows
+  // regardless of `.range()`, so for vehicles with long histories we'd
+  // silently truncate and miss older fill-ups).
+  const PAGE = 1000;
+  const firstPage = await supabase
     .from("fill_up_stats_v")
     .select("*")
     .eq("vehicle_id", id)
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .range(0, PAGE - 1);
+  const rowsAll: NonNullable<typeof firstPage.data> = firstPage.data ?? [];
+  if (rowsAll.length >= PAGE) {
+    for (let from = PAGE; from < 200000; from += PAGE) {
+      const { data: page } = await supabase
+        .from("fill_up_stats_v")
+        .select("*")
+        .eq("vehicle_id", id)
+        .order("date", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (!page || page.length === 0) break;
+      rowsAll.push(...page);
+      if (page.length < PAGE) break;
+    }
+  }
+  const rows = rowsAll.length > 0 ? rowsAll : null;
 
   const totals = rows?.reduce(
     (acc, r) => {

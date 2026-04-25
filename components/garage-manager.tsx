@@ -170,6 +170,7 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
                   <span className="text-xs text-slate-400 tabular-nums">
                     {g.vehicle_count}×
                   </span>
+                  {/* v2.10.0 — bumped tap targets from ~22 px to 36 px. */}
                   <button
                     type="button"
                     onClick={() => {
@@ -177,17 +178,17 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
                       setEditName(g.name);
                     }}
                     aria-label="Přejmenovat"
-                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                    className="inline-flex items-center justify-center w-9 h-9 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => deleteGarage(g.id, g.name, g.vehicle_count)}
                     aria-label="Smazat"
-                    className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded"
+                    className="inline-flex items-center justify-center w-9 h-9 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </>
               )}

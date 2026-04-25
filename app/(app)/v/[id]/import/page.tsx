@@ -53,12 +53,31 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
     setExporting(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
+      // v2.10.0 — paginated fetch; PostgREST caps a single response at 1000
+      // rows, so for long histories the export was silently truncated.
+      const PAGE = 1000;
+      const firstPage = await supabase
         .from("fill_up_stats_v")
         .select("*")
         .eq("vehicle_id", vehicleId)
-        .order("date", { ascending: true });
-      if (error) throw error;
+        .order("date", { ascending: true })
+        .range(0, PAGE - 1);
+      if (firstPage.error) throw firstPage.error;
+      const data: NonNullable<typeof firstPage.data> = firstPage.data ?? [];
+      if (data.length >= PAGE) {
+        for (let from = PAGE; from < 200000; from += PAGE) {
+          const { data: page, error } = await supabase
+            .from("fill_up_stats_v")
+            .select("*")
+            .eq("vehicle_id", vehicleId)
+            .order("date", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!page || page.length === 0) break;
+          data.push(...page);
+          if (page.length < PAGE) break;
+        }
+      }
 
       const header = [
         "Datum",

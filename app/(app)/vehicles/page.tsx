@@ -140,6 +140,31 @@ export default async function VehiclesPage({
       : garages.find((g) => g.id === garageFilter)?.name
     : null;
 
+  // v2.10.0 — fleet-age summary. Surfaces vehicles.year (which until now
+  // was only used cosmetically). We only show it when at least 2 vehicles
+  // have a year filled in, otherwise the average is meaningless.
+  const fleetSummary = (() => {
+    const yearsList = vehicles
+      .filter((v) => !v.archived_at && v.year && v.year >= 1900)
+      .map((v) => v.year as number);
+    if (yearsList.length < 2) return null;
+    const nowY = new Date().getFullYear();
+    const ages = yearsList.map((y) => nowY - y);
+    const avg = ages.reduce((a, b) => a + b, 0) / ages.length;
+    const oldest = Math.max(...ages);
+    const newest = Math.min(...ages);
+    const total = vehicles.filter((v) => !v.archived_at).length;
+    const filled = yearsList.length;
+    return {
+      total,
+      filled,
+      missing: total - filled,
+      avg,
+      oldest,
+      newest,
+    };
+  })();
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -178,6 +203,42 @@ export default async function VehiclesPage({
       </div>
 
       <DueReminders />
+
+      {/* v2.10.0 — fleet-age summary. Only renders when at least two
+          vehicles have a `year` filled in. Soft-pushes to fill in missing
+          years when some are blank. */}
+      {fleetSummary && !activeFilter && (
+        <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>
+            <span className="text-slate-400">Park:</span>{" "}
+            <span className="tabular-nums font-medium text-slate-700 dark:text-slate-200">
+              {fleetSummary.total}
+            </span>{" "}
+            {fleetSummary.total === 1 ? "vůz" : fleetSummary.total < 5 ? "vozy" : "vozů"}
+          </span>
+          <span>
+            <span className="text-slate-400">Průměrné stáří:</span>{" "}
+            <span className="tabular-nums font-medium text-slate-700 dark:text-slate-200">
+              {fleetSummary.avg.toFixed(1)} let
+            </span>
+          </span>
+          <span>
+            <span className="text-slate-400">Nejstarší:</span>{" "}
+            <span className="tabular-nums">{fleetSummary.oldest} let</span>
+          </span>
+          <span>
+            <span className="text-slate-400">Nejnovější:</span>{" "}
+            <span className="tabular-nums">
+              {fleetSummary.newest === 0 ? "letošní" : `${fleetSummary.newest} let`}
+            </span>
+          </span>
+          {fleetSummary.missing > 0 && (
+            <span className="text-amber-600 dark:text-amber-400">
+              · {fleetSummary.missing} {fleetSummary.missing === 1 ? "vůz" : "vozů"} bez ročníku
+            </span>
+          )}
+        </div>
+      )}
 
       {/* v2.9.2 — inline garage CRUD so users don't have to hop to /garages
           for the basics (rename, create, delete). Sharing & members still

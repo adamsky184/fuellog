@@ -60,6 +60,18 @@ export default async function ReportPage({
   const avgPricePerL = liters > 0 ? price / liters : null;
   const czkPerKm = km > 0 ? price / km : null;
 
+  // v2.10.0 — derive ages from `vehicles.year` so it isn't a dead column.
+  //   - ageInReport: how old the car was during the reporting year
+  //   - ageAtFirstFillUp: how old it was when its tankování history starts
+  //     (a "stáří při pořízení" rough proxy)
+  const vehYear = typeof vehicle.year === "number" && vehicle.year >= 1900
+    ? vehicle.year
+    : null;
+  const firstYearOverall = years.length > 0 ? Math.min(...years) : null;
+  const ageInReport = vehYear != null ? year - vehYear : null;
+  const ageAtFirstFillUp =
+    vehYear != null && firstYearOverall != null ? firstYearOverall - vehYear : null;
+
   const { data: maint } = await supabase
     .from("maintenance_entries")
     .select("id, date, kind, title, cost")
@@ -161,7 +173,10 @@ export default async function ReportPage({
         </div>
       </header>
 
-      {/* v2.9.11 — every stat tile carries an explicit unit suffix. */}
+      {/* v2.9.11 — every stat tile carries an explicit unit suffix.
+          v2.10.0 — surface vehicles.year as two new tiles: how old the
+          car was during this report year, and how old it was when its
+          tankování history began (proxy for "stáří při pořízení"). */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <ReportStat label="Ujeto" value={`${formatNumber(km, 0)} km`} />
         <ReportStat label="Spotřebováno" value={`${formatNumber(liters, 1)} l`} />
@@ -171,6 +186,22 @@ export default async function ReportPage({
         <ReportStat label="Ø cena" value={`${formatNumber(avgPricePerL, 2)} Kč/l`} />
         <ReportStat label="Kč/km" value={`${formatNumber(czkPerKm, 2)} Kč/km`} />
         <ReportStat label="Servis" value={formatCurrency(maintCost)} />
+        {ageInReport != null && (
+          <ReportStat
+            label={`Stáří v ${year}`}
+            value={ageInReport <= 0 ? "letošní" : `${ageInReport} ${plural(ageInReport, "rok", "roky", "let")}`}
+          />
+        )}
+        {ageAtFirstFillUp != null && (
+          <ReportStat
+            label="Stáří při 1. tankování"
+            value={
+              ageAtFirstFillUp <= 0
+                ? "nový"
+                : `${ageAtFirstFillUp} ${plural(ageAtFirstFillUp, "rok", "roky", "let")}`
+            }
+          />
+        )}
       </section>
 
       {rows.length === 0 && (
@@ -309,6 +340,13 @@ export default async function ReportPage({
       </footer>
     </div>
   );
+}
+
+/** Czech grammatical-number helper: 1 → singular, 2-4 → few, 5+ → many. */
+function plural(n: number, one: string, few: string, many: string): string {
+  if (n === 1) return one;
+  if (n >= 2 && n <= 4) return few;
+  return many;
 }
 
 function ReportStat({ label, value }: { label: string; value: string }) {

@@ -172,14 +172,24 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("fill_ups")
-        .select("station_brand, address, city, region, country")
-        .eq("vehicle_id", vehicleId)
-        .limit(2000);
-
+      // v2.10.0 — paginated fetch; PostgREST caps a single response at 1000
+      // rows regardless of .limit(), so for long histories the autocomplete
+      // was effectively only sampling the most recent ~1000 fill-ups.
+      const PAGE = 1000;
+      const collected: HistoryRow[] = [];
+      for (let from = 0; from < 50000; from += PAGE) {
+        const { data: page } = await supabase
+          .from("fill_ups")
+          .select("station_brand, address, city, region, country")
+          .eq("vehicle_id", vehicleId)
+          .range(from, from + PAGE - 1);
+        if (cancelled) return;
+        if (!page || page.length === 0) break;
+        collected.push(...(page as HistoryRow[]));
+        if (page.length < PAGE) break;
+      }
       if (cancelled) return;
-      const rows = (data as HistoryRow[] | null) ?? [];
+      const rows = collected;
 
       // Brands — top-3 frequency then alphabetical.
       const counts = new Map<string, number>();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ChevronRight,
   Coins,
   Droplet,
   Fuel,
@@ -189,7 +190,10 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   const hwLabel = highwayLabel(r.address, r.is_highway);
                   const flag = countryFlag(r.country);
                   return (
-                    <tr key={r.id!} className="relative border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 cursor-pointer">
+                    {/* v2.9.8 — `group` lets the chevron in the last cell
+                         brighten on row hover. Strong hover bg so the row
+                         visibly responds to the cursor even before scrolling. */}
+                    <tr key={r.id!} className="group relative border-t border-slate-100 dark:border-slate-800 hover:bg-sky-50/60 dark:hover:bg-sky-950/20 cursor-pointer transition-colors">
                       <Td>
                         {/* Stretched link covers the whole row for click-anywhere edit. */}
                         <Link
@@ -233,16 +237,21 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         )}
                       </Td>
                       <Td>
-                        <div className="relative flex flex-col leading-tight">
-                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
-                            {flag && <span aria-hidden>{flag}</span>}
-                            <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
-                          </span>
-                          {stripHighwayPrefix(r.address) && (
-                            <span className="text-slate-400 dark:text-slate-500 text-[11px] truncate">
-                              {stripHighwayPrefix(r.address)}
+                        <div className="relative flex items-center justify-between gap-2">
+                          <div className="flex flex-col leading-tight min-w-0">
+                            <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                              {flag && <span aria-hidden>{flag}</span>}
+                              <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
                             </span>
-                          )}
+                            {stripHighwayPrefix(r.address) && (
+                              <span className="text-slate-400 dark:text-slate-500 text-[11px] truncate">
+                                {stripHighwayPrefix(r.address)}
+                              </span>
+                            )}
+                          </div>
+                          {/* v2.9.8 — always-visible chevron indicates the
+                               row is clickable; brightens on row hover. */}
+                          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-sky-500 transition-colors shrink-0" />
                         </div>
                       </Td>
                     </tr>

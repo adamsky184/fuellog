@@ -10,10 +10,8 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.7: PostgREST 1000-row cap fix on stats queries, multi-select polish,
-// avatar color ring (replaced left stripe), back-to-top button, pump
-// leaderboard with units.
-const CACHE_VERSION = "fuellog-v2.9.7";
+// v2.9.8: row click affordance — always-visible chevron + stronger hover bg.
+const CACHE_VERSION = "fuellog-v2.9.8";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

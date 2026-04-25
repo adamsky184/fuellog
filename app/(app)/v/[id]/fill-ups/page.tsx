@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand-logo";
 import { DueReminders } from "@/components/due-reminders";
+import { FillUpRow } from "@/components/fill-up-row";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { formatLocation } from "@/lib/regions";
 import { countryFlag } from "@/lib/country-flags";
@@ -189,19 +190,15 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 {rows.map((r) => {
                   const hwLabel = highwayLabel(r.address, r.is_highway);
                   const flag = countryFlag(r.country);
-                  // v2.9.10 — bumped hover bg from sky-50/60 (almost
-                  //   invisible) to slate-100 (clearly visible) so the
-                  //   row response shows up even before scrolling.
+                  // v2.9.12 — switched from absolute-Link/stretched-link to
+                  //   a client <FillUpRow/> with onClick → router.push.
+                  //   `position: absolute` inside <tr> isn't reliably
+                  //   honored, and the absolute layer was eating hover
+                  //   events on the topmost rows.
                   return (
-                    <tr key={r.id!} className="group relative border-t border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors">
+                    <FillUpRow key={r.id!} href={`/v/${id}/fill-ups/${r.id}/edit`}>
                       <Td>
-                        {/* Stretched link covers the whole row for click-anywhere edit. */}
-                        <Link
-                          href={`/v/${id}/fill-ups/${r.id}/edit`}
-                          aria-label="Upravit tankování"
-                          className="absolute inset-0 z-0"
-                        />
-                        <span className="relative inline-flex items-center gap-2 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-2 whitespace-nowrap">
                           <span>{formatDate(r.date)}</span>
                           {hwLabel && (
                             <span className="inline-block rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
@@ -254,7 +251,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                           <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-sky-500 transition-colors shrink-0" />
                         </div>
                       </Td>
-                    </tr>
+                    </FillUpRow>
                   );
                 })}
               </tbody>

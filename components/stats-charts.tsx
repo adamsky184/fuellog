@@ -431,14 +431,24 @@ type BrandRankRow = {
  */
 export function BrandRanking({ data }: { data: BrandRankRow[] }) {
   // v2.9.6 — Adam: "Žebříček pump automaticky srovnej od nejvyššího počtu".
-  const [sortBy, setSortBy] = useState<"price" | "consumption" | "count">("count");
+  // v2.9.12 — every column is sortable (incl. brand name + liters).
+  type SortKey = "brand" | "count" | "liters" | "price" | "consumption";
+  const [sortBy, setSortBy] = useState<SortKey>("count");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
   const sorted = useMemo(() => {
     const filtered = data.filter((d) => d.brand && d.brand !== "—");
     const cmp = (a: BrandRankRow, b: BrandRankRow) => {
-      const pick = (r: BrandRankRow) =>
-        sortBy === "price" ? r.avgPricePerL : sortBy === "consumption" ? r.avgL100 : r.count;
+      if (sortBy === "brand") {
+        return order === "asc"
+          ? a.brand.localeCompare(b.brand, "cs")
+          : b.brand.localeCompare(a.brand, "cs");
+      }
+      const pick = (r: BrandRankRow): number | null =>
+        sortBy === "price" ? r.avgPricePerL
+        : sortBy === "consumption" ? r.avgL100
+        : sortBy === "liters" ? r.liters
+        : r.count;
       const av = pick(a);
       const bv = pick(b);
       if (av == null && bv == null) return 0;
@@ -451,15 +461,16 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
 
   if (sorted.length === 0) return null;
 
-  function toggleSort(key: typeof sortBy) {
+  function toggleSort(key: SortKey) {
     if (sortBy === key) setOrder(order === "asc" ? "desc" : "asc");
     else {
       setSortBy(key);
-      setOrder(key === "count" ? "desc" : "asc");
+      // sensible default direction per column
+      setOrder(key === "brand" ? "asc" : "desc");
     }
   }
 
-  const arrow = (key: typeof sortBy) => (sortBy === key ? (order === "asc" ? " ↑" : " ↓") : "");
+  const arrow = (key: SortKey) => (sortBy === key ? (order === "asc" ? " ↑" : " ↓") : "");
 
   return (
     <div className="card p-4 md:col-span-2 overflow-hidden">
@@ -468,14 +479,24 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
         <table className="w-full text-sm">
           <thead className="text-xs text-slate-500 uppercase">
             <tr>
-              <th className="text-left px-2 py-1">Pumpa</th>
+              <th
+                className="text-left px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("brand")}
+              >
+                Pumpa{arrow("brand")}
+              </th>
               <th
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("count")}
               >
                 Tankování{arrow("count")}
               </th>
-              <th className="text-right px-2 py-1">Litry <U>l</U></th>
+              <th
+                className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("liters")}
+              >
+                Litry <U>l</U>{arrow("liters")}
+              </th>
               <th
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("price")}

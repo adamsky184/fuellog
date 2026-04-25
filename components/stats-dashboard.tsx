@@ -47,6 +47,7 @@ import {
   YearlyChart,
 } from "@/components/stats-charts";
 import { CalendarHeatmap } from "@/components/calendar-heatmap";
+import { YearlySummaryTable } from "@/components/yearly-summary-table";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { countryLabel } from "@/lib/regions";
 
@@ -893,41 +894,11 @@ export function StatsDashboard({
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="font-semibold">Roční souhrn</div>
-          <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období." />
+          <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období. Klikni na sloupec pro seřazení." />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase">
-              <tr>
-                <th className="text-left px-2 py-1">Rok</th>
-                <th className="text-right px-2 py-1">km</th>
-                <th className="text-right px-2 py-1">Litry</th>
-                <th className="text-right px-2 py-1">Kč</th>
-                <th className="text-right px-2 py-1">Tankování</th>
-                <th className="text-right px-2 py-1">Ø Kč/l</th>
-                <th className="text-right px-2 py-1">Ø L/100</th>
-                <th className="text-right px-2 py-1">Kč/km</th>
-              </tr>
-            </thead>
-            <tbody>
-              {yearly.map(([y, e]) => (
-                <tr key={y} className="border-t border-slate-100 dark:border-slate-800">
-                  <td className="px-2 py-1 font-medium">{y}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{formatNumber(e.km, 0)}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{formatNumber(e.liters, 1)}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{formatCurrency(e.price)}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{e.count}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{e.liters > 0 ? formatNumber(e.price / e.liters, 2) : "—"}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{e.km > 0 ? formatNumber((e.liters / e.km) * 100, 2) : "—"}</td>
-                  <td className="px-2 py-1 text-right tabular-nums">{e.km > 0 ? formatNumber(e.price / e.km, 2) : "—"}</td>
-                </tr>
-              ))}
-              {yearly.length === 0 && (
-                <tr><td colSpan={8} className="px-2 py-4 text-center text-slate-500">Žádná data v tomto období.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* v2.9.12 — sortable table extracted; every numeric value carries
+             a unit suffix; clickable column headers toggle sort/order. */}
+        <YearlySummaryTable rows={yearly} />
       </div>
     </div>
   );

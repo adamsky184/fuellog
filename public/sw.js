@@ -10,9 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.11: filter order/icon, annual report units, hover via pointer-events,
-// inset color stripe, equal card heights, hamburger shrink-0.
-const CACHE_VERSION = "fuellog-v2.9.11";
+// v2.9.12: row hover via client onClick instead of absolute-link; sortable
+// Roční souhrn + units; brand chart litry + name sortable.
+const CACHE_VERSION = "fuellog-v2.9.12";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

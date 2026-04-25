@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { BarChart3, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DueReminders } from "@/components/due-reminders";
 import { GarageList, type GarageListGroup, type GarageListVehicle } from "@/components/garage-list";
@@ -160,6 +160,16 @@ export default async function VehiclesPage({
           </p>
         </div>
         <div className="flex gap-2">
+          {/* v2.9.6 — quick link to cross-garage stats. */}
+          {garages.length > 1 && (
+            <Link
+              href="/garages/stats"
+              className="btn-secondary inline-flex items-center gap-1 text-sm"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Souhrn všech
+            </Link>
+          )}
           <Link href="/vehicles/new" className="btn-primary inline-flex items-center gap-1">
             <Plus className="h-4 w-4" />
             Přidat auto

@@ -10,9 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.5: compact fill-ups table (Adresa folded into Místo), garage
-// expand/collapse + share + aggregated stats page.
-const CACHE_VERSION = "fuellog-v2.9.5";
+// v2.9.6: stretched-link rows (no AKCE column), header padding align,
+// vehicle color stripe, pump leaderboard sort=count desc, garage stats
+// drops Tachometr, multi-select for vehicles+garages.
+const CACHE_VERSION = "fuellog-v2.9.6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

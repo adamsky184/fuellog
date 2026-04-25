@@ -297,7 +297,17 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
                 return (
-                  <li key={v.id} className="card">
+                  <li
+                    key={v.id}
+                    className="card relative overflow-hidden"
+                    style={{
+                      // v2.9.6 — vehicle's color is rendered as a thin accent
+                      // bar along the left edge of the card. Subtle but
+                      // distinguishes cars at a glance, especially when two
+                      // share the same name (multiple Audis, …).
+                      borderLeft: v.color ? `4px solid ${v.color}` : undefined,
+                    }}
+                  >
                     <Link
                       href={`/v/${v.id}/fill-ups`}
                       className="block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"

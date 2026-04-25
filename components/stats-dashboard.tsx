@@ -706,14 +706,20 @@ export function StatsDashboard({
 
       {/* Top tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat
-          label="Aktuální tachometr"
-          mobileLabel="Tachometr"
-          value={`${formatNumber(currentOdometer, 0)} km`}
-          info="Nejvyšší stav tachometru, který jsi kdy zapsal."
-          tone="km"
-          icon={<Gauge className="h-4 w-4" />}
-        />
+        {/* v2.9.6 — "Aktuální tachometr" only makes sense per-vehicle. In an
+            aggregated/garage context (no vehicleId), drop the tile so the
+            row reads as "Najeto / Litrů / Kč / Ø L/100" — all values that
+            sum cleanly across vehicles. */}
+        {vehicleId && (
+          <Stat
+            label="Aktuální tachometr"
+            mobileLabel="Tachometr"
+            value={`${formatNumber(currentOdometer, 0)} km`}
+            info="Nejvyšší stav tachometru, který jsi kdy zapsal."
+            tone="km"
+            icon={<Gauge className="h-4 w-4" />}
+          />
+        )}
         <Stat
           label="Najeto v období"
           value={`${formatNumber(totalAgg.km, 0)} km`}

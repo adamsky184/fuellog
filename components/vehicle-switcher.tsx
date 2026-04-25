@@ -204,10 +204,15 @@ export function VehicleSwitcher({
                         setOpen(false);
                         router.push(hrefFor(v.id));
                       }}
-                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-sm
+                      className={`w-full text-left pr-3 py-2 flex items-center gap-2.5 text-sm relative
                         hover:bg-slate-50 dark:hover:bg-slate-800 transition ${
                           active ? "bg-slate-50 dark:bg-slate-800" : ""
                         }`}
+                      style={{
+                        // v2.9.6 — vehicle color as a 3-px left accent bar
+                        borderLeft: `3px solid ${v.color ?? "transparent"}`,
+                        paddingLeft: "9px",
+                      }}
                     >
                       <VehicleAvatar
                         photoPath={v.photo_path ?? null}

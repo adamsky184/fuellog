@@ -369,8 +369,9 @@ type BrandRankRow = {
  * a průměrná spotřeba L/100 km. Sortovatelné podle ceny, spotřeby, nebo četnosti.
  */
 export function BrandRanking({ data }: { data: BrandRankRow[] }) {
-  const [sortBy, setSortBy] = useState<"price" | "consumption" | "count">("price");
-  const [order, setOrder] = useState<"asc" | "desc">("asc");
+  // v2.9.6 — Adam: "Žebříček pump automaticky srovnej od nejvyššího počtu".
+  const [sortBy, setSortBy] = useState<"price" | "consumption" | "count">("count");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
 
   const sorted = useMemo(() => {
     const filtered = data.filter((d) => d.brand && d.brand !== "—");

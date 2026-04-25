@@ -5,7 +5,6 @@ import {
   Fuel,
   Gauge,
   Hash,
-  Pencil,
   Plus,
   Route,
 } from "lucide-react";
@@ -166,6 +165,10 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
             ─ Per-th sticky (each cell sticky top-0 z-20) is the most
               cross-browser-reliable pattern.
           */}
+          {/* v2.9.6 — dropped the AKCE column entirely. Each row is now a
+               stretched-link pattern: <tr> is `relative`, an absolute <Link>
+               in the last cell spans the whole row. No more pencil column
+               overflowing the card edge. */}
           <div className="card hidden sm:block">
             <table className="w-full text-[13px]">
               <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
@@ -179,7 +182,6 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Th sticky right unit="l/100">Spotřeba</Th>
                   <Th sticky>Pumpa</Th>
                   <Th sticky>Místo</Th>
-                  <Th sticky right>{""}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -187,9 +189,15 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   const hwLabel = highwayLabel(r.address, r.is_highway);
                   const flag = countryFlag(r.country);
                   return (
-                    <tr key={r.id!} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                    <tr key={r.id!} className="relative border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 cursor-pointer">
                       <Td>
-                        <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                        {/* Stretched link covers the whole row for click-anywhere edit. */}
+                        <Link
+                          href={`/v/${id}/fill-ups/${r.id}/edit`}
+                          aria-label="Upravit tankování"
+                          className="absolute inset-0 z-0"
+                        />
+                        <span className="relative inline-flex items-center gap-2 whitespace-nowrap">
                           <span>{formatDate(r.date)}</span>
                           {hwLabel && (
                             <span className="inline-block rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
@@ -225,7 +233,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         )}
                       </Td>
                       <Td>
-                        <div className="flex flex-col leading-tight">
+                        <div className="relative flex flex-col leading-tight">
                           <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
                             {flag && <span aria-hidden>{flag}</span>}
                             <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
@@ -236,15 +244,6 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                             </span>
                           )}
                         </div>
-                      </Td>
-                      <Td right>
-                        <Link
-                          href={`/v/${id}/fill-ups/${r.id}/edit`}
-                          aria-label="Upravit tankování"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Link>
                       </Td>
                     </tr>
                   );

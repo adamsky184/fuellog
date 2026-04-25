@@ -100,7 +100,9 @@ export function Header({
     // showing the table headers bleeding through when the switcher
     // dropdown was open.
     <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 dark:bg-slate-900/85 dark:border-slate-700/80 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
-      <div className="max-w-5xl mx-auto flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-2">
+      {/* v2.9.6 — match the main content padding (p-4 sm:p-6) so the logo
+           lines up vertically with the page heading underneath. */}
+      <div className="max-w-5xl mx-auto flex items-center gap-1.5 sm:gap-3 px-4 sm:px-6 py-2">
         <Link
           href="/vehicles"
           className="flex items-center gap-2 font-semibold shrink-0"

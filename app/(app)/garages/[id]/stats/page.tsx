@@ -1,37 +1,50 @@
 /**
- * v2.9.5 — garage-aggregated statistics page.
+ * v2.9.5 → v2.9.6 — garage-aggregated statistics page.
  *
- * Reuses <StatsDashboard/> with the union of every fill-up across the
- * garage's vehicles. RLS handles the visibility check (the user only
- * sees fill-ups for vehicles they're a member of via the garage).
- *
- * The dashboard's per-vehicle annual-report link is hidden when no
- * vehicleId is supplied, since aggregating PDFs across cars hasn't
- * been built yet.
+ * - Server-renders <StatsDashboard/> with the union of every fill-up
+ *   across the garage's vehicles. RLS handles visibility.
+ * - v2.9.6: optional `?vehicles=v1,v2` query parameter narrows the
+ *   aggregation to a sub-set of cars. Empty/missing = all garage cars.
+ *   Multi-select is rendered as a chip strip via <VehicleMultiSelect/>.
  */
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { StatsDashboard, type RawStatsRow } from "@/components/stats-dashboard";
+import { VehicleMultiSelect, type VehicleOption } from "@/components/vehicle-multi-select";
 
 export default async function GarageStatsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ vehicles?: string }>;
 }) {
   const { id } = await params;
+  const { vehicles: vehiclesParam } = await searchParams;
   const supabase = await createClient();
 
   const [garageRes, vehiclesRes] = await Promise.all([
     supabase.from("garages").select("id, name").eq("id", id).maybeSingle(),
-    supabase.from("vehicles").select("id, name").eq("garage_id", id),
+    supabase
+      .from("vehicles")
+      .select("id, name, color, photo_path")
+      .eq("garage_id", id)
+      .order("name"),
   ]);
   if (!garageRes.data) notFound();
 
-  const vehicleIds = (vehiclesRes.data ?? []).map((v) => v.id as string);
+  const allVehicles = (vehiclesRes.data ?? []) as VehicleOption[];
+  // Apply the ?vehicles=…,… filter; falsy = all.
+  const requested = (vehiclesParam ?? "").split(",").filter(Boolean);
+  const allowed = new Set(allVehicles.map((v) => v.id));
+  const selectedIds = requested.length > 0
+    ? requested.filter((vid) => allowed.has(vid))
+    : allVehicles.map((v) => v.id);
+
   let rowsAll: RawStatsRow[] = [];
-  if (vehicleIds.length > 0) {
+  if (selectedIds.length > 0) {
     const { data: rowsRaw } = await supabase
       .from("fill_up_stats_v")
       .select(
@@ -39,24 +52,10 @@ export default async function GarageStatsPage({
           "price_per_liter, price_per_liter_czk, consumption_l_per_100km, km_since_last, " +
           "station_brand, country, region, is_baseline, is_highway",
       )
-      .in("vehicle_id", vehicleIds)
+      .in("vehicle_id", selectedIds)
       .order("date", { ascending: true });
     rowsAll = (rowsRaw ?? []) as unknown as RawStatsRow[];
   }
-
-  // currentOdometer is per-vehicle; for an aggregate page we sum the highest
-  // reading per car so the user sees "celková kilometrová stopa flotily".
-  const odometerByVehicle: Record<string, number> = {};
-  for (const r of rowsAll) {
-    // RawStatsRow doesn't include vehicle_id by default; we'd need it for an
-    // exact per-car max. For v2.9.5 we just use the dataset's max odometer
-    // which over-counts but is fine for a "highest km we've ever recorded".
-    const km = Number(r.odometer_km ?? 0);
-    if (!odometerByVehicle["agg"] || km > odometerByVehicle["agg"]) {
-      odometerByVehicle["agg"] = km;
-    }
-  }
-  const currentOdometer = odometerByVehicle["agg"] ?? 0;
 
   return (
     <div className="space-y-4">
@@ -69,12 +68,17 @@ export default async function GarageStatsPage({
           Zpět na garáže
         </Link>
       </div>
+      <VehicleMultiSelect vehicles={allVehicles} />
       <StatsDashboard
         rows={rowsAll}
-        currentOdometer={currentOdometer}
-        title={`Souhrn · ${garageRes.data.name}`}
+        currentOdometer={0}
+        title={`Souhrn · ${garageRes.data.name}${
+          selectedIds.length < allVehicles.length
+            ? ` (${selectedIds.length}/${allVehicles.length} vozů)`
+            : ""
+        }`}
       />
-      {(vehiclesRes.data ?? []).length === 0 && (
+      {allVehicles.length === 0 && (
         <div className="card p-8 text-center text-slate-500">
           V této garáži zatím nejsou žádná auta.
         </div>

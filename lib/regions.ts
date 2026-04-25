@@ -1,11 +1,17 @@
 /**
- * Full-name region list for the add-fill-up form and display.
+ * Region & country taxonomy — v2.8.0 rewrite.
+ *
+ * Switched from historical Czech lands (StČ/JČ/VČ/…) to modern kraj
+ * codes (STC/JCK/PLK/…) so data matches what drivers see on road signs
+ * and SPZ (the standard 3-letter Czech kraj abbreviations).
  *
  * `code` is what we store in the `region` column.
  * `label` is the full Czech name shown in dropdowns and breakdowns.
- * `country` is the implied country for that region.
+ * `country` is the implied country.
  *
- * Historical Czech lands (7) + Prague 1–10 districts + common foreign countries.
+ * The DB migration `regions_to_kraje` rewrites existing historical-land
+ * codes to their best-fit kraj. The mapping is lossy (one historical
+ * land = up to three modern kraje) — see the migration for defaults.
  */
 export type RegionOption = {
   code: string;
@@ -13,6 +19,7 @@ export type RegionOption = {
   country: string;
 };
 
+/** Praha 1–10 stays as separate codes — same as before. */
 export const PRAGUE_DISTRICTS: RegionOption[] = [
   { code: "P1", label: "Praha 1", country: "CZ" },
   { code: "P2", label: "Praha 2", country: "CZ" },
@@ -26,15 +33,21 @@ export const PRAGUE_DISTRICTS: RegionOption[] = [
   { code: "P10", label: "Praha 10", country: "CZ" },
 ];
 
-/** Historical Czech lands — Adam's preferred grouping (Čechy × Morava/Slezsko). */
-export const CZ_HISTORICAL_LANDS: RegionOption[] = [
-  { code: "StČ", label: "Střední Čechy", country: "CZ" },
-  { code: "JČ", label: "Jižní Čechy", country: "CZ" },
-  { code: "VČ", label: "Východní Čechy", country: "CZ" },
-  { code: "ZČ", label: "Západní Čechy", country: "CZ" },
-  { code: "SČ", label: "Severní Čechy", country: "CZ" },
-  { code: "JM", label: "Jižní Morava", country: "CZ" },
-  { code: "SM", label: "Severní Morava", country: "CZ" },
+/** Modern Czech kraje (13 — Praha already covered by districts). */
+export const CZ_KRAJE: RegionOption[] = [
+  { code: "STC", label: "Středočeský", country: "CZ" },
+  { code: "JCK", label: "Jihočeský", country: "CZ" },
+  { code: "PLK", label: "Plzeňský", country: "CZ" },
+  { code: "KVK", label: "Karlovarský", country: "CZ" },
+  { code: "ULK", label: "Ústecký", country: "CZ" },
+  { code: "LBK", label: "Liberecký", country: "CZ" },
+  { code: "HKK", label: "Královéhradecký", country: "CZ" },
+  { code: "PAK", label: "Pardubický", country: "CZ" },
+  { code: "VYS", label: "Vysočina", country: "CZ" },
+  { code: "JMK", label: "Jihomoravský", country: "CZ" },
+  { code: "OLK", label: "Olomoucký", country: "CZ" },
+  { code: "ZLK", label: "Zlínský", country: "CZ" },
+  { code: "MSK", label: "Moravskoslezský", country: "CZ" },
 ];
 
 /** Foreign countries — region stays null, only country code is set. */
@@ -54,11 +67,26 @@ export const FOREIGN_COUNTRIES: RegionOption[] = [
   { code: "BE", label: "Belgie", country: "BE" },
 ];
 
-/** All CZ options (Prague districts + historical lands), used as the Czech section of the dropdown. */
+/** All CZ options (Prague districts + kraje) — feeds the Czech section of the dropdown. */
 export const CZ_REGION_OPTIONS: RegionOption[] = [
   ...PRAGUE_DISTRICTS,
-  ...CZ_HISTORICAL_LANDS,
+  ...CZ_KRAJE,
 ];
+
+/**
+ * Legacy historic-land codes preserved as a label fallback so old data
+ * still renders if anything slips past the migration. Maps each legacy
+ * code to its best-fit kraj label.
+ */
+const LEGACY_HISTORICAL_LANDS: Record<string, string> = {
+  StČ: "Středočeský",
+  JČ: "Jihočeský",
+  VČ: "Královéhradecký",
+  ZČ: "Plzeňský",
+  SČ: "Ústecký",
+  JM: "Jihomoravský",
+  SM: "Moravskoslezský",
+};
 
 /** Turn a stored region/country pair into the dropdown `value` key used by the form. */
 export function regionKey(region: string | null, country: string): string {
@@ -84,7 +112,9 @@ export function regionLabel(region: string | null, country: string | null | unde
   }
   if (region) {
     const m = CZ_REGION_OPTIONS.find((x) => x.code === region);
-    return m ? m.label : region;
+    if (m) return m.label;
+    if (region in LEGACY_HISTORICAL_LANDS) return LEGACY_HISTORICAL_LANDS[region];
+    return region;
   }
   return "—";
 }
@@ -119,8 +149,6 @@ export function formatLocation(
   const r = regionLabel(region ?? null, country ?? null);
   const hasRegion = r && r !== "—";
   if (c && hasRegion) {
-    // "Praha" ⊂ "Praha 7" → drop city. Compare case-insensitively so
-    // "praha"/"Praha" still dedupes.
     const cLower = c.toLowerCase();
     const rLower = r.toLowerCase();
     if (rLower === cLower || rLower.startsWith(cLower + " ")) return r;
@@ -130,3 +158,23 @@ export function formatLocation(
   if (hasRegion) return r;
   return "";
 }
+
+/**
+ * Static reference list for the `<RegionInfobox/>` help component so users
+ * can decode the 3-letter codes (STC = Středočeský, etc.). Same arrays drive
+ * the dropdown so we never drift.
+ */
+export const REGION_HELP: { section: string; items: { code: string; label: string }[] }[] = [
+  {
+    section: "Praha",
+    items: PRAGUE_DISTRICTS.map((p) => ({ code: p.code, label: p.label })),
+  },
+  {
+    section: "Kraje (mimo Prahu)",
+    items: CZ_KRAJE.map((k) => ({ code: k.code, label: k.label })),
+  },
+  {
+    section: "Zahraničí",
+    items: FOREIGN_COUNTRIES.map((c) => ({ code: c.code, label: c.label })),
+  },
+];

@@ -55,10 +55,15 @@ export type RawStatsRow = {
   odometer_km: number | null;
   liters: number | null;
   total_price: number | null;
+  /** v2.8.0: total_price normalised to CZK via the convert_to_czk function. */
+  total_price_czk: number | null;
   price_per_liter: number | null;
+  /** v2.8.0: price_per_liter in CZK. */
+  price_per_liter_czk: number | null;
   consumption_l_per_100km: number | null;
   km_since_last: number | null;
   station_brand: string | null;
+  currency: string | null;
   country: string | null;
   region: string | null;
   is_baseline: boolean | null;
@@ -308,7 +313,7 @@ function bucketize(rows: RawStatsRow[], label: string): Bucket {
   for (const r of rows) {
     count += 1;
     liters += Number(r.liters ?? 0);
-    price += Number(r.total_price ?? 0);
+    price += Number(r.total_price_czk ?? r.total_price ?? 0);
     km += Number(r.km_since_last ?? 0);
   }
   return { label, count, liters, price, km };
@@ -416,7 +421,7 @@ export function StatsDashboard({
 
   const totalAgg = useMemo(() => {
     const liters = filtered.reduce((a, r) => a + Number(r.liters ?? 0), 0);
-    const price = filtered.reduce((a, r) => a + Number(r.total_price ?? 0), 0);
+    const price = filtered.reduce((a, r) => a + Number(r.total_price_czk ?? r.total_price ?? 0), 0);
     const km = filtered.reduce((a, r) => a + Number(r.km_since_last ?? 0), 0);
     return {
       liters,
@@ -456,7 +461,7 @@ export function StatsDashboard({
     const range = (since: string) => {
       const subset = rowsAll.filter((r) => r.date && r.date >= since);
       const liters = subset.reduce((a, r) => a + Number(r.liters ?? 0), 0);
-      const price = subset.reduce((a, r) => a + Number(r.total_price ?? 0), 0);
+      const price = subset.reduce((a, r) => a + Number(r.total_price_czk ?? r.total_price ?? 0), 0);
       const km = subset.reduce((a, r) => a + Number(r.km_since_last ?? 0), 0);
       return { liters, price, km: Math.round(km), count: subset.length };
     };
@@ -565,7 +570,7 @@ export function StatsDashboard({
       const e = map.get(m) ?? { km: 0, liters: 0, price: 0 };
       e.km += Number(r.km_since_last ?? 0);
       e.liters += Number(r.liters ?? 0);
-      e.price += Number(r.total_price ?? 0);
+      e.price += Number(r.total_price_czk ?? r.total_price ?? 0);
       map.set(m, e);
     }
     return Array.from(map.entries())
@@ -587,7 +592,7 @@ export function StatsDashboard({
       const e = map.get(y) ?? { km: 0, liters: 0, price: 0, count: 0 };
       e.km += Number(r.km_since_last ?? 0);
       e.liters += Number(r.liters ?? 0);
-      e.price += Number(r.total_price ?? 0);
+      e.price += Number(r.total_price_czk ?? r.total_price ?? 0);
       e.count += 1;
       map.set(y, e);
     }

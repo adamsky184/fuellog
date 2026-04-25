@@ -445,10 +445,12 @@ export type Database = {
           odometer_km: number | null
           odometer_photo_path: string | null
           price_per_liter: number | null
+          price_per_liter_czk: number | null
           receipt_photo_path: string | null
           region: string | null
           station_brand: string | null
           total_price: number | null
+          total_price_czk: number | null
           vehicle_id: string | null
         }
         Relationships: [

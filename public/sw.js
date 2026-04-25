@@ -10,9 +10,8 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.7.1: new app icon (red gas pump on sky-blue) — bump so the SW evicts the
-// stale "F." favicon/manifest icons that browsers and iOS will have cached.
-const CACHE_VERSION = "fuellog-v2.7.1";
+// v2.8.0: kraje taxonomy + currency conversion + bulk Milan-garage import.
+const CACHE_VERSION = "fuellog-v2.8.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

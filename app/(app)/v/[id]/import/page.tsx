@@ -161,10 +161,15 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
         const liters = typeof tank === "number" && Number.isFinite(tank) ? tank : null;
         const price = typeof total === "number" && Number.isFinite(total) ? total : null;
         const rawMisto = typeof misto === "string" ? misto.trim() : "";
-        const isHighway = rawMisto === "D";
-        const { region, country } = isHighway
-          ? { region: null as string | null, country: "CZ" }
-          : mapRegionCode(rawMisto || null);
+        // v2.8.0: mapRegionCode now returns isHighway + highwayCode in one
+        // call so the legacy single-purpose `rawMisto === "D"` check is gone.
+        const { region, country, isHighway, highwayCode } = mapRegionCode(rawMisto || null);
+        const addrStr = typeof address === "string" ? address.trim() : "";
+        // For highway rows, prefix the highway number into the address so it
+        // stays visible in the UI ("D1 · Humpolec" rather than just "Humpolec").
+        const finalAddress = isHighway && highwayCode
+          ? (addrStr ? `${highwayCode} · ${addrStr}` : highwayCode)
+          : (addrStr || null);
 
         parsed.push({
           date: dateStr,
@@ -175,7 +180,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
           city: null,
           region,
           country,
-          address: typeof address === "string" ? address : null,
+          address: finalAddress,
           is_baseline: liters === null || liters === 0,
           is_highway: isHighway,
         });

@@ -13,6 +13,7 @@ import {
 } from "@/lib/regions";
 import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
+import { RegionInfobox } from "@/components/region-infobox";
 import { StationSearch, type StationPick } from "@/components/station-search";
 import type { ParsedReceipt, ParsedOdometer } from "@/lib/ocr/types";
 import { MapPin, Check } from "lucide-react";
@@ -790,6 +791,9 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
           />
         </div>
       </div>
+
+      {/* v2.8.0 — kraj zkratky vysvětlené v rozbalovacím infoboxu. */}
+      <RegionInfobox />
 
       <div>
         <label className="label">Adresa / detail</label>

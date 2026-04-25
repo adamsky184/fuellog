@@ -169,7 +169,9 @@ export function Header({
           {/* Unified user menu — visible on ALL breakpoints so mobile users
               can reach Profil, Admin, Odhlásit. Replaces the old
               hidden-on-mobile email link + separate Admin/Logout buttons. */}
-          <div ref={menuRef} className="relative">
+          {/* v2.9.11 — `shrink-0` so the hamburger never gets pushed off
+              the right edge by a long vehicle name in the switcher. */}
+          <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}

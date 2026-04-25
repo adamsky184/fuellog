@@ -161,14 +161,15 @@ export default async function ReportPage({
         </div>
       </header>
 
+      {/* v2.9.11 — every stat tile carries an explicit unit suffix. */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <ReportStat label="Ujeto" value={`${formatNumber(km, 0)} km`} />
-        <ReportStat label="Spotřebováno" value={`${formatNumber(liters, 1)} L`} />
+        <ReportStat label="Spotřebováno" value={`${formatNumber(liters, 1)} l`} />
         <ReportStat label="Utraceno" value={formatCurrency(price)} />
-        <ReportStat label="Tankování" value={String(rows.length)} />
-        <ReportStat label="Ø L/100 km" value={formatNumber(avgL100, 2)} />
-        <ReportStat label="Ø Kč/l" value={formatNumber(avgPricePerL, 2)} />
-        <ReportStat label="Kč/km" value={formatNumber(czkPerKm, 2)} />
+        <ReportStat label="Tankování" value={`${rows.length}×`} />
+        <ReportStat label="Ø spotřeba" value={`${formatNumber(avgL100, 2)} l/100`} />
+        <ReportStat label="Ø cena" value={`${formatNumber(avgPricePerL, 2)} Kč/l`} />
+        <ReportStat label="Kč/km" value={`${formatNumber(czkPerKm, 2)} Kč/km`} />
         <ReportStat label="Servis" value={formatCurrency(maintCost)} />
       </section>
 

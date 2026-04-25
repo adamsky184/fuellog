@@ -638,9 +638,12 @@ export function StatsDashboard({
       {title && (
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{title}</h1>
       )}
-      {/* Header: period selector + roční report */}
+      {/* Header: period selector + roční report.
+          v2.9.11 — filtersSlot (Vozidla / Garáže) renders FIRST so the
+          row reads as "Vozidla → Garáže → Období → totals". */}
       <div className="card p-3 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {filtersSlot}
           <div className="inline-flex items-center gap-2 shrink-0">
             <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sm">
               <CalendarRange className="h-4 w-4" />
@@ -694,10 +697,6 @@ export function StatsDashboard({
             <Route className="h-3 w-3 opacity-60" />
             {formatNumber(totalAgg.km, 0)} km
           </span>
-          {/* v2.9.10 — extra filter controls (vehicle/garage selectors)
-              live next to the period chips so the row reads as
-              "Období | Vozidla | Garáže | totals". */}
-          {filtersSlot}
         </div>
         {vehicleId && (
           <Link

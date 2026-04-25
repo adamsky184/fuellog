@@ -10,10 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.10: stats refresh after multi-select toggle, selectors inside period
-// card, brand dedupe (Robin Oil), case-insensitive brand colours, country
-// chart top-N, chart animations off, stronger row hover, color stripe back.
-const CACHE_VERSION = "fuellog-v2.9.10";
+// v2.9.11: filter order/icon, annual report units, hover via pointer-events,
+// inset color stripe, equal card heights, hamburger shrink-0.
+const CACHE_VERSION = "fuellog-v2.9.11";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

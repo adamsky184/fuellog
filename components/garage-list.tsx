@@ -296,24 +296,30 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             <ul id={`garage-${group.garage_id}`} className="grid gap-3 sm:grid-cols-2">
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
-                // v2.9.10 — back to the left-edge stripe (Adam: ring around
-                //   avatar didn't land). Stripe sits on the <li> with
-                //   `overflow-hidden` so the rounded-2xl corners stay clean
-                //   while still showing the colour band at full card height.
+                // v2.9.11 — color stripe rendered as an absolutely-positioned
+                //   pseudo bar inset 8 px from top + bottom of the card so it
+                //   doesn't fight the rounded corners. Card itself loses
+                //   overflow-hidden so the inner rounded corners + hover bg
+                //   remain clean. Plus `line-clamp-1` on the name + `min-h`
+                //   on the row so all cards in the same grid row line up
+                //   regardless of name length.
                 return (
-                  <li
-                    key={v.id}
-                    className="card flex overflow-hidden"
-                    style={{ borderLeft: v.color ? `4px solid ${v.color}` : undefined }}
-                  >
+                  <li key={v.id} className="card flex relative">
+                    {v.color && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-2 bottom-2 w-1 rounded-r"
+                        style={{ backgroundColor: v.color }}
+                      />
+                    )}
                     <Link
                       href={`/v/${v.id}/fill-ups`}
                       className="flex-1 block p-3 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-h-[68px]">
                         <VehicleAvatar photoPath={v.photo_path} color={v.color} size="lg" />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
                             <span className="font-semibold text-base sm:text-lg truncate">
                               {v.name}
                             </span>

@@ -82,19 +82,23 @@ export function VehicleMultiSelect({
 
   return (
     <div ref={ref} className="relative inline-block">
+      {/* v2.9.11 — match the Období selector's visual weight (h-7 colored
+          icon tile + uppercase label) so the two filters read as a pair. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm"
+        className="inline-flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition rounded-lg px-1 py-0.5"
       >
-        <Car className="h-3.5 w-3.5 text-slate-400" />
-        <span className="uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-sm">
+          <Car className="h-4 w-4" />
+        </span>
+        <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
           Vozidla
         </span>
-        <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">{summary}</span>
-        <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">{summary}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (

@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fuel } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup" | "magic" | "reset";
@@ -12,9 +12,14 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="card w-full max-w-md p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-accent text-white grid place-items-center">
-            <Fuel className="h-6 w-6" />
-          </div>
+          <Image
+            src="/icons/icon-192.png"
+            alt=""
+            width={48}
+            height={48}
+            priority
+            className="mx-auto w-12 h-12 rounded-xl shadow-sm ring-1 ring-white/20"
+          />
           <h1 className="text-2xl font-semibold">FuelLog</h1>
         </div>
         <Suspense fallback={<div className="text-sm text-slate-500">Načítám…</div>}>

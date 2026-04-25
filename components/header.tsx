@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Fuel,
   LogOut,
   BarChart3,
   Wrench,
@@ -102,9 +102,17 @@ export function Header({
           className="flex items-center gap-2 font-semibold shrink-0"
           aria-label="FuelLog — vozidla"
         >
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white grid place-items-center shadow-sm ring-1 ring-white/20">
-            <Fuel className="h-4 w-4" />
-          </span>
+          {/* v2.7.1 — replaced gradient + lucide Fuel icon with the actual app
+              icon (red pump on sky-blue), so the brand mark in the header
+              matches the favicon and the home-screen icon. */}
+          <Image
+            src="/icons/icon-192.png"
+            alt=""
+            width={32}
+            height={32}
+            priority
+            className="w-8 h-8 rounded-xl shadow-sm ring-1 ring-white/20"
+          />
           <span className="hidden sm:inline">FuelLog</span>
         </Link>
 

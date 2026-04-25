@@ -10,8 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.7.0: due-date reminders (insurance, highway sticker, …) + mobile UX polish.
-const CACHE_VERSION = "fuellog-v2.7.0";
+// v2.7.1: new app icon (red gas pump on sky-blue) — bump so the SW evicts the
+// stale "F." favicon/manifest icons that browsers and iOS will have cached.
+const CACHE_VERSION = "fuellog-v2.7.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

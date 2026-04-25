@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FuelLog app icon — emoji-style red gas pump on a sky-blue square.
+  Centered with even padding so the OS-applied rounded corners crop
+  cleanly. Single source of truth: PNG sizes are rasterized from this
+  via cairosvg in the v2.7.1 build.
+-->
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FuelLog">
+  <!-- Background. Matches existing theme color (sky-500). -->
+  <rect width="512" height="512" fill="#0EA5E9"/>
+
+  <!-- Subtle ground shadow under the base. -->
+  <ellipse cx="232" cy="425" rx="125" ry="9" fill="#0284C7" opacity="0.4"/>
+
+  <!-- ===== LOWER BODY (BASE) — wider than the head ===== -->
+  <rect x="118" y="275" width="228" height="140" rx="6" fill="#DC2626"/>
+  <!-- 3-D right-edge darkening. -->
+  <rect x="318" y="275" width="28" height="140" rx="4" fill="#000000" opacity="0.18"/>
+  <!-- Top seam between head and base. -->
+  <rect x="118" y="275" width="228" height="6" fill="#7F1D1D"/>
+
+  <!-- ===== UPPER BODY (HEAD) — narrower, centred on the base ===== -->
+  <rect x="148" y="130" width="168" height="145" rx="4" fill="#DC2626"/>
+  <rect x="288" y="130" width="28" height="145" rx="3" fill="#000000" opacity="0.18"/>
+
+  <!-- Top cap. -->
+  <rect x="138" y="115" width="188" height="22" rx="4" fill="#7F1D1D"/>
+  <rect x="138" y="115" width="188" height="6" rx="3" fill="#991B1B"/>
+
+  <!-- ===== DISPLAY (white meter, digital readout) ===== -->
+  <rect x="166" y="158" width="132" height="58" rx="3" fill="#FFFFFF"/>
+  <rect x="166" y="158" width="132" height="58" rx="3" fill="none" stroke="#7F1D1D" stroke-width="2"/>
+  <text x="232" y="200" text-anchor="middle"
+        font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
+        font-size="32" font-weight="800" fill="#1E293B" letter-spacing="3">00322</text>
+
+  <!-- ===== DROP ICON ON THE BASE (oil/fuel drop) ===== -->
+  <!-- White disc background. -->
+  <circle cx="232" cy="345" r="36" fill="#FFFFFF"/>
+  <!-- Dark drop. Classic teardrop: pointed top, round bottom. -->
+  <path d="M 232 312
+           C 213 340, 207 363, 232 376
+           C 257 363, 251 340, 232 312 Z"
+        fill="#1F2937"/>
+
+  <!-- ===== HOSE + NOZZLE (right side) ===== -->
+  <!-- Connector boss on the head. -->
+  <rect x="314" y="180" width="22" height="18" rx="3" fill="#DC2626"/>
+  <!-- Curving hose. -->
+  <path d="M 336 189
+           C 380 192, 402 230, 396 280
+           C 392 318, 386 348, 384 378"
+        fill="none" stroke="#DC2626" stroke-width="13"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Nozzle handle (chunky red block hanging off the hose). -->
+  <rect x="362" y="362" width="44" height="48" rx="5" fill="#DC2626"/>
+  <rect x="362" y="362" width="44" height="8" rx="3" fill="#7F1D1D"/>
+  <!-- Trigger detail. -->
+  <rect x="372" y="378" width="14" height="24" rx="2" fill="#7F1D1D"/>
+</svg>

@@ -29,9 +29,11 @@ export const metadata: Metadata = {
     "FuelLog",
   ],
   manifest: "/manifest.json",
+  // v2.7.1 — favicon + apple-touch served from app/favicon.ico, app/icon.png,
+  // app/apple-icon.png via Next's metadata file conventions. Keep an explicit
+  // shortcut entry too so older browsers/crawlers see the maskable PNG.
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    shortcut: "/icons/icon-192.png",
   },
   openGraph: {
     type: "website",

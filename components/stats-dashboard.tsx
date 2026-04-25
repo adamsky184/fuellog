@@ -367,10 +367,16 @@ export function StatsDashboard({
   rows,
   vehicleId,
   currentOdometer,
+  /** v2.9.5 — when set, renders this above the dashboard so a garage-level view
+   *  can title itself ("Souhrnné statistiky · MILANOVA GARÁŽ - PAST"). */
+  title,
 }: {
   rows: RawStatsRow[];
-  vehicleId: string;
+  /** v2.9.5 — optional. When undefined, the "Roční report" link is hidden
+   *  (per-vehicle PDF doesn't apply to garage aggregates). */
+  vehicleId?: string;
   currentOdometer: number;
+  title?: string;
 }) {
   const [preset, setPreset] = useState<PeriodPreset>("all");
   const [customFrom, setCustomFrom] = useState<string>("");
@@ -627,6 +633,9 @@ export function StatsDashboard({
 
   return (
     <div className="space-y-4">
+      {title && (
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{title}</h1>
+      )}
       {/* Header: period selector + roční report */}
       <div className="card p-3 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -684,13 +693,15 @@ export function StatsDashboard({
             {formatNumber(totalAgg.km, 0)} km
           </span>
         </div>
-        <Link
-          href={`/v/${vehicleId}/report?year=${latestYear}`}
-          className="btn-secondary text-xs inline-flex items-center gap-1"
-        >
-          <FileDown className="h-3.5 w-3.5" />
-          Roční report
-        </Link>
+        {vehicleId && (
+          <Link
+            href={`/v/${vehicleId}/report?year=${latestYear}`}
+            className="btn-secondary text-xs inline-flex items-center gap-1"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Roční report
+          </Link>
+        )}
       </div>
 
       {/* Top tiles */}

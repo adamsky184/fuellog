@@ -443,7 +443,7 @@ export default function GaragesPage() {
             const isOwner = myRole === "owner";
             const currentMsg = memberMsg?.garageId === g.id ? memberMsg.text : null;
             return (
-              <li key={g.id} className="card p-4">
+              <li key={g.id} id={`g-${g.id}`} className="card p-4">
                 {editingId === g.id ? (
                   <div className="space-y-3">
                     <input

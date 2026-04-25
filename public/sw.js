@@ -10,10 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.4: per-cell sticky thead inside an overflow-x:auto/overflow-y:visible
-// wrapper — table can horizontal-scroll inside the card while column labels
-// stay anchored to the page top.
-const CACHE_VERSION = "fuellog-v2.9.4";
+// v2.9.5: compact fill-ups table (Adresa folded into Místo), garage
+// expand/collapse + share + aggregated stats page.
+const CACHE_VERSION = "fuellog-v2.9.5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

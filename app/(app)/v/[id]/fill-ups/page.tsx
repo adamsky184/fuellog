@@ -157,39 +157,31 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/*
-            Desktop table — v2.9.4
-            ─ Outer card has no overflow rule, just rounded-corner styling.
-            ─ Inline wrapper has `overflowX: auto; overflowY: visible` so the
-              wide table can horizontal-scroll WITHIN the card while the
-              <th> cells stay sticky against the *page* vertical scroll.
-              `overflow-y: visible` is an explicit override of the implicit
-              `auto` that browsers normally apply when one axis is clipped;
-              modern Chrome/Firefox/Safari respect it.
-            ─ Each <th> is individually `sticky top-0` (per-cell pattern),
-              which is the most reliable cross-browser approach for sticky
-              column headers. `<thead>` itself stays a plain wrapper.
+            Desktop table — v2.9.5
+            ─ Folded the standalone "Adresa" column INTO the "Místo" cell as
+              a small grey second line. That removes the column that was
+              forcing horizontal scroll, no min-width hack needed.
+            ─ Outer card has no overflow rule. No inner overflow wrapper at
+              all — sticky <th> cells anchor directly against page scroll.
+            ─ Per-th sticky (each cell sticky top-0 z-20) is the most
+              cross-browser-reliable pattern.
           */}
-          <div className="card hidden sm:block rounded-2xl">
-            <div
-              className="rounded-2xl"
-              style={{ overflowX: "auto", overflowY: "visible" }}
-            >
-              <table className="w-full text-[13px] min-w-[920px]">
-                <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
-                  <tr>
-                    <Th sticky>Datum</Th>
-                    <Th sticky right unit="km">Stav</Th>
-                    <Th sticky right unit="km">Ujeto</Th>
-                    <Th sticky right unit="l">Litrů</Th>
-                    <Th sticky right unit="Kč/l">Cena</Th>
-                    <Th sticky right unit="Kč">Celkem</Th>
-                    <Th sticky right unit="l/100">Spotřeba</Th>
-                    <Th sticky>Pumpa</Th>
-                    <Th sticky>Místo</Th>
-                    <Th sticky className="hidden lg:table-cell">Adresa</Th>
-                    <Th sticky right>{""}</Th>
-                  </tr>
-                </thead>
+          <div className="card hidden sm:block">
+            <table className="w-full text-[13px]">
+              <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
+                <tr>
+                  <Th sticky>Datum</Th>
+                  <Th sticky right unit="km">Stav</Th>
+                  <Th sticky right unit="km">Ujeto</Th>
+                  <Th sticky right unit="l">Litrů</Th>
+                  <Th sticky right unit="Kč/l">Cena</Th>
+                  <Th sticky right unit="Kč">Celkem</Th>
+                  <Th sticky right unit="l/100">Spotřeba</Th>
+                  <Th sticky>Pumpa</Th>
+                  <Th sticky>Místo</Th>
+                  <Th sticky right>{""}</Th>
+                </tr>
+              </thead>
               <tbody>
                 {rows.map((r) => {
                   const hwLabel = highwayLabel(r.address, r.is_highway);
@@ -233,15 +225,17 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         )}
                       </Td>
                       <Td>
-                        <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                          {flag && <span aria-hidden>{flag}</span>}
-                          <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
-                        </span>
-                      </Td>
-                      <Td className="hidden lg:table-cell">
-                        <span className="text-slate-500 dark:text-slate-400 text-xs truncate">
-                          {stripHighwayPrefix(r.address) || "—"}
-                        </span>
+                        <div className="flex flex-col leading-tight">
+                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                            {flag && <span aria-hidden>{flag}</span>}
+                            <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
+                          </span>
+                          {stripHighwayPrefix(r.address) && (
+                            <span className="text-slate-400 dark:text-slate-500 text-[11px] truncate">
+                              {stripHighwayPrefix(r.address)}
+                            </span>
+                          )}
+                        </div>
                       </Td>
                       <Td right>
                         <Link
@@ -257,7 +251,6 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                 })}
               </tbody>
             </table>
-            </div>
           </div>
         </>
       )}

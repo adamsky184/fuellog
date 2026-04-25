@@ -12,7 +12,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownAZ, CalendarRange, GripVertical, Move, Warehouse } from "lucide-react";
+import {
+  ArrowDownAZ,
+  BarChart3,
+  CalendarRange,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  Move,
+  Share2,
+  Warehouse,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleAvatar } from "@/components/vehicle-avatar";
 
@@ -73,6 +83,33 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
   const [dragId, setDragId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   useEffect(() => setGroups(initialGroups), [initialGroups]);
+
+  // v2.9.5 — per-garage expand/collapse. Default = expanded. State persists
+  // in localStorage so the page remembers what the user folded last time.
+  const COLLAPSE_KEY = "fuellog-garage-collapsed";
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSE_KEY);
+      if (raw) setCollapsed(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function toggleCollapsed(garageId: string | null) {
+    if (!garageId) return;
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(garageId)) next.delete(garageId);
+      else next.add(garageId);
+      try {
+        localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   // Build the displayed order based on sortKey. "Bez garáže" always last.
   const ordered = useMemo(() => {
@@ -198,8 +235,29 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                   aria-label="Přetáhni pro změnu pořadí"
                 />
               )}
-              <Warehouse className="h-4 w-4 text-slate-400" />
-              <span>{group.garage_name}</span>
+              {/* v2.9.5 — chevron toggles collapse for real garages. */}
+              {isReal ? (
+                <button
+                  type="button"
+                  onClick={() => toggleCollapsed(group.garage_id)}
+                  className="inline-flex items-center gap-2 hover:text-sky-600 transition"
+                  aria-expanded={!collapsed.has(group.garage_id ?? "")}
+                  aria-controls={`garage-${group.garage_id}`}
+                >
+                  {collapsed.has(group.garage_id ?? "") ? (
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  )}
+                  <Warehouse className="h-4 w-4 text-slate-400" />
+                  <span>{group.garage_name}</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <Warehouse className="h-4 w-4 text-slate-400" />
+                  <span>{group.garage_name}</span>
+                </span>
+              )}
               <span className="text-xs text-slate-400 font-normal">
                 · {group.vehicles.length}{" "}
                 {group.vehicles.length === 1
@@ -211,9 +269,31 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
               {savingOrder && isDraggingMe && (
                 <span className="text-xs text-slate-400 font-normal">· ukládám…</span>
               )}
+              {/* Action chips: stats / share. Only on real garages. */}
+              {isReal && (
+                <span className="ml-auto inline-flex items-center gap-1">
+                  <Link
+                    href={`/garages/${group.garage_id}/stats`}
+                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
+                    title="Souhrnné statistiky garáže"
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline font-normal">Statistiky</span>
+                  </Link>
+                  <Link
+                    href={`/garages#g-${group.garage_id}`}
+                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
+                    title="Sdílet / nastavení garáže"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline font-normal">Sdílet</span>
+                  </Link>
+                </span>
+              )}
             </div>
 
-            <ul className="grid gap-3 sm:grid-cols-2">
+            {!collapsed.has(group.garage_id ?? "__none__") && (
+            <ul id={`garage-${group.garage_id}`} className="grid gap-3 sm:grid-cols-2">
               {sortedVehicles(group.vehicles).map((v) => {
                 const yearRange = formatYearRange(v);
                 return (
@@ -248,6 +328,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                 );
               })}
             </ul>
+            )}
           </section>
         );
       })}

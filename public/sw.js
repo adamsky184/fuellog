@@ -10,9 +10,9 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.9.13: garage members now inherit vehicle visibility via updated RLS
-// helpers (is_vehicle_member / can_write_vehicle).
-const CACHE_VERSION = "fuellog-v2.9.13";
+// v2.9.14: replaced flaky HTML5 drag-drop on the homepage with explicit
+// up/down arrow buttons in "vlastní" sort mode.
+const CACHE_VERSION = "fuellog-v2.9.14";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

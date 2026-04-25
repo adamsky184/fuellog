@@ -1,12 +1,12 @@
 /**
- * v2.9.0 → v2.9.1 — GarageList (client component)
+ * GarageList (client component) — v2.9.0 → v2.9.14
  *
- * Renders the user's garages with their vehicles. v2.9.1 adds:
- *  - sort selector: rok / abc / vlastní (custom drag)
+ * Renders the user's garages with their vehicles.
+ *  - sort selector: dle stáří / abecedně / vlastní
  *  - year-range badge ("1995–1997" / "2020 –") next to each vehicle
- *  - drag-and-drop garage reordering only when sort = "vlastní"
- *
- * Per-user ordering persists in `garage_user_settings`.
+ *  - in "vlastní" mode each section gets explicit ▲▼ buttons that
+ *    swap the garage with its neighbour (replaces the previous
+ *    flaky HTML5 drag-drop). Order persists in `garage_user_settings`.
  */
 "use client";
 
@@ -14,11 +14,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownAZ,
+  ArrowDown,
+  ArrowUp,
   BarChart3,
   CalendarRange,
   ChevronDown,
   ChevronRight,
-  GripVertical,
   Move,
   Share2,
   Warehouse,
@@ -80,7 +81,6 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
   }
 
   const [groups, setGroups] = useState(initialGroups);
-  const [dragId, setDragId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   useEffect(() => setGroups(initialGroups), [initialGroups]);
 
@@ -127,32 +127,27 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
     return noGarage ? [...sorted, noGarage] : sorted;
   }, [groups, sortKey]);
 
-  // ----- drag-drop (only meaningful in "custom") -----
-  function onDragStart(garageId: string | null) {
-    if (sortKey !== "custom") return;
+  // v2.9.14 — replaced flaky HTML5 drag-drop with explicit up/down
+  // arrow buttons. moveGarage swaps the garage with its neighbour and
+  // re-persists the entire order. Cheap, reliable, no drag image gunk,
+  // works identically on touch and desktop.
+  async function moveGarage(garageId: string | null, direction: -1 | 1) {
     if (garageId == null) return;
-    setDragId(garageId);
-  }
-  function onDragOver(e: React.DragEvent) {
-    if (sortKey === "custom" && dragId) e.preventDefault();
-  }
-  async function onDrop(targetId: string | null) {
-    if (sortKey !== "custom") return;
-    if (!dragId || dragId === targetId || targetId == null) {
-      setDragId(null);
-      return;
-    }
+    // Operate on the same list the user sees in "vlastní" mode (real
+    // garages only — "Bez garáže" is pinned at the bottom and skipped).
+    const realIdxs = groups
+      .map((g, i) => (g.garage_id != null ? i : -1))
+      .filter((i) => i >= 0);
+    const flatIdx = realIdxs.findIndex((i) => groups[i].garage_id === garageId);
+    if (flatIdx < 0) return;
+    const targetFlat = flatIdx + direction;
+    if (targetFlat < 0 || targetFlat >= realIdxs.length) return;
+    const fromIdx = realIdxs[flatIdx];
+    const toIdx = realIdxs[targetFlat];
     const next = [...groups];
-    const fromIdx = next.findIndex((g) => g.garage_id === dragId);
-    const toIdx = next.findIndex((g) => g.garage_id === targetId);
-    if (fromIdx < 0 || toIdx < 0) {
-      setDragId(null);
-      return;
-    }
-    const [moved] = next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, moved);
+    [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
     setGroups(next);
-    setDragId(null);
+
     setSavingOrder(true);
     const supabase = createClient();
     const { data: u } = await supabase.auth.getUser();
@@ -212,28 +207,41 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
         </SortChip>
       </div>
 
-      {ordered.map((group) => {
+      {(() => {
+        // Pre-compute which positions in the visible "vlastní" list are
+        // first / last among real (non-Bez-garáže) garages so we can
+        // disable the matching arrow.
+        const realIds = ordered.filter((g) => g.garage_id != null).map((g) => g.garage_id);
+        return ordered.map((group) => {
         const isReal = group.garage_id != null;
-        const isDraggingMe = sortKey === "custom" && dragId === group.garage_id;
-        const isDropTarget =
-          sortKey === "custom" && dragId && dragId !== group.garage_id && isReal;
+        const realIdx = realIds.indexOf(group.garage_id);
+        const isFirstReal = realIdx === 0;
+        const isLastReal = realIdx === realIds.length - 1;
         return (
-          <section
-            key={group.garage_id ?? "none"}
-            draggable={sortKey === "custom" && isReal}
-            onDragStart={() => onDragStart(group.garage_id)}
-            onDragOver={onDragOver}
-            onDrop={() => onDrop(group.garage_id)}
-            className={`space-y-3 rounded-2xl transition ${
-              isDraggingMe ? "opacity-50" : ""
-            } ${isDropTarget ? "ring-2 ring-sky-400/50 ring-offset-2 ring-offset-transparent" : ""}`}
-          >
+          <section key={group.garage_id ?? "none"} className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {/* v2.9.14 — explicit up / down buttons replace flaky drag-drop. */}
               {sortKey === "custom" && isReal && (
-                <GripVertical
-                  className="h-4 w-4 text-slate-300 dark:text-slate-600 cursor-grab active:cursor-grabbing"
-                  aria-label="Přetáhni pro změnu pořadí"
-                />
+                <span className="inline-flex items-center gap-0.5 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => moveGarage(group.garage_id, -1)}
+                    disabled={isFirstReal || savingOrder}
+                    aria-label="Posunout výš"
+                    className="inline-flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveGarage(group.garage_id, 1)}
+                    disabled={isLastReal || savingOrder}
+                    aria-label="Posunout níž"
+                    className="inline-flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                </span>
               )}
               {/* v2.9.5 — chevron toggles collapse for real garages. */}
               {isReal ? (
@@ -266,7 +274,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                     ? "vozidla"
                     : "vozidel"}
               </span>
-              {savingOrder && isDraggingMe && (
+              {savingOrder && sortKey === "custom" && isReal && (
                 <span className="text-xs text-slate-400 font-normal">· ukládám…</span>
               )}
               {/* Action chips: stats / share. Only on real garages. */}
@@ -345,7 +353,8 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
             )}
           </section>
         );
-      })}
+        });
+      })()}
     </div>
   );
 }

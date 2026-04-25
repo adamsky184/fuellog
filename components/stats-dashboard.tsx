@@ -186,12 +186,18 @@ const TONES: Record<
 
 function Stat({
   label,
+  mobileLabel,
   value,
   info,
   tone,
   icon,
 }: {
   label: string;
+  /**
+   * v2.7.0 — shorter label rendered at <sm breakpoints. Falls back to `label`.
+   * Use it for tiles whose long label otherwise truncates on mobile.
+   */
+  mobileLabel?: string;
   value: string;
   info?: string;
   tone?: StatTone;
@@ -226,7 +232,14 @@ function Stat({
               </span>
             )}
             <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {label}
+              {mobileLabel ? (
+                <>
+                  <span className="sm:hidden">{mobileLabel}</span>
+                  <span className="hidden sm:inline">{label}</span>
+                </>
+              ) : (
+                label
+              )}
             </div>
           </div>
           <div className="font-semibold text-lg mt-1.5 tabular-nums">
@@ -670,6 +683,7 @@ export function StatsDashboard({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat
           label="Aktuální tachometr"
+          mobileLabel="Tachometr"
           value={`${formatNumber(currentOdometer, 0)} km`}
           info="Nejvyšší stav tachometru, který jsi kdy zapsal."
           tone="km"
@@ -716,6 +730,7 @@ export function StatsDashboard({
         />
         <Stat
           label="Počet tankování"
+          mobileLabel="Tankování"
           value={String(filtered.length)}
           info="Kolikrát jsi ve vybraném období tankoval."
           tone="count"
@@ -726,6 +741,7 @@ export function StatsDashboard({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Stat
           label="Ø tankování / den"
+          mobileLabel="Ø za den"
           value={formatNumber(periodAvgs.fillUpsPerDay, 3)}
           info={`Průměrný počet tankování na den (období má ${Math.round(spanDays)} dní).`}
           tone="count"
@@ -733,6 +749,7 @@ export function StatsDashboard({
         />
         <Stat
           label="Ø tankování / měsíc"
+          mobileLabel="Ø za měsíc"
           value={formatNumber(periodAvgs.fillUpsPerMonth, 2)}
           info="Průměrný počet tankování za měsíc v tomto období."
           tone="count"
@@ -740,6 +757,7 @@ export function StatsDashboard({
         />
         <Stat
           label="Ø tankování / rok"
+          mobileLabel="Ø za rok"
           value={formatNumber(periodAvgs.fillUpsPerYear, 1)}
           info="Průměrný počet tankování za rok v tomto období."
           tone="count"

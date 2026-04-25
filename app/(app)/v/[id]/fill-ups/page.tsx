@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Pencil, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand-logo";
+import { DueReminders } from "@/components/due-reminders";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { formatLocation } from "@/lib/regions";
 
@@ -45,6 +46,9 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
           Tankování
         </Link>
       </div>
+
+      {/* v2.7.0 — pojištění / dálniční známka / STK připomínky pro tohle vozidlo. */}
+      <DueReminders vehicleId={id} showVehicleName={false} />
 
       {!rows?.length ? (
         <div className="card p-8 text-center">

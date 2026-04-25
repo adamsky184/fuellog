@@ -10,8 +10,8 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.6.0: station-search UX polish + invitations for unregistered users.
-const CACHE_VERSION = "fuellog-v2.6.0";
+// v2.7.0: due-date reminders (insurance, highway sticker, …) + mobile UX polish.
+const CACHE_VERSION = "fuellog-v2.7.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

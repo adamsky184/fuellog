@@ -603,7 +603,10 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      {/* v2.7.0 — on mobile we only have ~360px of width; cramming 3 inputs
+          made each one tiny. Stack to 2 columns with currency taking the full
+          row below; sm+ keeps the original 3-col layout. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
           <label className="label">Litry</label>
           <input
@@ -626,7 +629,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             onChange={(e) => setForm({ ...form, total_price: e.target.value })}
           />
         </div>
-        <div>
+        <div className="col-span-2 sm:col-span-1">
           <label className="label">Měna</label>
           <select
             className="input"

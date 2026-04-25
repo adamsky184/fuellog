@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { DueReminders } from "@/components/due-reminders";
 
 type VehicleRow = {
   id: string;
@@ -101,6 +102,9 @@ export default async function VehiclesPage({
           </Link>
         </div>
       </div>
+
+      {/* v2.7.0 — overdue / upcoming maintenance reminders across all vehicles. */}
+      <DueReminders />
 
       {!shown.length ? (
         <div className="card p-8 text-center space-y-4">

@@ -155,16 +155,23 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-          <Stat label="Záznamů" value={String(rows.length)} />
-          <Stat label="Celkem Kč" value={formatCurrency(totalSpent)} />
-          <Stat
-            label="Nejbližší termín"
-            value={upcoming[0]?.next_due_date ? formatDate(upcoming[0].next_due_date) : "—"}
-          />
-        </div>
-        <button onClick={openNew} className="btn-primary inline-flex items-center gap-1" type="button">
+      {/* v2.7.0 — split stats + button into separate rows so the button doesn't
+          wrap awkwardly between tiles on narrow phones. Full-width button on
+          mobile is also a fatter touch target. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+        <Stat label="Záznamů" value={String(rows.length)} />
+        <Stat label="Celkem Kč" value={formatCurrency(totalSpent)} />
+        <Stat
+          label="Nejbližší termín"
+          value={upcoming[0]?.next_due_date ? formatDate(upcoming[0].next_due_date) : "—"}
+        />
+      </div>
+      <div className="flex justify-end">
+        <button
+          onClick={openNew}
+          className="btn-primary inline-flex items-center justify-center gap-1 w-full sm:w-auto"
+          type="button"
+        >
           <Plus className="h-4 w-4" />
           Přidat záznam
         </button>

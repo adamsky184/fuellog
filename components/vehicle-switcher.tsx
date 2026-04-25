@@ -114,7 +114,7 @@ export function VehicleSwitcher({
         className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm
           border border-slate-200/70 bg-white/70 hover:bg-slate-50
           dark:border-slate-700/70 dark:bg-slate-800/70 dark:hover:bg-slate-800
-          transition max-w-[40vw] sm:max-w-[22ch]"
+          transition max-w-[55vw] sm:max-w-[22ch]"
         title={current ? `Přepnout auto (${current.name})` : "Vyber auto"}
         aria-haspopup="menu"
         aria-expanded={open}

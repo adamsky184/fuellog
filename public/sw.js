@@ -10,8 +10,8 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.8.0: kraje taxonomy + currency conversion + bulk Milan-garage import.
-const CACHE_VERSION = "fuellog-v2.8.0";
+// v2.8.1: historical ČNB rates + live ≈ Kč preview + highway kraje backfill.
+const CACHE_VERSION = "fuellog-v2.8.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

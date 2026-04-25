@@ -1,13 +1,16 @@
 /**
- * Currency conversion (v2.8.0).
+ * Currency conversion (v2.8.1).
  *
- * Flat-rate single-rate-per-currency table — Adam fills up abroad
- * occasionally, and we just need a "≈ Kč" reference so stats roll up
- * to a single number. Date-aware rates can come later if anyone needs
- * historical accuracy.
+ * The DB now holds a per-day rate table (`currency_rates`) populated from
+ * ČNB and refreshed daily by pg_cron, so the *real* CZK conversion happens
+ * server-side via `public.convert_to_czk(amount, currency, date)` in the
+ * `fill_up_stats_v` view (column `total_price_czk`).
  *
- * The same numbers live in the DB function `convert_to_czk(numeric, text)`
- * — keep them in sync with the migration `regions_to_kraje`.
+ * The flat fallbacks below remain for:
+ *  - dates before the historical table starts (~2012);
+ *  - currencies the table doesn't know about;
+ *  - quick client-side hints when the table hasn't been queried yet.
+ * Keep them in sync with the SQL `convert_to_czk` fallback CASE.
  */
 
 export const CZK_RATES: Record<string, number> = {
@@ -15,10 +18,15 @@ export const CZK_RATES: Record<string, number> = {
   EUR: 25.0,
   CHF: 26.5,
   PLN: 5.5,
+  HUF: 0.067,
   HRK: 3.3, // pre-2023, retained for historical Chorvatsko data
   USD: 23.0,
   GBP: 29.0,
 };
+
+/** Currencies offered in the fill-up form's dropdown. */
+export const SUPPORTED_CURRENCIES = ["CZK", "EUR", "CHF", "PLN", "HUF", "GBP", "USD", "HRK"] as const;
+export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 /** Default rate used when an unknown currency shows up in the data. */
 const FALLBACK_RATE = 25.0;

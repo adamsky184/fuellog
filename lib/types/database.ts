@@ -100,6 +100,27 @@ export type Database = {
           },
         ]
       }
+      currency_rates: {
+        Row: {
+          rate_date: string
+          currency: string
+          czk_per_unit: number
+          fetched_at: string
+        }
+        Insert: {
+          rate_date: string
+          currency: string
+          czk_per_unit: number
+          fetched_at?: string
+        }
+        Update: {
+          rate_date?: string
+          currency?: string
+          czk_per_unit?: number
+          fetched_at?: string
+        }
+        Relationships: []
+      }
       garage_members: {
         Row: {
           garage_id: string

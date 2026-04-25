@@ -75,6 +75,42 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     note: "",
   });
 
+  // v2.8.1 — pulled live ČNB rates (refreshed daily by pg_cron) so the form
+  // can show "≈ XXX Kč" next to a foreign-currency total. We just read the
+  // most recent row per currency from `currency_rates`.
+  const [liveRateInfo, setLiveRateInfo] = useState<{
+    rates: Record<string, number>;
+    rateDate: string;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("currency_rates")
+        .select("currency, czk_per_unit, rate_date")
+        .order("rate_date", { ascending: false })
+        .limit(40); // ~6 currencies × multiple recent days
+      if (cancelled || !data) return;
+      const seen: Record<string, { rate: number; date: string }> = {};
+      for (const r of data) {
+        if (!(r.currency in seen)) {
+          seen[r.currency] = { rate: Number(r.czk_per_unit), date: r.rate_date };
+        }
+      }
+      const rates: Record<string, number> = {};
+      let mostRecentDate = "";
+      for (const k of Object.keys(seen)) {
+        rates[k] = seen[k].rate;
+        if (seen[k].date > mostRecentDate) mostRecentDate = seen[k].date;
+      }
+      setLiveRateInfo({ rates, rateDate: mostRecentDate });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Pull last odometer reading — helps OCR disambiguate trip-meter vs total km.
   useEffect(() => {
     let cancelled = false;
@@ -639,8 +675,22 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
           >
             <option value="CZK">CZK</option>
             <option value="EUR">EUR</option>
+            <option value="CHF">CHF</option>
+            <option value="PLN">PLN</option>
+            <option value="HUF">HUF</option>
+            <option value="GBP">GBP</option>
             <option value="USD">USD</option>
+            <option value="HRK">HRK</option>
           </select>
+          {/* v2.8.1 — live ≈ Kč preview when foreign currency is picked. */}
+          {form.currency !== "CZK" && form.total_price && liveRateInfo && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              ≈ <span className="tabular-nums font-medium">
+                {Math.round(parseFloat(form.total_price) * (liveRateInfo.rates[form.currency] ?? 0)).toLocaleString("cs-CZ")} Kč
+              </span>
+              <span className="text-slate-400"> · kurz {(liveRateInfo.rates[form.currency] ?? 0).toFixed(2)} Kč/{form.currency} ({liveRateInfo.rateDate})</span>
+            </p>
+          )}
         </div>
       </div>
 

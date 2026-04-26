@@ -66,10 +66,16 @@ export function VehicleAvatar({
     // v2.9.2 — `object-contain` instead of `object-cover` so wide logos
     // (Škoda, Infiniti, Lambo) aren't cropped. Tile background = white so
     // the logo still has a clean frame regardless of source colour.
+    // v2.14.5 — when the user has set a vehicle colour AND there is a
+    //   logo, paint the ring around the avatar in that colour. Subtle
+    //   2 px hairline so it reads as identification, not decoration.
+    const ringStyle = color
+      ? { boxShadow: `0 0 0 2px ${color}`, borderColor: "transparent" }
+      : undefined;
     return (
       <span
         className={`rounded-full border border-slate-200 dark:border-slate-700 shrink-0 grid place-items-center bg-white overflow-hidden ${className}`}
-        style={{ width: px, height: px }}
+        style={{ width: px, height: px, ...ringStyle }}
       >
         <Image
           src={url}

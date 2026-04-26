@@ -144,6 +144,7 @@ export default async function ComparePage({
         vehicles={vehicles.map((v) => ({
           id: v.id,
           name: v.name,
+          color: v.color,
           subtitle: [v.make, v.model, v.year].filter(Boolean).join(" "),
         }))}
         selected={ids}

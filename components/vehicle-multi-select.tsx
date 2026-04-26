@@ -91,7 +91,7 @@ export function VehicleMultiSelect({
         aria-haspopup="listbox"
         className="inline-flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition rounded-lg px-1 py-0.5"
       >
-        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-sm">
+        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
           <Car className="h-4 w-4" />
         </span>
         <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
@@ -118,7 +118,7 @@ export function VehicleMultiSelect({
               <button
                 type="button"
                 onClick={selectAll}
-                className="text-[11px] text-sky-600 hover:underline"
+                className="text-[11px] text-accent hover:underline"
               >
                 Vybrat vše
               </button>
@@ -139,7 +139,7 @@ export function VehicleMultiSelect({
                     <span
                       className={`inline-flex items-center justify-center h-4 w-4 rounded border ${
                         on
-                          ? "bg-sky-600 border-sky-600 text-white"
+                          ? "bg-accent border-accent text-white"
                           : "border-slate-300 dark:border-slate-600"
                       }`}
                     >
@@ -151,6 +151,17 @@ export function VehicleMultiSelect({
                       size="sm"
                       className="!w-6 !h-6"
                     />
+                    {/* v2.14.5 — small swatch behind the name when the
+                        avatar shows a logo (so the colour is also
+                        visible at this small size — the avatar ring is
+                        only ~2 px). */}
+                    {v.color && v.photo_path && (
+                      <span
+                        aria-hidden
+                        className="inline-block w-1 h-4 rounded-sm shrink-0"
+                        style={{ backgroundColor: v.color }}
+                      />
+                    )}
                     <span className="truncate flex-1">{v.name}</span>
                   </button>
                 </li>

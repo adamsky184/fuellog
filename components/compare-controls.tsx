@@ -9,7 +9,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-type VehicleOpt = { id: string; name: string; subtitle?: string };
+type VehicleOpt = { id: string; name: string; color?: string | null; subtitle?: string };
 
 const MAX_SELECTED = 4;
 
@@ -55,7 +55,7 @@ export function CompareControls({
               type="button"
               disabled={disabled}
               onClick={() => toggle(v.id)}
-              className={`inline-flex flex-col items-start gap-0 px-3 py-1.5 rounded-md border text-left transition ${
+              className={`inline-flex items-stretch gap-2 pl-1 pr-3 py-1.5 rounded-md border text-left transition ${
                 isOn
                   ? "bg-accent text-white border-accent"
                   : disabled
@@ -63,12 +63,21 @@ export function CompareControls({
                     : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-accent hover:bg-accent/5"
               }`}
             >
-              <span className="text-sm font-medium leading-tight">{v.name}</span>
-              {v.subtitle && (
-                <span className={`text-[10px] leading-tight ${isOn ? "text-white/80" : "text-slate-400"}`}>
-                  {v.subtitle}
-                </span>
-              )}
+              {/* v2.14.5 — vertical colour stripe so the user can find
+                  their car at a glance even when names look alike. */}
+              <span
+                aria-hidden
+                className="self-stretch w-1 rounded-sm"
+                style={{ backgroundColor: v.color ?? "#cbd5e1" }}
+              />
+              <span className="flex flex-col items-start gap-0 leading-tight">
+                <span className="text-sm font-medium">{v.name}</span>
+                {v.subtitle && (
+                  <span className={`text-[10px] ${isOn ? "text-white/80" : "text-slate-400"}`}>
+                    {v.subtitle}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}

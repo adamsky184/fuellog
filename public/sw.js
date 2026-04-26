@@ -10,12 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.4: MonthlyTrends + CalendarHeatmap now follow accent (no more
-// sky/amber/emerald rainbow). Map side panel scrolls instead of
-// truncating with "… a dalších N". Praha okresy redrawn from memory
-// of actual P1-P10 geography (river-aware, larger districts P4/P5/P6/
-// P8/P9, smaller P1/P2/P3/P7).
-const CACHE_VERSION = "fuellog-v2.14.4";
+// v2.14.5: vehicle colour ring on logo avatars (visible on per-vehicle
+// pages and inside multi-selects), thin colour stripe in /compare and
+// the cross-garage Vozidla picker, country-flag whitelist removed (NO,
+// SE, FI, IE, DK now show flags), accent applied to multi-select
+// pills + checkboxes that were sky-blue.
+const CACHE_VERSION = "fuellog-v2.14.5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

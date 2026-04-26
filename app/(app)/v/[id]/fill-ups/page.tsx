@@ -206,11 +206,12 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                stretched-link pattern: <tr> is `relative`, an absolute <Link>
                in the last cell spans the whole row. No more pencil column
                overflowing the card edge. */}
-          {/* v2.19.7 — `overflow-clip` (modern CSS — neblokuje sticky
-              thead jako overflow-hidden) ořeže hovered <tr> bg podle
-              rounded-2xl borderu cardu. Předtím hover bg vyčníval
-              přes pravý a levý rounded roh cardu. */}
-          <div className="card hidden sm:block overflow-clip">
+          {/* v2.19.8 — overflow-clip vyřazen (Adam: "ta šipka tam
+              nyní vůbec není") — ořezával i ChevronRight v posledním
+              sloupci, který sedí těsně u pravé rounded zone (24 px).
+              Hover bg na <tr> teď zase teče k samému kraji cardu,
+              ale šipka je vidět. Trade-off > schovaná šipka. */}
+          <div className="card hidden sm:block">
             <table className="w-full text-[13px]">
               <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
                 <tr>

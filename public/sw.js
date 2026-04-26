@@ -86,7 +86,13 @@
 //   text-accent (bylo text-sky-500 — accent picker propagation),
 //   plus sweep všech hover:text-sky-600 → hover:text-accent v
 //   garage-list, vehicle-switcher, garages stats, profile.
-const CACHE_VERSION = "fuellog-v2.19.7";
+// v2.19.8: revert v2.19.7 overflow-clip — ořezával ChevronRight v
+//   posledním sloupci u vozů s dlouhými adresami (Octavia má 82
+//   fill-upů s Prahou + ulicí, takže poslední sloupec wider →
+//   chevron víc vpravo → spadl do rounded zone). Adam: "ta šipka
+//   tam vůbec není u Octavie". Bez overflow-clip hover bg může
+//   znova tahle z rounded rohů, ale šipka > hover ořez.
+const CACHE_VERSION = "fuellog-v2.19.8";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

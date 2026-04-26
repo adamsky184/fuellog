@@ -652,66 +652,69 @@ export function StatsDashboard({
       {/* Header: period selector + roční report.
           v2.9.11 — filtersSlot (Vozidla / Garáže) renders FIRST so the
           row reads as "Vozidla → Garáže → Období → totals". */}
-      <div className="card p-3 sm:p-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          {filtersSlot}
-          <div className="inline-flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
-              <CalendarRange className="h-4 w-4" />
-            </span>
-            <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-              Období
-            </span>
-          </div>
-          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs shadow-sm">
-            {([
-              ["all", "Všechno"],
-              ["year", "Letos"],
-              ["month", "Tento měsíc"],
-              ["week", "Týden"],
-              ["custom", "Vlastní"],
-            ] as const).map(([k, label]) => (
-              <button
-                key={k}
-                onClick={() => setPreset(k as PeriodPreset)}
-                className={`px-2.5 py-1 transition ${
-                  preset === k
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {preset === "custom" && (
-            <div className="inline-flex items-center gap-1 text-xs">
-              <input
-                type="date"
-                className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-              />
-              <span className="text-slate-400">–</span>
-              <input
-                type="date"
-                className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-              />
-            </div>
-          )}
-          <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/70 border border-slate-200/50 dark:border-slate-700/50">
-            <Hash className="h-3 w-3 opacity-60" />
-            {filtered.length}×
-            <span className="mx-0.5 opacity-40">·</span>
-            <Route className="h-3 w-3 opacity-60" />
-            {formatNumber(totalAgg.km, 0)} km
+      {/* v2.14.7 — single-row toolbar. Filters (garáže/vozidla) on the
+            left, period selector in the middle, count + Přizpůsobit +
+            Roční report flow together at the right. No more "ml-auto"
+            island that wrapped to its own row on /garages/stats and
+            looked orphaned. */}
+      <div className="card p-3 sm:p-4 flex items-center gap-2 flex-wrap">
+        {filtersSlot}
+        <div className="inline-flex items-center gap-2 shrink-0">
+          <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
+            <CalendarRange className="h-4 w-4" />
+          </span>
+          <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+            Období
           </span>
         </div>
-        {/* v2.14.1 — visibility toggle moved up here, next to the
-              period selector + Roční report button. Premium signal:
-              "all controls live in one place". */}
+        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs shadow-sm">
+          {([
+            ["all", "Všechno"],
+            ["year", "Letos"],
+            ["month", "Tento měsíc"],
+            ["week", "Týden"],
+            ["custom", "Vlastní"],
+          ] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setPreset(k as PeriodPreset)}
+              className={`px-2.5 py-1 transition ${
+                preset === k
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {preset === "custom" && (
+          <div className="inline-flex items-center gap-1 text-xs">
+            <input
+              type="date"
+              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+            />
+            <span className="text-slate-400">–</span>
+            <input
+              type="date"
+              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+            />
+          </div>
+        )}
+        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/70 border border-slate-200/50 dark:border-slate-700/50">
+          <Hash className="h-3 w-3 opacity-60" />
+          {filtered.length}×
+          <span className="mx-0.5 opacity-40">·</span>
+          <Route className="h-3 w-3 opacity-60" />
+          {formatNumber(totalAgg.km, 0)} km
+        </span>
+        {/* spacer pushes Přizpůsobit + Roční report to the trailing edge
+            of the SAME row whenever space allows; on narrow viewports
+            they wrap naturally. */}
         <div className="ml-auto flex items-center gap-2">
           <StatsVisibilityPanel
             hidden={visibility.hidden}

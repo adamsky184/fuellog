@@ -10,10 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.6: vehicle avatar polish — coloured ring shrunk from 2 px → 1 px
-// (less heavy), logo centring made explicit so brand marks sit dead-
-// centre instead of drifting a few pixels off-axis.
-const CACHE_VERSION = "fuellog-v2.14.6";
+// v2.14.7: stats toolbar collapsed into a single flex-wrap row, so
+// "Přizpůsobit" no longer floats orphaned on its own line on the
+// cross-garage stats page when there's no Roční report next to it.
+const CACHE_VERSION = "fuellog-v2.14.7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

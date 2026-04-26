@@ -10,12 +10,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // v2.11.0 — accent is now driven by a CSS custom property so the
-        // user's accent-picker preference (lib/theme.ts) takes effect on
-        // every utility (bg-accent / text-accent / border-accent / ring).
-        // Default value is set in globals.css.
-        accent: "var(--accent, #0ea5e9)",
-        "accent-hover": "var(--accent-hover, #0284c7)",
+        // v2.11.0 — accent is driven by a CSS custom property so the user's
+        // accent-picker (lib/theme.ts) propagates everywhere.
+        //
+        // The variable holds an RGB *triplet* ("14 165 233") rather than a
+        // hex string so Tailwind's alpha-modifier syntax — `bg-accent/30`,
+        // `ring-accent/30`, etc. — keeps working. Hex would break alpha.
+        // Default triplet is set in globals.css.
+        accent: "rgb(var(--accent-rgb) / <alpha-value>)",
+        "accent-hover": "rgb(var(--accent-hover-rgb) / <alpha-value>)",
         ink: "#0f172a",
         paper: "#f8fafc",
         // Dark mode surfaces — tuned once here so utility usage stays readable.

@@ -16,20 +16,23 @@
 export type AccentPreset = {
   id: string;
   label: string;
-  /** Solid CSS colour for the swatch + --accent var. */
+  /** Solid CSS colour (hex) used as the swatch and inline styles. */
   swatch: string;
   hover: string;
   soft: string;
+  /** RGB triplet ("R G B") consumed by Tailwind alpha modifiers via --accent-rgb. */
+  rgb: string;
+  hoverRgb: string;
 };
 
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: "sky",     label: "Modrá",       swatch: "#0284c7", hover: "#0369a1", soft: "rgba(2,132,199,0.12)" },
-  { id: "indigo",  label: "Indigo",      swatch: "#4f46e5", hover: "#4338ca", soft: "rgba(79,70,229,0.12)" },
-  { id: "violet",  label: "Fialová",     swatch: "#7c3aed", hover: "#6d28d9", soft: "rgba(124,58,237,0.12)" },
-  { id: "rose",    label: "Růžová",      swatch: "#e11d48", hover: "#be123c", soft: "rgba(225,29,72,0.12)" },
-  { id: "amber",   label: "Oranžová",    swatch: "#d97706", hover: "#b45309", soft: "rgba(217,119,6,0.12)" },
-  { id: "emerald", label: "Zelená",      swatch: "#059669", hover: "#047857", soft: "rgba(5,150,105,0.12)" },
-  { id: "slate",   label: "Tmavě šedá",  swatch: "#475569", hover: "#334155", soft: "rgba(71,85,105,0.12)" },
+  { id: "sky",     label: "Modrá",       swatch: "#0284c7", hover: "#0369a1", soft: "rgba(2,132,199,0.12)",   rgb: "2 132 199",   hoverRgb: "3 105 161"   },
+  { id: "indigo",  label: "Indigo",      swatch: "#4f46e5", hover: "#4338ca", soft: "rgba(79,70,229,0.12)",   rgb: "79 70 229",   hoverRgb: "67 56 202"   },
+  { id: "violet",  label: "Fialová",     swatch: "#7c3aed", hover: "#6d28d9", soft: "rgba(124,58,237,0.12)",  rgb: "124 58 237",  hoverRgb: "109 40 217"  },
+  { id: "rose",    label: "Růžová",      swatch: "#e11d48", hover: "#be123c", soft: "rgba(225,29,72,0.12)",   rgb: "225 29 72",   hoverRgb: "190 18 60"   },
+  { id: "amber",   label: "Oranžová",    swatch: "#d97706", hover: "#b45309", soft: "rgba(217,119,6,0.12)",   rgb: "217 119 6",   hoverRgb: "180 83 9"    },
+  { id: "emerald", label: "Zelená",      swatch: "#059669", hover: "#047857", soft: "rgba(5,150,105,0.12)",   rgb: "5 150 105",   hoverRgb: "4 120 87"    },
+  { id: "slate",   label: "Tmavě šedá",  swatch: "#475569", hover: "#334155", soft: "rgba(71,85,105,0.12)",   rgb: "71 85 105",   hoverRgb: "51 65 85"    },
 ];
 
 const STORAGE_KEY = "fuellog-accent";
@@ -49,9 +52,13 @@ export function loadAccent(): AccentPreset {
 export function applyAccent(preset: AccentPreset): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  // Hex variants for inline styles + general CSS.
   root.style.setProperty("--accent", preset.swatch);
   root.style.setProperty("--accent-hover", preset.hover);
   root.style.setProperty("--accent-soft", preset.soft);
+  // RGB triplets — required for Tailwind alpha modifiers (bg-accent/30 etc.).
+  root.style.setProperty("--accent-rgb", preset.rgb);
+  root.style.setProperty("--accent-hover-rgb", preset.hoverRgb);
   try {
     window.localStorage.setItem(STORAGE_KEY, preset.id);
   } catch {

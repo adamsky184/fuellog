@@ -35,7 +35,7 @@ export function AdminTabLink({
       href={href}
       className={`px-3.5 py-2 rounded-t-lg inline-flex items-center gap-2 whitespace-nowrap border-b-2 -mb-px transition ${
         active
-          ? "border-sky-500 text-sky-600 dark:text-sky-400"
+          ? "border-accent text-accent"
           : "border-transparent text-slate-600 hover:text-ink hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
       }`}
     >

@@ -90,34 +90,37 @@ export default async function AdminOverviewPage() {
     if (vehiclesRes.error)
       errors.push({ src: "admin_list_vehicles", msg: vehiclesRes.error });
 
+    // v2.16.0 — admin tile colour rainbow retired. All cards use the
+    //   user's accent so /admin reads as "the same product" instead of
+    //   a different theme.
     const cards = [
       {
         href: "/admin/users",
         label: "Uživatelé",
         count: totalUsers,
         icon: Users,
-        tone: "from-sky-500 to-indigo-500",
+        tone: "bg-accent",
       },
       {
         href: "/admin/garages",
         label: "Garáže",
         count: totalGarages,
         icon: Warehouse,
-        tone: "from-emerald-500 to-teal-500",
+        tone: "bg-accent",
       },
       {
         href: "/admin/vehicles",
         label: "Vozidla",
         count: totalVehicles,
         icon: Car,
-        tone: "from-violet-500 to-fuchsia-500",
+        tone: "bg-accent",
       },
       {
         href: "/admin/fill-ups",
         label: "Tankování",
         count: totalFillUps,
         icon: Fuel,
-        tone: "from-amber-500 to-orange-500",
+        tone: "bg-accent",
       },
     ];
 
@@ -151,7 +154,7 @@ export default async function AdminOverviewPage() {
                 className="card p-5 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition group"
               >
                 <span
-                  className={`inline-grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br text-white shadow-sm ${c.tone}`}
+                  className={`inline-grid h-12 w-12 place-items-center rounded-xl text-white shadow-sm ${c.tone}`}
                 >
                   <Icon className="h-6 w-6" />
                 </span>

@@ -102,7 +102,7 @@ export function GarageMultiSelect({ garages }: { garages: GarageOption[] }) {
               <button
                 type="button"
                 onClick={selectAll}
-                className="text-[11px] text-sky-600 hover:underline"
+                className="text-[11px] text-accent hover:underline"
               >
                 Vybrat vše
               </button>
@@ -123,7 +123,7 @@ export function GarageMultiSelect({ garages }: { garages: GarageOption[] }) {
                     <span
                       className={`inline-flex items-center justify-center h-4 w-4 rounded border ${
                         on
-                          ? "bg-sky-600 border-sky-600 text-white"
+                          ? "bg-accent border-accent text-white"
                           : "border-slate-300 dark:border-slate-600"
                       }`}
                     >

@@ -6,6 +6,7 @@ import { BackToTop } from "@/components/back-to-top";
 import { GlobalErrorCatcher } from "@/components/global-error-catcher";
 import { AccentInit } from "@/components/accent-init";
 import { CommandPaletteMount } from "@/components/command-palette-mount";
+import { ConfirmDialogHost } from "@/components/confirm-dialog";
 import { AlertTriangle } from "lucide-react";
 import { rethrowIfNextInternal } from "@/lib/next-errors";
 
@@ -225,7 +226,7 @@ export default async function AppLayout({
   }
 
   return (
-    <>
+    <ConfirmDialogHost>
       <Header
         userEmail={userEmail}
         vehicles={vehicles}
@@ -260,6 +261,6 @@ export default async function AppLayout({
         vehicles={vehicles.map((v) => ({ id: v.id, name: v.name }))}
         isAdmin={isAdmin}
       />
-    </>
+    </ConfirmDialogHost>
   );
 }

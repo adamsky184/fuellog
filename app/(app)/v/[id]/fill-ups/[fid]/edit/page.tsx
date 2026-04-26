@@ -11,7 +11,7 @@ import {
   regionKey,
 } from "@/lib/regions";
 import { cityToKraj } from "@/lib/city-to-kraj";
-import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress } from "@/lib/highways";
+import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress, guessHighwayCode } from "@/lib/highways";
 import { formatDate } from "@/lib/utils";
 
 const OTHER_BRAND = "__other__";
@@ -180,6 +180,21 @@ export default function EditFillUpPage({
   function setHighwayCode(code: string | null) {
     setForm((f) => ({ ...f, address: applyHighwayCodeToAddress(f.address, code) }));
   }
+
+  // v2.12.0 — same auto-guess as on the new-fill-up page.
+  useEffect(() => {
+    if (loading) return;
+    if (!form.is_highway) return;
+    if (parseHighwayCode(form.address)) return;
+    const guess = guessHighwayCode(form.city) ?? guessHighwayCode(form.address);
+    if (guess) {
+      setForm((f) => {
+        if (parseHighwayCode(f.address)) return f;
+        return { ...f, address: applyHighwayCodeToAddress(f.address, guess) };
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.is_highway, form.city, form.address]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

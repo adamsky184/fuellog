@@ -12,7 +12,7 @@ import {
   regionKey,
 } from "@/lib/regions";
 import { cityToKraj } from "@/lib/city-to-kraj";
-import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress } from "@/lib/highways";
+import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress, guessHighwayCode } from "@/lib/highways";
 import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
 import { RegionInfobox } from "@/components/region-infobox";
@@ -272,6 +272,23 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   function setHighwayCode(code: string | null) {
     setForm((f) => ({ ...f, address: applyHighwayCodeToAddress(f.address, code) }));
   }
+
+  // v2.12.0 — when "Dálnice" is on AND we know the town (Rozvadov,
+  // Humpolec, Velký Beranov, …), guess the matching D-number so the
+  // user doesn't have to pick it from the dropdown. Never overrides
+  // an explicit code already present in the address.
+  useEffect(() => {
+    if (!form.is_highway) return;
+    if (parseHighwayCode(form.address)) return; // already set
+    const guess = guessHighwayCode(form.city) ?? guessHighwayCode(form.address);
+    if (guess) {
+      setForm((f) => {
+        if (parseHighwayCode(f.address)) return f;
+        return { ...f, address: applyHighwayCodeToAddress(f.address, guess) };
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.is_highway, form.city, form.address]);
 
   // Resolve the currently-typed brand (select vs. free-form Jiná…)
   const currentBrand =

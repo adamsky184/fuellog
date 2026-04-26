@@ -49,6 +49,11 @@ import {
 import { CalendarHeatmap } from "@/components/calendar-heatmap";
 import { YearlySummaryTable } from "@/components/yearly-summary-table";
 import { StatsMaps } from "@/components/stats-maps";
+import {
+  StatsCard,
+  StatsVisibilityPanel,
+  useStatsVisibility,
+} from "@/components/stats-visibility";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { countryLabel } from "@/lib/regions";
 
@@ -382,6 +387,9 @@ export function StatsDashboard({
    *  stats pages keep all filters on a single visual row. */
   filtersSlot?: React.ReactNode;
 }) {
+  // v2.12.0 — per-card visibility, persisted in localStorage.
+  const visibility = useStatsVisibility();
+
   const [preset, setPreset] = useState<PeriodPreset>("all");
   const [customFrom, setCustomFrom] = useState<string>("");
   const [customTo, setCustomTo] = useState<string>(todayIso());
@@ -509,14 +517,16 @@ export function StatsDashboard({
 
   // Brand breakdown
   const brandData = useMemo(() => {
-    const map = new Map<string, { liters: number; count: number; priceSum: number; priceN: number; consSum: number; consN: number }>();
+    const map = new Map<string, { liters: number; count: number; priceSum: number; priceN: number; consSum: number; consN: number; totalCzk: number }>();
     for (const r of filtered) {
       const key = r.station_brand?.trim() || "—";
-      const e = map.get(key) ?? { liters: 0, count: 0, priceSum: 0, priceN: 0, consSum: 0, consN: 0 };
+      const e = map.get(key) ?? { liters: 0, count: 0, priceSum: 0, priceN: 0, consSum: 0, consN: 0, totalCzk: 0 };
       e.liters += Number(r.liters ?? 0);
       e.count += 1;
       if (r.price_per_liter != null) { e.priceSum += Number(r.price_per_liter); e.priceN += 1; }
       if (r.consumption_l_per_100km != null) { e.consSum += Number(r.consumption_l_per_100km); e.consN += 1; }
+      // v2.12.0 — accumulate Kč spent per pump (CZK already converted by view).
+      e.totalCzk += Number(r.total_price_czk ?? r.total_price ?? 0);
       map.set(key, e);
     }
     return Array.from(map.entries())
@@ -526,6 +536,7 @@ export function StatsDashboard({
         count: v.count,
         avgPricePerL: v.priceN > 0 ? Number((v.priceSum / v.priceN).toFixed(2)) : null,
         avgL100: v.consN > 0 ? Number((v.consSum / v.consN).toFixed(2)) : null,
+        totalCzk: Math.round(v.totalCzk),
       }))
       .sort((a, b) => b.liters - a.liters);
   }, [filtered]);
@@ -878,34 +889,53 @@ export function StatsDashboard({
         <MonthlyTrends data={monthly} naked />
       </div>
 
+      {/* v2.12.0 — visibility panel: user can hide individual cards. */}
+      <StatsVisibilityPanel hidden={visibility.hidden} onChange={visibility.setHidden} />
+
       {yearsAvailableAll.length > 0 && (
-        <CalendarHeatmap rows={heatmapRows} yearsAvailable={yearsAvailableAll} />
+        <StatsCard id="calendarHeatmap" visible={visibility.isVisible("calendarHeatmap")}>
+          <CalendarHeatmap rows={heatmapRows} yearsAvailable={yearsAvailableAll} />
+        </StatsCard>
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
-        <PriceTrend data={priceSeries} />
-        <ConsumptionTrend data={consumptionSeries} />
-        <BrandRanking data={brandData} />
-        <BrandBreakdown data={brandData.filter((b) => b.brand !== "—").slice(0, 10)} />
-        <CountryBreakdown data={countryData} />
-        <RegionBreakdown data={regionData} />
-        <YearlyChart data={yearlyChartData} />
+        <StatsCard id="priceTrend" visible={visibility.isVisible("priceTrend")}>
+          <PriceTrend data={priceSeries} />
+        </StatsCard>
+        <StatsCard id="consumptionTrend" visible={visibility.isVisible("consumptionTrend")}>
+          <ConsumptionTrend data={consumptionSeries} />
+        </StatsCard>
+        <StatsCard id="brandRanking" visible={visibility.isVisible("brandRanking")}>
+          <BrandRanking data={brandData} />
+        </StatsCard>
+        <StatsCard id="brandBreakdown" visible={visibility.isVisible("brandBreakdown")}>
+          <BrandBreakdown data={brandData.filter((b) => b.brand !== "—").slice(0, 10)} />
+        </StatsCard>
+        <StatsCard id="countryBreakdown" visible={visibility.isVisible("countryBreakdown")}>
+          <CountryBreakdown data={countryData} />
+        </StatsCard>
+        <StatsCard id="regionBreakdown" visible={visibility.isVisible("regionBreakdown")}>
+          <RegionBreakdown data={regionData} />
+        </StatsCard>
+        <StatsCard id="yearlyChart" visible={visibility.isVisible("yearlyChart")}>
+          <YearlyChart data={yearlyChartData} />
+        </StatsCard>
       </div>
 
-      {/* v2.11.0 — three tile-style choropleths fed from the filtered rows.
-           Lazy-loaded so the maps + their layouts only download when this
-           page is opened. */}
-      <StatsMaps rows={filtered} />
+      {/* v2.11.0 — three tile-style choropleths fed from the filtered rows. */}
+      <StatsCard id="maps" visible={visibility.isVisible("maps")}>
+        <StatsMaps rows={filtered} />
+      </StatsCard>
 
-      <div className="card p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="font-semibold">Roční souhrn</div>
-          <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období. Klikni na sloupec pro seřazení." />
+      <StatsCard id="yearlySummary" visible={visibility.isVisible("yearlySummary")}>
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="font-semibold">Roční souhrn</div>
+            <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období. Klikni na sloupec pro seřazení." />
+          </div>
+          <YearlySummaryTable rows={yearly} />
         </div>
-        {/* v2.9.12 — sortable table extracted; every numeric value carries
-             a unit suffix; clickable column headers toggle sort/order. */}
-        <YearlySummaryTable rows={yearly} />
-      </div>
+      </StatsCard>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Plus } from "lucide-react";
+import { ArrowLeftRight, BarChart3, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DueReminders } from "@/components/due-reminders";
 import { GarageList, type GarageListGroup, type GarageListVehicle } from "@/components/garage-list";
@@ -193,6 +193,16 @@ export default async function VehiclesPage({
             >
               <BarChart3 className="h-4 w-4" />
               Souhrn všech
+            </Link>
+          )}
+          {/* v2.12.0 — vehicle comparison page. */}
+          {vehicles.length > 1 && (
+            <Link
+              href="/compare"
+              className="btn-secondary inline-flex items-center gap-1 text-sm"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Porovnat
             </Link>
           )}
           <Link href="/vehicles/new" className="btn-primary inline-flex items-center gap-1">

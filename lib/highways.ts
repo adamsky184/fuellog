@@ -64,3 +64,87 @@ export function applyHighwayCodeToAddress(
   if (!rest) return code;
   return `${code} · ${rest}`;
 }
+
+/**
+ * v2.12.0 — guess the most likely DXX highway code given a Czech town
+ * (or any free text containing a town name). Built from the rest-area
+ * lists on cesky-asfalt.cz / Wikipedia. When a town genuinely sits
+ * between two motorways (e.g. Hustopeče = D2 + D52) the longer / more
+ * popular highway wins. The user can always change it manually.
+ */
+const TOWN_TO_HIGHWAY: Record<string, string> = (() => {
+  const raw: Record<string, string[]> = {
+    D1: [
+      "Mirošovice","Hvězdonice","Loket","Ostředek","Soutice","Psáře",
+      "Senohraby","Říčany","Průhonice","Chodov","Velká Bíteš","Devět křížů",
+      "Velké Meziříčí","Měřín","Velký Beranov","Humpolec","Větrný Jeníkov",
+      "Jihlava","Pávov","Speřice","Pohled","Vyškov","Holubice",
+      "Slavkov u Brna","Domašov","Lipník nad Bečvou","Hladké Životice",
+      "Bělotín","Hranice",
+    ],
+    D2: ["Podivín","Velké Pavlovice","Brod nad Dyjí","Břeclav"],
+    D3: ["Mezno","Měšetice","Olbramovice","Tábor","Soběslav",
+         "Veselí nad Lužnicí","Bošilec","Ševětín","Dolní Bukovsko"],
+    D4: ["Skalka","Mníšek pod Brdy","Dobříš","Příbram","Lety"],
+    D5: ["Beroun","Žebrák","Cerhovice","Mýto","Rokycany","Ejpovice","Plzeň",
+         "Sulkov","Nýřany","Stříbro","Svojšín","Kladruby","Bor","Rozvadov",
+         "Pavlovice"],
+    D6: ["Hostouň","Nové Strašecí","Lubná","Krupá","Řevničov",
+         "Karlovy Vary","Sokolov","Cheb"],
+    D7: ["Slaný","Kralupy nad Vltavou","Louny","Postoloprty","Žatec",
+         "Bitozeves","Chomutov"],
+    D8: ["Zdiby","Úžice","Nová Ves","Doksany","Lovosice","Bílinka",
+         "Řehlovice","Trmice","Ústí nad Labem","Petrovice","Velemín",
+         "Třebenice"],
+    D10: ["Jirny","Stará Boleslav","Brandýs nad Labem","Stránka",
+          "Mladá Boleslav","Bezděčín"],
+    D11: ["Sadská","Poděbrady","Chlumec nad Cidlinou","Praskačka",
+          "Hradec Králové"],
+    D35: ["Holice","Vysoké Mýto","Litomyšl","Svitavy","Mohelnice","Olomouc"],
+    D46: ["Prostějov","Olšany u Prostějova"],
+    D48: ["Nový Jičín","Příbor","Frýdek-Místek","Třinec","Český Těšín"],
+    D52: ["Rajhrad","Pohořelice","Hustopeče","Mikulov"],
+    D55: ["Hulín","Otrokovice","Napajedla","Uherské Hradiště","Hodonín"],
+    D56: ["Ostrava"],
+  };
+  const out: Record<string, string> = {};
+  for (const [code, towns] of Object.entries(raw)) {
+    for (const t of towns) {
+      const norm = normalisePlace(t);
+      if (!out[norm]) out[norm] = code;
+    }
+  }
+  return out;
+})();
+
+function normalisePlace(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Best-effort highway code guess for a city / address. Returns null when
+ * nothing matches. Used by the new fill-up form: when "Dálnice" is on
+ * and city is recognised, we pre-select the matching DXX so the user
+ * doesn't have to.
+ */
+export function guessHighwayCode(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const norm = normalisePlace(input);
+  if (!norm) return null;
+  if (TOWN_TO_HIGHWAY[norm]) return TOWN_TO_HIGHWAY[norm];
+
+  for (const t of norm.split(/[\s,;·\-/]+/).filter(Boolean)) {
+    if (TOWN_TO_HIGHWAY[t]) return TOWN_TO_HIGHWAY[t];
+  }
+  const towns = Object.keys(TOWN_TO_HIGHWAY).sort((a, b) => b.length - a.length);
+  for (const t of towns) {
+    if (norm.includes(t)) return TOWN_TO_HIGHWAY[t];
+  }
+  return null;
+}

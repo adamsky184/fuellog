@@ -2,9 +2,16 @@
 
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
 import { mapRegionCode, formatDate, formatNumber } from "@/lib/utils";
+
+// v2.12.0 — xlsx is ~600 kB on disk; load it on first use, not on
+// every visit to /v/[id]/import. Cached after first call.
+let _xlsxPromise: Promise<typeof import("xlsx")> | null = null;
+function loadXlsx() {
+  if (!_xlsxPromise) _xlsxPromise = import("xlsx");
+  return _xlsxPromise;
+}
 
 type Row = {
   date: string;
@@ -31,7 +38,8 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  function downloadSample() {
+  async function downloadSample() {
+    const XLSX = await loadXlsx();
     const header = [
       ["FuelLog — šablona pro import"],
       ["Vyplň data od řádku 5 níž. První řádek s datem a bez litrů je počáteční stav tachometru."],
@@ -116,6 +124,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
         r.note,
       ]);
 
+      const XLSX = await loadXlsx();
       const ws = XLSX.utils.aoa_to_sheet([header, ...rowsOut]);
       ws["!cols"] = [
         { wch: 12 }, { wch: 10 }, { wch: 9 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 8 },
@@ -140,6 +149,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
     setRows([]);
 
     try {
+      const XLSX = await loadXlsx();
       const ab = await file.arrayBuffer();
       const wb = XLSX.read(ab, { cellDates: true });
       const sheetName = wb.SheetNames.includes("SPOTŘEBA") ? "SPOTŘEBA" : wb.SheetNames[0];

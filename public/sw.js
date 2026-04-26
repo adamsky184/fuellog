@@ -10,11 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.11.0: kraj auto-fill from city, highway dropdown, "kdo přidal"
-// provenance, narrowed profiles RLS, CHECK constraints + UNIQUE on
-// fill_ups, error_log table + global error catcher, accent colour
-// picker, choropleth tile maps (Evropa / kraje / Praha).
-const CACHE_VERSION = "fuellog-v2.11.0";
+// v2.12.0: real SVG choropleth maps (CZ kraje, Praha okresy, Evropa) +
+// side-panel ranking, vehicle comparison page (/compare), per-card
+// stats hide/show toggles, pump ranking with total Kč column,
+// city → highway-code heuristic (Rozvadov→D5, Humpolec→D1 …),
+// xlsx lazy-loaded only on import page.
+const CACHE_VERSION = "fuellog-v2.12.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

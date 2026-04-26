@@ -423,6 +423,8 @@ type BrandRankRow = {
   liters: number;
   avgPricePerL: number | null;
   avgL100: number | null;
+  /** v2.12.0 — celková útrata u pumpy v CZK (po měnové konverzi). */
+  totalCzk: number;
 };
 
 /**
@@ -432,7 +434,7 @@ type BrandRankRow = {
 export function BrandRanking({ data }: { data: BrandRankRow[] }) {
   // v2.9.6 — Adam: "Žebříček pump automaticky srovnej od nejvyššího počtu".
   // v2.9.12 — every column is sortable (incl. brand name + liters).
-  type SortKey = "brand" | "count" | "liters" | "price" | "consumption";
+  type SortKey = "brand" | "count" | "liters" | "totalCzk" | "price" | "consumption";
   const [sortBy, setSortBy] = useState<SortKey>("count");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
@@ -448,6 +450,7 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
         sortBy === "price" ? r.avgPricePerL
         : sortBy === "consumption" ? r.avgL100
         : sortBy === "liters" ? r.liters
+        : sortBy === "totalCzk" ? r.totalCzk
         : r.count;
       const av = pick(a);
       const bv = pick(b);
@@ -499,6 +502,12 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
               </th>
               <th
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
+                onClick={() => toggleSort("totalCzk")}
+              >
+                Celkem <U>Kč</U>{arrow("totalCzk")}
+              </th>
+              <th
+                className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("price")}
               >
                 Ø cena <U>Kč/l</U>{arrow("price")}
@@ -525,6 +534,9 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
                   {r.liters.toFixed(1)}<U>l</U>
+                </td>
+                <td className="px-2 py-1 text-right tabular-nums font-medium">
+                  {r.totalCzk > 0 ? <>{r.totalCzk.toLocaleString("cs-CZ")}<U>Kč</U></> : "—"}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
                   {r.avgPricePerL != null ? <>{r.avgPricePerL.toFixed(2)}<U>Kč/l</U></> : "—"}

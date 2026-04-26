@@ -1,24 +1,24 @@
 "use client";
 
 /**
- * v2.11.0 — three tile-based "maps" rendered from filtered fill-up rows:
- *
- *   - Evropa  — countries (CZ aggregate + foreign list)
- *   - ČR kraje — 13 kraje + Praha (P*)
+ * v2.12.0 — three real (simplified-SVG) maps:
+ *   - Evropa  — countries
+ *   - ČR kraje — 14 regions + Praha aggregate
  *   - Praha   — districts P1–P10
  *
- * Aggregation key: total liters per region. Empty layouts hide automatically
- * if the user has no rows at all in that bucket.
+ * Aggregation key = total liters per region. Switch tabs to flip
+ * between the three maps; only tabs with data are rendered.
  */
 
-import { useMemo } from "react";
-import {
-  ChoroplethTiles,
-  CZ_KRAJE_LAYOUT,
-  EUROPE_LAYOUT,
-  PRAGUE_LAYOUT,
-} from "@/components/choropleth-tiles";
+import { useMemo, useState } from "react";
+import { GeoMap } from "@/components/geo-map";
+import { CZ_KRAJE_PATHS, CZ_VIEWBOX } from "@/lib/geo/cz-kraje";
+import { PRAHA_DISTRICT_PATHS, PRAHA_VIEWBOX } from "@/lib/geo/cz-praha";
+import { EUROPE_COUNTRY_PATHS, EUROPE_VIEWBOX } from "@/lib/geo/europe";
+import { countryFlag } from "@/lib/country-flags";
 import type { RawStatsRow } from "@/components/stats-dashboard";
+
+type MapKey = "kraje" | "praha" | "europe";
 
 export function StatsMaps({ rows }: { rows: RawStatsRow[] }) {
   const { europe, kraje, praha } = useMemo(() => {
@@ -35,7 +35,6 @@ export function StatsMaps({ rows }: { rows: RawStatsRow[] }) {
       if (country === "CZ") {
         const region = (r.region ?? "").toUpperCase();
         if (region.startsWith("P") && region !== "PLK" && region !== "PAK") {
-          // Prague district
           praha.set(region, (praha.get(region) ?? 0) + liters);
           kraje.set("P", (kraje.get("P") ?? 0) + liters);
         } else if (region) {
@@ -46,38 +45,64 @@ export function StatsMaps({ rows }: { rows: RawStatsRow[] }) {
     return { europe, kraje, praha };
   }, [rows]);
 
-  const showEurope = europe.size > 0;
-  const showKraje = kraje.size > 0;
-  const showPraha = praha.size > 0;
+  const tabs: { key: MapKey; label: string; count: number }[] = [
+    { key: "kraje",  label: "ČR kraje",         count: [...kraje.values()].filter((v) => v > 0).length },
+    { key: "praha",  label: "Praha",            count: [...praha.values()].filter((v) => v > 0).length },
+    { key: "europe", label: "Evropa",           count: [...europe.values()].filter((v) => v > 0).length },
+  ];
+  const available = tabs.filter((t) => t.count > 0);
+  const [active, setActive] = useState<MapKey>(available[0]?.key ?? "kraje");
 
-  if (!showEurope && !showKraje && !showPraha) return null;
+  if (available.length === 0) return null;
+  const safeActive = available.find((t) => t.key === active) ? active : available[0].key;
 
   return (
-    <div className="card p-4 space-y-5">
-      <div className="font-semibold text-sm">Mapy tankování</div>
-      <div className="grid md:grid-cols-2 gap-5">
-        {showKraje && (
-          <ChoroplethTiles
-            title="ČR kraje"
-            data={kraje}
-            layout={CZ_KRAJE_LAYOUT}
-          />
-        )}
-        {showPraha && (
-          <ChoroplethTiles
-            title="Praha — městské části"
-            data={praha}
-            layout={PRAGUE_LAYOUT}
-          />
-        )}
-        {showEurope && (
-          <ChoroplethTiles
-            title="Evropa"
-            data={europe}
-            layout={EUROPE_LAYOUT}
-          />
-        )}
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="font-semibold text-sm">Mapy tankování</div>
+        <div className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-xs">
+          {available.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActive(t.key)}
+              className={`px-3 py-1 rounded-md transition ${
+                safeActive === t.key
+                  ? "bg-white dark:bg-slate-900 shadow-sm text-slate-900 dark:text-slate-100 font-medium"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {safeActive === "kraje" && (
+        <GeoMap
+          title="Litry tankované po krajích ČR"
+          viewBox={CZ_VIEWBOX}
+          shapes={CZ_KRAJE_PATHS}
+          data={kraje}
+        />
+      )}
+      {safeActive === "praha" && (
+        <GeoMap
+          title="Litry tankované v městských částech Prahy"
+          viewBox={PRAHA_VIEWBOX}
+          shapes={PRAHA_DISTRICT_PATHS}
+          data={praha}
+        />
+      )}
+      {safeActive === "europe" && (
+        <GeoMap
+          title="Litry tankované v Evropě"
+          viewBox={EUROPE_VIEWBOX}
+          shapes={EUROPE_COUNTRY_PATHS}
+          data={europe}
+          flagFor={(code) => countryFlag(code)}
+        />
+      )}
     </div>
   );
 }

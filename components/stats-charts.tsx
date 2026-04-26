@@ -703,7 +703,7 @@ export function RecentActivity({ data }: { data: RecentData }) {
   const block = (title: string, badge: string, d: RecentData["days30"]) => (
     <div>
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-gradient-to-br from-sky-500/10 to-indigo-500/10 text-[10px] uppercase tracking-wide font-semibold text-sky-700 dark:text-sky-300 border border-sky-500/20">
+        <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-accent/10 text-[10px] uppercase tracking-wide font-semibold text-accent border border-accent/20">
           {title}
         </span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500">{badge}</span>
@@ -719,9 +719,9 @@ export function RecentActivity({ data }: { data: RecentData }) {
 
   return (
     <div className="card p-4 relative overflow-hidden">
-      <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-sky-500/10 to-indigo-500/10 blur-2xl pointer-events-none" />
+      <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-accent/10 blur-2xl pointer-events-none" />
       <div className="flex items-center gap-2 mb-3 relative">
-        <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sm">
+        <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-accent text-white shadow-sm">
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
             <path d="M8 1a7 7 0 1 0 7 7 .75.75 0 0 0-1.5 0A5.5 5.5 0 1 1 8 2.5a.75.75 0 0 0 0-1.5Zm.75 2.75a.75.75 0 0 0-1.5 0V8c0 .2.08.39.22.53l2.5 2.5a.75.75 0 0 0 1.06-1.06l-2.28-2.28V3.75Z" />
           </svg>

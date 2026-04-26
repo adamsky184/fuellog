@@ -157,6 +157,11 @@ function InfoDot({ description }: { description: string }) {
 
 type StatTone = "km" | "fuel" | "money" | "count";
 
+// v2.14.3 — Stat tile tones unified to a single accent-driven scheme.
+//   Previously km/fuel/money/count each had its own colour ramp (violet,
+//   sky, emerald, amber) which Adam called "omalovánky". Now all four
+//   tiles share the same accent-tinted icon bubble + accent-tinted
+//   gradient. The tone key is kept for API compatibility.
 const TONES: Record<
   StatTone,
   {
@@ -166,34 +171,10 @@ const TONES: Record<
     gradient: string;
   }
 > = {
-  km: {
-    iconBg: "bg-violet-100 dark:bg-violet-950/50",
-    iconColor: "text-violet-600 dark:text-violet-300",
-    ring: "ring-violet-500/10 dark:ring-violet-400/10",
-    gradient:
-      "before:bg-gradient-to-br before:from-violet-500/5 before:to-transparent",
-  },
-  fuel: {
-    iconBg: "bg-sky-100 dark:bg-sky-950/50",
-    iconColor: "text-sky-600 dark:text-sky-300",
-    ring: "ring-sky-500/10 dark:ring-sky-400/10",
-    gradient:
-      "before:bg-gradient-to-br before:from-sky-500/5 before:to-transparent",
-  },
-  money: {
-    iconBg: "bg-emerald-100 dark:bg-emerald-950/50",
-    iconColor: "text-emerald-600 dark:text-emerald-300",
-    ring: "ring-emerald-500/10 dark:ring-emerald-400/10",
-    gradient:
-      "before:bg-gradient-to-br before:from-emerald-500/5 before:to-transparent",
-  },
-  count: {
-    iconBg: "bg-amber-100 dark:bg-amber-950/50",
-    iconColor: "text-amber-600 dark:text-amber-300",
-    ring: "ring-amber-500/10 dark:ring-amber-400/10",
-    gradient:
-      "before:bg-gradient-to-br before:from-amber-500/5 before:to-transparent",
-  },
+  km:    { iconBg: "bg-accent/10", iconColor: "text-accent", ring: "ring-accent/10", gradient: "" },
+  fuel:  { iconBg: "bg-accent/10", iconColor: "text-accent", ring: "ring-accent/10", gradient: "" },
+  money: { iconBg: "bg-accent/10", iconColor: "text-accent", ring: "ring-accent/10", gradient: "" },
+  count: { iconBg: "bg-accent/10", iconColor: "text-accent", ring: "ring-accent/10", gradient: "" },
 };
 
 function Stat({
@@ -675,7 +656,7 @@ export function StatsDashboard({
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {filtersSlot}
           <div className="inline-flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sm">
+            <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
               <CalendarRange className="h-4 w-4" />
             </span>
             <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">

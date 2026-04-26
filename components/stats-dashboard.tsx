@@ -646,76 +646,79 @@ export function StatsDashboard({
 
   return (
     <div className="space-y-4">
+      {/* v2.18.1 — title block: h1 + small subtitle ("2 054 tankování ·
+          1 241 031 km"). Stats migrated out of the toolbar so the
+          toolbar can be a single tight row of filters. The subtitle
+          updates with the period filter so it reflects what's on
+          screen. */}
       {title && (
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{title}</h1>
-      )}
-      {/* Header: period selector + roční report.
-          v2.9.11 — filtersSlot (Vozidla / Garáže) renders FIRST so the
-          row reads as "Vozidla → Garáže → Období → totals". */}
-      {/* v2.14.7 — single-row toolbar. Filters (garáže/vozidla) on the
-            left, period selector in the middle, count + Přizpůsobit +
-            Roční report flow together at the right. No more "ml-auto"
-            island that wrapped to its own row on /garages/stats and
-            looked orphaned. */}
-      <div className="card p-3 sm:p-4 flex items-center gap-2 flex-wrap">
-        {filtersSlot}
-        <div className="inline-flex items-center gap-2 shrink-0">
-          <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
-            <CalendarRange className="h-4 w-4" />
-          </span>
-          <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-            Období
-          </span>
-        </div>
-        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs shadow-sm">
-          {([
-            ["all", "Všechno"],
-            ["year", "Letos"],
-            ["month", "Tento měsíc"],
-            ["week", "Týden"],
-            ["custom", "Vlastní"],
-          ] as const).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setPreset(k as PeriodPreset)}
-              className={`px-2.5 py-1 transition ${
-                preset === k
-                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {preset === "custom" && (
-          <div className="inline-flex items-center gap-1 text-xs">
-            <input
-              type="date"
-              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-            />
-            <span className="text-slate-400">–</span>
-            <input
-              type="date"
-              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-            />
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{title}</h1>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 tabular-nums">
+            <span className="inline-flex items-center gap-1">
+              <Hash className="h-3 w-3 opacity-60" />
+              {filtered.length.toLocaleString("cs-CZ")} tankování
+            </span>
+            <span className="opacity-40">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Route className="h-3 w-3 opacity-60" />
+              {formatNumber(totalAgg.km, 0)} km
+            </span>
           </div>
-        )}
-        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md bg-slate-50 dark:bg-slate-800/70 border border-slate-200/50 dark:border-slate-700/50">
-          <Hash className="h-3 w-3 opacity-60" />
-          {filtered.length}×
-          <span className="mx-0.5 opacity-40">·</span>
-          <Route className="h-3 w-3 opacity-60" />
-          {formatNumber(totalAgg.km, 0)} km
-        </span>
-        {/* spacer pushes Přizpůsobit + Roční report to the trailing edge
-            of the SAME row whenever space allows; on narrow viewports
-            they wrap naturally. */}
-        <div className="ml-auto flex items-center gap-2">
+        </div>
+      )}
+      {/* v2.18.1 — single quiet toolbar.
+          - filters (Garáže/Vozidla) as borderless chip pillovers on the
+            left; activated state uses accent so the pill itself signals
+            "this is narrowed".
+          - period segments unified to h-8, no more uppercase "OBDOBÍ"
+            label or coloured ikon-tile next to them.
+          - Přizpůsobit collapsed to a 32×32 icon-only button on the right.
+          - Roční report (per-vehicle only) keeps its label since "📥"
+            alone wouldn't read.
+          Was: 3 competing ikon-tiles + 3 uppercase labels + a stats badge
+          + an orphaned "Přizpůsobit" — too many primary elements. */}
+      <div className="card p-2 sm:p-2.5 flex items-center gap-2 flex-wrap">
+        {filtersSlot}
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <div className="inline-flex h-8 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-xs">
+            {([
+              ["all", "Všechno"],
+              ["year", "Letos"],
+              ["month", "Měsíc"],
+              ["week", "Týden"],
+              ["custom", "Vlastní"],
+            ] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setPreset(k as PeriodPreset)}
+                className={`px-2.5 transition ${
+                  preset === k
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {preset === "custom" && (
+            <div className="inline-flex items-center gap-1 text-xs">
+              <input
+                type="date"
+                className="h-8 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="text-slate-400">–</span>
+              <input
+                type="date"
+                className="h-8 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          )}
           <StatsVisibilityPanel
             hidden={visibility.hidden}
             onChange={visibility.setHidden}
@@ -723,7 +726,7 @@ export function StatsDashboard({
           {vehicleId && (
             <Link
               href={`/v/${vehicleId}/report?year=${latestYear}`}
-              className="btn-secondary text-xs inline-flex items-center gap-1"
+              className="btn-secondary text-xs inline-flex items-center gap-1 h-8"
             >
               <FileDown className="h-3.5 w-3.5" />
               Roční report

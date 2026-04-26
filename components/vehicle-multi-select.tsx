@@ -77,28 +77,33 @@ export function VehicleMultiSelect({
   if (vehicles.length <= 1) return null;
 
   const summary = allSelected
-    ? `vše · ${vehicles.length}`
+    ? `${vehicles.length}`
     : `${selected.size}/${vehicles.length}`;
+
+  // v2.18.1 — match the new GarageMultiSelect chip styling (no big colored
+  // ikon-tile + no uppercase label). Active state when not "vše" so the
+  // chip itself signals an applied filter.
+  const active = !allSelected;
 
   return (
     <div ref={ref} className="relative inline-block">
-      {/* v2.9.11 — match the Období selector's visual weight (h-7 colored
-          icon tile + uppercase label) so the two filters read as a pair. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition rounded-lg px-1 py-0.5"
+        className={`h-8 inline-flex items-center gap-1.5 rounded-lg border px-2.5 text-xs transition ${
+          active
+            ? "border-accent/50 bg-accent/10 text-accent dark:bg-accent/15"
+            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+        }`}
       >
-        <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-accent text-white shadow-sm">
-          <Car className="h-4 w-4" />
+        <Car className="h-3.5 w-3.5 opacity-70" />
+        <span className="font-medium">Vozidla</span>
+        <span className={`font-semibold tabular-nums ${active ? "" : "text-slate-500 dark:text-slate-400"}`}>
+          · {summary}
         </span>
-        <span className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-          Vozidla
-        </span>
-        <span className="text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">{summary}</span>
-        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-3 w-3 opacity-50 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (

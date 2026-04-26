@@ -10,14 +10,14 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.18.0: UX polish bundle — every window.confirm() callsite migrated
-// to in-app <ConfirmDialog/> (8 callers across maintenance, fill-up
-// edit, vehicle settings, garages page, garage-manager, vehicle photo
-// uploader, admin actions, profile AI key clear), Sonner toasts wired
-// into every mutation (insert/update/delete) so Adam gets a corner
-// confirmation instead of a dead-quiet redirect, removed last
-// uppercase H1s on /vehicles + /compare.
-const CACHE_VERSION = "fuellog-v2.18.0";
+// v2.18.1: stats toolbar redesign — Garáže/Vozidla collapsed from
+// big coloured ikon-tile + uppercase label into quiet h-8 chip pills
+// that activate (accent border+bg) only when a filter is applied,
+// "OBDOBÍ" label + ikon-tile dropped (segmented buttons speak for
+// themselves), stats badge moved out of the toolbar into a subtitle
+// under the H1 ("N tankování · K km"), Přizpůsobit collapsed to a
+// 32×32 icon-only button with an accent dot when sections are hidden.
+const CACHE_VERSION = "fuellog-v2.18.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

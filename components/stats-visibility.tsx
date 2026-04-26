@@ -116,19 +116,23 @@ export function StatsVisibilityPanel({
 
   return (
     <div className="relative">
+      {/* v2.18.1 — collapsed to icon-only square button so it slots quietly
+          into the toolbar instead of taking a separate visual lane. The
+          accent dot in the corner signals "you've hidden N sections". */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="Přizpůsobit dashboard"
         aria-label="Přizpůsobit dashboard"
-        className={`btn-secondary text-xs inline-flex items-center gap-1.5 ${
-          open ? "border-accent text-accent" : ""
+        className={`relative h-8 w-8 inline-flex items-center justify-center rounded-lg border transition ${
+          open
+            ? "border-accent text-accent bg-accent/10"
+            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200"
         }`}
       >
         <Settings2 className="h-3.5 w-3.5" />
-        <span>Přizpůsobit</span>
         {hiddenCount > 0 && (
-          <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-white text-[10px] font-medium tabular-nums">
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-accent text-white text-[9px] font-semibold tabular-nums ring-2 ring-white dark:ring-slate-900">
             {hiddenCount}
           </span>
         )}

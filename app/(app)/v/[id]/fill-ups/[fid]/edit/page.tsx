@@ -402,7 +402,9 @@ export default function EditFillUpPage({
       <RegionPicker value={region} onChange={setRegion} />
 
       <div>
-        <label className="label">Město</label>
+        {/* v2.19.9 — viz new page: "Město / místo" pomáhá indikovat,
+            že lze zapsat i ulici / místní část (Žernosecká, ...). */}
+        <label className="label">Město / místo</label>
         <input
           className="input"
           value={form.city}

@@ -92,7 +92,16 @@
 //   chevron víc vpravo → spadl do rounded zone). Adam: "ta šipka
 //   tam vůbec není u Octavie". Bez overflow-clip hover bg může
 //   znova tahle z rounded rohů, ale šipka > hover ořez.
-const CACHE_VERSION = "fuellog-v2.19.8";
+// v2.19.9: form label "Město" → "Město / místo" (new + edit page).
+//   Adam: "v rámci Prahy tam píšu třeba ulice". OCR autofill v
+//   applyReceipt přepsán: dříve strippoval district po pomlčce
+//   ("Praha - Vršovice" → "Praha"), což ulice ztratilo. Nyní:
+//   - "Praha - Vršovice, Petrohradská 216" → city="Praha - Vršovice",
+//     address="Petrohradská 216"
+//   - "Praha 8 - Žernosecká" (no comma) → vše do city
+//   - Praha-style location bez čárky se rozpozná regexem a mappuje
+//     na city; čisté ulice jako "Petrohradská 216" jdou do address.
+const CACHE_VERSION = "fuellog-v2.19.9";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

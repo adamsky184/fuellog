@@ -318,23 +318,42 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   function applyReceipt(p: ParsedReceipt, file: File) {
     setReceiptFile(file);
 
-    // Split the OCR location string ("Praha - Vršovice, Petrohradská 216") into
-    // (city, address). The comma is the most reliable split on Czech receipts;
-    // without one we drop the whole string into `address` and let the user fix.
+    // v2.19.9 — Split the OCR location string into (city, address).
+    //
+    // Adam's "Město / místo" field is meant to capture city + místní
+    // detail (např. "Praha 8 - Žernosecká"); "Adresa / detail" je pro
+    // ulici / dálniční úsek. Heuristika:
+    //   "Praha - Vršovice, Petrohradská 216" → city="Praha - Vršovice",
+    //                                          address="Petrohradská 216"
+    //   "Praha 8 - Žernosecká"                → city="Praha 8 - Žernosecká",
+    //                                          address=""
+    //   "D1, Exit 90 Humpolec"                → city="D1",
+    //                                          address="Exit 90 Humpolec"
+    //   "Brno, Hradecká 14"                   → city="Brno",
+    //                                          address="Hradecká 14"
+    //   "Petrohradská 216"                    → city=null,
+    //                                          address="Petrohradská 216"
+    // Předtím se district po pomlčce strippoval ("Praha - Vršovice" →
+    // "Praha"), což se Adamovi nelíbilo — chce zachovat detail.
     let ocrCity: string | null = null;
     let ocrAddress: string | null = null;
     if (p.station_location) {
       const raw = p.station_location.trim();
       const commaIdx = raw.indexOf(",");
       if (commaIdx > 0) {
-        const leftFull = raw.slice(0, commaIdx).trim();
-        // "Praha - Vršovice" → strip district after a dash so `city` stays
-        // matchable to historical rows (which store just "Praha").
-        const leftCity = leftFull.split(/\s[-–]\s/)[0].trim();
-        ocrCity = leftCity || null;
+        ocrCity = raw.slice(0, commaIdx).trim() || null;
         ocrAddress = raw.slice(commaIdx + 1).trim() || null;
       } else {
-        ocrAddress = raw || null;
+        // Žádná čárka — heuristika podle pomlčky / kapitálky:
+        // "Praha 8 - Žernosecká" (capitalized + dash) → vše do city
+        // "Petrohradská 216" (jednodušší ulice) → do address
+        const startsCapitalCity = /^[A-ZÁ-Ž]/.test(raw);
+        const looksLikeCityOrDistrict = /\bPraha\s?\d{0,2}\b|^[A-ZÁ-Ž][a-zá-ž]+(\s[-–]\s|$)/.test(raw);
+        if (startsCapitalCity && looksLikeCityOrDistrict) {
+          ocrCity = raw;
+        } else {
+          ocrAddress = raw;
+        }
       }
     }
 
@@ -891,7 +910,10 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       <RegionPicker value={region} onChange={setRegion} />
 
       <div>
-        <label className="label">Město</label>
+        {/* v2.19.9 — label rozšířen na "Město / místo". Adam: "v
+            rámci Prahy tam píšu třeba ulice". Field je stále jen
+            jeden (`city` v DB), label jen napovídá uživateli. */}
+        <label className="label">Město / místo</label>
         <input
           className="input"
           value={form.city}

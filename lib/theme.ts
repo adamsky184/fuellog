@@ -36,15 +36,31 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 ];
 
 const STORAGE_KEY = "fuellog-accent";
+const MIGRATION_KEY = "fuellog-accent-migrated-v2-13";
 // v2.13.0 — default switched from "sky" to "emerald" for the premium
-//   redesign. Existing users keep their saved choice; new users start
-//   on green and can change in /profile.
+//   redesign. v2.13.2 adds a one-shot migration: anyone who had the
+//   OLD default "sky" still saved (i.e. they never explicitly picked
+//   it) is bumped to the new default. After the migration runs once
+//   the flag stays set so we never re-touch their later choice.
 const DEFAULT_ID = "emerald";
+const PREVIOUS_DEFAULT_ID = "sky";
 
 export function loadAccent(): AccentPreset {
   if (typeof window === "undefined") return ACCENT_PRESETS[0];
   try {
+    // v2.13.2 — one-shot migration from the legacy "sky" default to
+    // the new "emerald" default. Runs once per browser; after that,
+    // explicit user choices stay untouched.
+    const migrated = window.localStorage.getItem(MIGRATION_KEY);
     const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!migrated && stored === PREVIOUS_DEFAULT_ID) {
+      window.localStorage.setItem(STORAGE_KEY, DEFAULT_ID);
+      window.localStorage.setItem(MIGRATION_KEY, "1");
+      return ACCENT_PRESETS.find((p) => p.id === DEFAULT_ID)!;
+    }
+    if (!migrated) {
+      window.localStorage.setItem(MIGRATION_KEY, "1");
+    }
     const found = stored ? ACCENT_PRESETS.find((p) => p.id === stored) : null;
     return found ?? ACCENT_PRESETS.find((p) => p.id === DEFAULT_ID)!;
   } catch {

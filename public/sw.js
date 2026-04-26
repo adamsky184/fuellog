@@ -10,10 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.13.1: REAL Czech kraje SVG outlines (Natural Earth admin-1, projected
-// via d3-geo Mercator). Header refined — softer translucent backdrop,
-// matching the new monochrome aesthetic.
-const CACHE_VERSION = "fuellog-v2.13.1";
+// v2.13.2: accent migration sky→emerald for users who never explicitly
+// chose a colour, plus a compact Palette button next to the day/night
+// toggle in the header.
+const CACHE_VERSION = "fuellog-v2.13.2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

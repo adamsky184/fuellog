@@ -19,6 +19,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccentToggle } from "@/components/accent-toggle";
 import { VehicleSwitcher, type SwitcherVehicle, type SwitcherGarage } from "@/components/vehicle-switcher";
 
 export function Header({
@@ -164,6 +165,7 @@ export function Header({
             </Link>
           )}
 
+          <AccentToggle />
           <ThemeToggle />
 
           {/* Unified user menu — visible on ALL breakpoints so mobile users

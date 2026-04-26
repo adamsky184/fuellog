@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { VehiclePhotoUploader } from "@/components/vehicle-photo-uploader";
 import { useConfirm } from "@/components/confirm-dialog";
+import { parseDecimal } from "@/lib/utils";
 
 type Member = {
   user_id: string;
@@ -168,9 +169,7 @@ export default function VehicleSettingsPage({
           | "lpg"
           | "electric"
           | "hybrid",
-        tank_capacity_liters: form.tank_capacity_liters
-          ? parseFloat(form.tank_capacity_liters)
-          : null,
+        tank_capacity_liters: parseDecimal(form.tank_capacity_liters),
         color: form.color || null,
         garage_id: form.garage_id || null,
       })
@@ -444,9 +443,11 @@ export default function VehicleSettingsPage({
           </div>
           <div>
             <label className="label">Nádrž (l)</label>
+            {/* v2.19.0 — accept čárka i tečka. */}
             <input
-              type="number"
-              step="0.1"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               className="input"
               value={form.tank_capacity_liters}
               onChange={(e) =>

@@ -4,17 +4,19 @@ import { useEffect, useMemo, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import {
-  CZ_REGION_OPTIONS,
-  FOREIGN_COUNTRIES,
-  PRAGUE_DISTRICTS,
-  formatLocation,
-  parseRegionKey,
-  regionKey,
-} from "@/lib/regions";
+import { FOREIGN_COUNTRIES, formatLocation } from "@/lib/regions";
 import { cityToKraj } from "@/lib/city-to-kraj";
 import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress, guessHighwayCode } from "@/lib/highways";
 import { enqueueFillUp } from "@/lib/offline-queue";
+import { parseDecimal } from "@/lib/utils";
+// v2.19.0 — RegionPicker nahrazuje původní mega-dropdown s 75 položkami.
+//   Hierarchie: Stát (default CZ) → Kraj (jen CZ) → Praha okres (jen Praha).
+import {
+  RegionPicker,
+  type RegionValue,
+  PRAHA_KRAJ,
+  OTHER_COUNTRY,
+} from "@/components/region-picker";
 import { PhotoOcr } from "@/components/photo-ocr";
 import { RegionInfobox } from "@/components/region-infobox";
 import { StationSearch, type StationPick } from "@/components/station-search";
@@ -22,7 +24,6 @@ import type { ParsedReceipt, ParsedOdometer } from "@/lib/ocr/types";
 import { MapPin, Check } from "lucide-react";
 
 const OTHER_BRAND = "__other__";
-const OTHER_COUNTRY_KEY = "C:__other__";
 
 type HistoryRow = {
   station_brand: string | null;
@@ -52,7 +53,6 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   const [brandLoading, setBrandLoading] = useState(true);
   const [brandSelect, setBrandSelect] = useState<string>("");
   const [brandNew, setBrandNew] = useState<string>("");
-  const [customCountry, setCustomCountry] = useState<string>("");
   const [previousKm, setPreviousKm] = useState<number | undefined>(undefined);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [odometerFile, setOdometerFile] = useState<File | null>(null);
@@ -71,11 +71,17 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     total_price: "",
     currency: "CZK",
     city: "",
-    region_key: "", // "CZ:P8" | "CZ:StČ" | "C:AT" | ""
     address: "",
     is_full_tank: true,
     is_highway: false,
     note: "",
+  });
+  // v2.19.0 — region/country držené samostatně (split z ploché region_key
+  //   formy). Default Česko + nic — uživatel nemusí potvrzovat, viz Milan.
+  const [region, setRegion] = useState<RegionValue>({
+    country: "CZ",
+    region: null,
+    customCountry: "",
   });
 
   // v2.8.1 — pulled live ČNB rates (refreshed daily by pg_cron) so the form
@@ -243,25 +249,30 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     };
   }, [vehicleId]);
 
-  // Auto-fill city="Praha" whenever the user picks any Praha 1–10 region.
-  const praguePrefixes = useMemo(() => PRAGUE_DISTRICTS.map((p) => `CZ:${p.code}`), []);
+  // v2.19.0 — Auto-fill city="Praha" když user zvolí Praha okres (P1-P10).
+  //   Reaguje na změnu region.region (ne region_key jako dřív).
   useEffect(() => {
-    if (praguePrefixes.includes(form.region_key)) {
+    if (
+      region.country === "CZ" &&
+      region.region &&
+      /^P([1-9]|10)$/.test(region.region)
+    ) {
       if (form.city.trim() === "" || form.city === "Praha") {
         setForm((f) => ({ ...f, city: "Praha" }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.region_key]);
+  }, [region.region, region.country]);
 
-  // v2.11.0 — auto-fill kraj when city is recognised in the lookup table.
-  // Triggers only when region is empty, so we never clobber a user choice.
-  // Recognises cities like Plzeň, Rozvadov, Humpolec, Mladá Boleslav, …
+  // v2.11.0 — auto-fill kraj když je rozpoznané město v lookup tabulce.
+  //   v2.19.0 — trigger jen když country=CZ && region je null (nic
+  //   nepřepisujeme). Recognises Plzeň, Rozvadov, Humpolec, Mladá Boleslav…
   useEffect(() => {
-    if (form.region_key) return;
+    if (region.country !== "CZ") return;
+    if (region.region) return;
     const krajCode = cityToKraj(form.city) ?? cityToKraj(form.address);
     if (krajCode) {
-      setForm((f) => (f.region_key ? f : { ...f, region_key: `CZ:${krajCode}` }));
+      setRegion((r) => (r.region ? r : { ...r, country: "CZ", region: krajCode }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.city, form.address]);
@@ -429,9 +440,11 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
    * Brand: match against the dropdown options first so "shared" stations stay
    * consolidated; if there's no match we flip to "Jiná…" and prefill the free
    * text. Location: only fill empty fields so the user's edits are never
-   * clobbered. Country: if we got an ISO code, map CZ → leave region blank
-   * (too coarse to guess a kraj), known foreign → `C:XX`, unknown foreign →
-   * `OTHER_COUNTRY_KEY` with the code stashed in `customCountry`.
+   * clobbered. Country: pokud máme ISO kód, mapujeme CZ → necháme region
+   * prázdný (cityToKraj autofill ho dorovná), known foreign → set country,
+   * unknown foreign → OTHER_COUNTRY + customCountry stash.
+   *
+   * v2.19.0 — refactor na nový (country, region) state shape.
    */
   function applyStationPick(pick: StationPick) {
     if (pick.brand) {
@@ -449,17 +462,32 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     const isKnownForeign =
       !!code && code !== "CZ" && !!FOREIGN_COUNTRIES.find((x) => x.country === code);
     const isUnknownForeign = !!code && code !== "CZ" && !isKnownForeign;
-    if (isUnknownForeign) setCustomCountry(code!);
+
+    // Vyplň jen prázdné city/address.
     setForm((f) => {
       const next = { ...f };
       if (pick.city && !next.city.trim()) next.city = pick.city;
       if (pick.address && !next.address.trim()) next.address = pick.address;
-      if (!next.region_key) {
-        if (isKnownForeign) next.region_key = `C:${code}`;
-        else if (isUnknownForeign) next.region_key = OTHER_COUNTRY_KEY;
-      }
       return next;
     });
+
+    // Aktualizuj region jen pokud se ještě nic nevyplnilo (žádný kraj/okres
+    // a žádný foreign country) — neperebíjej user volbu.
+    setRegion((r) => {
+      const isUserUntouched =
+        (r.country === "CZ" && !r.region) ||
+        (r.country === OTHER_COUNTRY && !r.customCountry);
+      if (!isUserUntouched) return r;
+      if (isKnownForeign && code) return { country: code, region: null };
+      if (isUnknownForeign && code) {
+        return { country: OTHER_COUNTRY, region: null, customCountry: code };
+      }
+      // CZ pick — necháme cityToKraj autofill efektu, aby vyplnil kraj
+      // z `pick.city`. Tady jen zajistíme, že country je CZ.
+      if (code === "CZ" || !code) return { country: "CZ", region: null };
+      return r;
+    });
+
     // Show a transient "✓ Vyplněno z mapy: …" banner for 4 s so the user
     // sees that the lookup actually filled fields below the search box.
     const parts = [pick.brand, pick.city, pick.country]
@@ -472,14 +500,21 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
   function applyCombo(c: Combo) {
     setForm((f) => ({
       ...f,
-      region_key: regionKey(c.region, c.country),
       city: c.city ?? f.city,
       address: c.address ?? f.address,
     }));
-    // If this combo's country is not in our known list, store it as custom.
-    if (c.country !== "CZ" && !FOREIGN_COUNTRIES.find((x) => x.country === c.country)) {
-      setCustomCountry(c.country);
-      setForm((f) => ({ ...f, region_key: OTHER_COUNTRY_KEY }));
+    // v2.19.0 — set country/region directly. Pokud je country neznámý
+    //   foreign code, padáme do "Jiný stát…" + custom ISO.
+    if (c.country === "CZ") {
+      setRegion({ country: "CZ", region: c.region });
+    } else if (FOREIGN_COUNTRIES.find((x) => x.country === c.country)) {
+      setRegion({ country: c.country, region: null });
+    } else {
+      setRegion({
+        country: OTHER_COUNTRY,
+        region: null,
+        customCountry: c.country,
+      });
     }
   }
 
@@ -498,13 +533,17 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       return;
     }
 
-    let region: string | null;
-    let country: string;
-    if (form.region_key === OTHER_COUNTRY_KEY) {
-      region = null;
-      country = customCountry.trim().toUpperCase() || "XX";
+    // v2.19.0 — RegionPicker drží (country, region) přímo. Pokud je
+    //   country sentinel "__other__", přečteme custom ISO; jinak je
+    //   country už finální.
+    let dbCountry: string;
+    let dbRegion: string | null;
+    if (region.country === OTHER_COUNTRY) {
+      dbCountry = (region.customCountry ?? "").trim().toUpperCase() || "XX";
+      dbRegion = null;
     } else {
-      ({ region, country } = parseRegionKey(form.region_key));
+      dbCountry = region.country || "CZ";
+      dbRegion = region.region;
     }
     const brand =
       brandSelect === OTHER_BRAND
@@ -516,13 +555,13 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       created_by: user.id,
       date: form.date,
       odometer_km: parseInt(form.odometer_km, 10),
-      liters: form.liters ? parseFloat(form.liters) : null,
-      total_price: form.total_price ? parseFloat(form.total_price) : null,
+      liters: parseDecimal(form.liters),
+      total_price: parseDecimal(form.total_price),
       currency: form.currency,
       station_brand: brand,
       city: form.city.trim() || null,
-      region,
-      country,
+      region: dbRegion,
+      country: dbCountry,
       address: form.address.trim() || null,
       is_full_tank: form.is_full_tank,
       is_highway: form.is_highway,
@@ -701,10 +740,13 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
           <label className="label">Litry</label>
+          {/* v2.19.0 — type="text" + inputMode="decimal" tak, aby šla psát
+              čárka i tečka. type="number" v Chrome/Safari odmítá čárku
+              hned při psaní. Validace + parsing pak řeší parseDecimal. */}
           <input
-            type="number"
-            step="0.001"
-            min={0}
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
             className="input"
             value={form.liters}
             onChange={(e) => setForm({ ...form, liters: e.target.value })}
@@ -713,9 +755,9 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         <div>
           <label className="label">Celkem</label>
           <input
-            type="number"
-            step="0.01"
-            min={0}
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
             className="input"
             value={form.total_price}
             onChange={(e) => setForm({ ...form, total_price: e.target.value })}
@@ -741,7 +783,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
           {form.currency !== "CZK" && form.total_price && liveRateInfo && (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               ≈ <span className="tabular-nums font-medium">
-                {Math.round(parseFloat(form.total_price) * (liveRateInfo.rates[form.currency] ?? 0)).toLocaleString("cs-CZ")} Kč
+                {Math.round((parseDecimal(form.total_price) ?? 0) * (liveRateInfo.rates[form.currency] ?? 0)).toLocaleString("cs-CZ")} Kč
               </span>
               <span className="text-slate-400"> · kurz {(liveRateInfo.rates[form.currency] ?? 0).toFixed(2)} Kč/{form.currency} ({liveRateInfo.rateDate})</span>
             </p>
@@ -843,58 +885,18 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">Kraj / stát</label>
-          <select
-            className="input"
-            value={form.region_key}
-            onChange={(e) => setForm({ ...form, region_key: e.target.value })}
-          >
-            <option value="">—</option>
-            <optgroup label="Praha">
-              {PRAGUE_DISTRICTS.map((p) => (
-                <option key={p.code} value={`CZ:${p.code}`}>
-                  {p.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Česko — kraje">
-              {CZ_REGION_OPTIONS.filter(
-                (r) => !r.code.startsWith("P"),
-              ).map((r) => (
-                <option key={r.code} value={`CZ:${r.code}`}>
-                  {r.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Zahraničí">
-              {FOREIGN_COUNTRIES.map((c) => (
-                <option key={c.code} value={`C:${c.country}`}>
-                  {c.label}
-                </option>
-              ))}
-              <option value={OTHER_COUNTRY_KEY}>Jiný stát…</option>
-            </optgroup>
-          </select>
-          {form.region_key === OTHER_COUNTRY_KEY && (
-            <input
-              className="input mt-2 uppercase"
-              placeholder="ISO kód (např. NO, HU, RO)"
-              maxLength={3}
-              value={customCountry}
-              onChange={(e) => setCustomCountry(e.target.value)}
-            />
-          )}
-        </div>
-        <div>
-          <label className="label">Město</label>
-          <input
-            className="input"
-            value={form.city}
-            onChange={(e) => setForm({ ...form, city: e.target.value })}
-          />
-        </div>
+      {/* v2.19.0 — RegionPicker komponenta nahradila plochý dropdown.
+          Country defaultně CZ; kraj jen když country=CZ; Praha okres
+          jen když kraj=Praha. */}
+      <RegionPicker value={region} onChange={setRegion} />
+
+      <div>
+        <label className="label">Město</label>
+        <input
+          className="input"
+          value={form.city}
+          onChange={(e) => setForm({ ...form, city: e.target.value })}
+        />
       </div>
 
       {/* v2.8.0 — kraj zkratky vysvětlené v rozbalovacím infoboxu. */}

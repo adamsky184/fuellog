@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { parseDecimal } from "@/lib/utils";
 
 type GarageOpt = { id: string; name: string };
 
@@ -58,9 +59,7 @@ export default function NewVehiclePage() {
         year: form.year ? parseInt(form.year, 10) : null,
         license_plate: form.license_plate || null,
         fuel_type: form.fuel_type as "gasoline" | "diesel" | "lpg" | "electric" | "hybrid",
-        tank_capacity_liters: form.tank_capacity_liters
-          ? parseFloat(form.tank_capacity_liters)
-          : null,
+        tank_capacity_liters: parseDecimal(form.tank_capacity_liters),
         color: form.color || null,
         garage_id: form.garage_id || null,
         created_by: user.id,
@@ -153,10 +152,12 @@ export default function NewVehiclePage() {
           </div>
           <div>
             <label className="label">Nádrž (l)</label>
+            {/* v2.19.0 — accept čárka i tečka. */}
             <input
               className="input"
-              type="number"
-              step="0.1"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               value={form.tank_capacity_liters}
               onChange={(e) => setForm({ ...form, tank_capacity_liters: e.target.value })}
             />

@@ -10,14 +10,22 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.18.3: currency conversion bugfix — Roční report a Calendar
-// heatmap sčítaly total_price přímo (bez CZK konverze), takže fill-up
-// v EUR/USD/PLN se počítal v cizí měně místo v Kč. /report/page.tsx
-// teď tahá total_price_czk z fill_up_stats_v + má `priceCzk(r)`
-// helper, calendar-heatmap dostává navíc `total_price_czk?` prop a
-// preferuje ho přes původní hodnotu. fill_up_stats_v + convert_to_czk
-// na DB jsou nezměněné, problém byl čistě v klientském aggregování.
-const CACHE_VERSION = "fuellog-v2.18.3";
+// v2.19.0: form input fixes — RegionPicker hierarchie + decimal čárka.
+//
+// (a) <RegionPicker> nahrazuje plochý 75-položkový dropdown progressive
+//     3-úrovní hierarchií Stát → Kraj → Praha okres. Default Česko (90 %
+//     případů), kraj jen pro CZ, district jen pro Praha. Migrated v
+//     /v/[id]/fill-ups/new + /edit. Backward-compat ověřena na 2152
+//     existing rows (1875 CZ+region, 274 foreign+null, 3 CZ+null).
+//     applyStationPick / applyCombo / cityToKraj autofill / OCR receipt
+//     adaptovány na nový (country, region) shape.
+//
+// (b) parseDecimal helper — input fields přijímají čárku i tečku
+//     ("67,48" i "67.48"). type="number" odmítá čárku, takže přepnuto
+//     na type="text" inputMode="decimal" (mobile numpad zachován).
+//     Migrated všech 6 callsites: liters, total_price (new + edit),
+//     maintenance cost, vehicle tank_capacity_liters (new + settings).
+const CACHE_VERSION = "fuellog-v2.19.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

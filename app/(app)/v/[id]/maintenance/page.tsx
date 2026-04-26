@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2, Wrench, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber, parseDecimal } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   MAINTENANCE_LABELS,
@@ -120,7 +120,7 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
       kind: form.kind,
       date: form.date,
       odometer_km: form.odometer_km ? parseInt(form.odometer_km, 10) : null,
-      cost: form.cost ? parseFloat(form.cost) : null,
+      cost: parseDecimal(form.cost),
       currency: form.currency,
       title: form.title.trim() || null,
       note: form.note.trim() || null,
@@ -252,10 +252,11 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <label className="label">Cena</label>
+              {/* v2.19.0 — accept čárka i tečka. */}
               <input
-                type="number"
-                step="0.01"
-                min={0}
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 className="input"
                 value={form.cost}
                 onChange={(e) => setForm({ ...form, cost: e.target.value })}

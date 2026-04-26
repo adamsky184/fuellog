@@ -28,6 +28,36 @@ export function formatDate(value: string | Date | null | undefined) {
 }
 
 /**
+ * v2.19.0 — locale-tolerant decimal parser.
+ *
+ * Adam: "zadávání litrů se nyní musí dělat s tečkou (67.48) a nefunguje
+ * s čárkou (67,48)". CZ keyboards put a comma on the decimal key, so any
+ * field where the user types a fractional number (litry, cena, objem
+ * nádrže, cost) needs to accept both "67,48" and "67.48". We also strip
+ * thousands separators (spaces, NBSP, apostrophes) defensively in case
+ * a paste from Excel includes "1 234,56".
+ *
+ * Returns null for empty/whitespace-only/non-numeric input so callers
+ * can decide between "not set" and zero.
+ *
+ * NOTE: input fields paired with this should use
+ * `type="text" inputMode="decimal"`, NOT `type="number"`. Browsers reject
+ * a comma in `type="number"` (Chrome/Safari give an empty `e.target.value`
+ * the moment the user types ","), so the parser alone isn't enough — the
+ * input type matters.
+ */
+export function parseDecimal(s: string | null | undefined): number | null {
+  if (s == null) return null;
+  const trimmed = String(s).trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed
+    .replace(/[\s ']/g, "") // strip spaces, NBSP, apostrophes
+    .replace(",", ".");          // CZ decimal comma → dot
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Map region codes from Adam's xlsx to { region, country, isHighway }.
  *
  * - Praha: `P1..P10` (or `P 8` typo) → CZ/P1..P10.

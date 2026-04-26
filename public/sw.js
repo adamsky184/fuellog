@@ -10,12 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.13.0: premium redesign — emerald accent default, dashboard hero
-// card with last-30d totals + delta, REAL geographic Europe map (from
-// world-atlas via d3-geo), unified chart palette (no rainbow),
-// neutral stats tiles with accent icons, prominent stats visibility
-// toolbar.
-const CACHE_VERSION = "fuellog-v2.13.0";
+// v2.13.1: REAL Czech kraje SVG outlines (Natural Earth admin-1, projected
+// via d3-geo Mercator). Header refined — softer translucent backdrop,
+// matching the new monochrome aesthetic.
+const CACHE_VERSION = "fuellog-v2.13.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

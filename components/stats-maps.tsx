@@ -12,7 +12,7 @@
 
 import { useMemo, useState } from "react";
 import { GeoMap } from "@/components/geo-map";
-import { CZ_KRAJE_PATHS, CZ_VIEWBOX } from "@/lib/geo/cz-kraje";
+import { CZ_KRAJE_PATHS_REAL, CZ_VIEWBOX_REAL } from "@/lib/geo/cz-kraje-real";
 import { PRAHA_DISTRICT_PATHS, PRAHA_VIEWBOX } from "@/lib/geo/cz-praha";
 import { EUROPE_COUNTRY_PATHS_REAL, EUROPE_VIEWBOX_REAL } from "@/lib/geo/europe-real";
 import { countryFlag } from "@/lib/country-flags";
@@ -81,9 +81,10 @@ export function StatsMaps({ rows }: { rows: RawStatsRow[] }) {
       {safeActive === "kraje" && (
         <GeoMap
           title="Litry tankované po krajích ČR"
-          viewBox={CZ_VIEWBOX}
-          shapes={CZ_KRAJE_PATHS}
+          viewBox={CZ_VIEWBOX_REAL}
+          shapes={CZ_KRAJE_PATHS_REAL}
           data={kraje}
+          showLabels={false}
         />
       )}
       {safeActive === "praha" && (

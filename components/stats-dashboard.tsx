@@ -15,6 +15,7 @@
  * All numbers recompute via useMemo when the filter changes.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   FileDown,
@@ -191,23 +192,29 @@ function InfoDot({ description }: { description: string }) {
       >
         <Info className="h-3 w-3" />
       </button>
-      {open && pos && (
-        <span
-          role="tooltip"
-          className="pointer-events-none fixed z-[60] p-2.5 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg whitespace-normal break-words"
-          style={{
-            top: pos.placement === "below" ? pos.top : undefined,
-            bottom:
-              pos.placement === "above"
-                ? window.innerHeight - pos.top
-                : undefined,
-            left: pos.left,
-            width: pos.width,
-          }}
-        >
-          {description}
-        </span>
-      )}
+      {open && pos && typeof document !== "undefined" &&
+        createPortal(
+          <span
+            role="tooltip"
+            // v2.19.5 — render do <body> přes Portal. Žádný parent
+            //   transform/isolation/overflow ho nemůže ovlivnit. Tohle
+            //   řeší definitivně problém kdy fixed element byl pořád
+            //   clipnutý "(Kolik litrů paliva jsi natanko... období.)".
+            className="pointer-events-none fixed z-[100] p-2.5 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg whitespace-normal break-words"
+            style={{
+              top: pos.placement === "below" ? pos.top : undefined,
+              bottom:
+                pos.placement === "above"
+                  ? window.innerHeight - pos.top
+                  : undefined,
+              left: pos.left,
+              width: pos.width,
+            }}
+          >
+            {description}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }

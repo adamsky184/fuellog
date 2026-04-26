@@ -69,7 +69,14 @@
 //   border-transparent na obou variantách (active i inactive).
 //   InfoDot tooltip měřit pos synchronně v onClick (předtím v RAF
 //   → první render měl pos=null a tooltip se nezobrazil).
-const CACHE_VERSION = "fuellog-v2.19.4";
+// v2.19.5: tooltip přes React Portal + bordered mobile tabs.
+//   InfoDot tooltip se teď renderuje přímo do <body> přes
+//   createPortal, takže ho NEMŮŽE ovlivnit žádný parent
+//   transform/isolation/overflow ani sticky stacking context.
+//   Mobile tabs: filled black active state nahrazen bordered
+//   accent-tint, takže active a inactive mají naprosto stejný
+//   visual weight a Statistiky už "nevyčuhuje".
+const CACHE_VERSION = "fuellog-v2.19.5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

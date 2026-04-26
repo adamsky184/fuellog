@@ -55,7 +55,7 @@ export default async function GarageStatsPage({
       <div>
         <Link
           href="/vehicles"
-          className="text-xs text-slate-500 hover:text-sky-600 inline-flex items-center gap-1"
+          className="text-xs text-slate-500 hover:text-accent inline-flex items-center gap-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Zpět na garáže

@@ -234,7 +234,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                     onClick={() => moveGarage(group.garage_id, -1)}
                     disabled={isFirstReal || savingOrder}
                     aria-label="Posunout výš"
-                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-accent hover:bg-accent/10 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
                   >
                     <ArrowUp className="h-4 w-4" />
                   </button>
@@ -243,7 +243,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                     onClick={() => moveGarage(group.garage_id, 1)}
                     disabled={isLastReal || savingOrder}
                     aria-label="Posunout níž"
-                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/30 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded text-slate-400 hover:text-accent hover:bg-accent/10 disabled:opacity-30 disabled:hover:text-slate-400 disabled:hover:bg-transparent transition"
                   >
                     <ArrowDown className="h-4 w-4" />
                   </button>
@@ -254,7 +254,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                 <button
                   type="button"
                   onClick={() => toggleCollapsed(group.garage_id)}
-                  className="inline-flex items-center gap-2 hover:text-sky-600 transition"
+                  className="inline-flex items-center gap-2 hover:text-accent transition"
                   aria-expanded={!collapsed.has(group.garage_id ?? "")}
                   aria-controls={`garage-${group.garage_id}`}
                 >
@@ -288,7 +288,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                 <span className="ml-auto inline-flex items-center gap-1">
                   <Link
                     href={`/garages/${group.garage_id}/stats`}
-                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
+                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-accent px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
                     title="Souhrnné statistiky garáže"
                   >
                     <BarChart3 className="h-3.5 w-3.5" />
@@ -296,7 +296,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                   </Link>
                   <Link
                     href={`/garages#g-${group.garage_id}`}
-                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-sky-600 px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
+                    className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-accent px-2 py-0.5 rounded hover:bg-sky-50 dark:hover:bg-sky-950/30 transition"
                     title="Sdílet / nastavení garáže"
                   >
                     <Share2 className="h-3.5 w-3.5" />

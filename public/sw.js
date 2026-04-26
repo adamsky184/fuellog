@@ -80,7 +80,13 @@
 //   shadow/ring (přidávalo ~2px optical width vs IconButton);
 //   mobile tabs oba s identickým bg (white), aktivní jen s accent
 //   border+text (žádný bg fill, takže opticky úplně stejný shape).
-const CACHE_VERSION = "fuellog-v2.19.6";
+// v2.19.7: tabs padding sjednoceno s main content (px-2 → px-4),
+//   fill-up table card má `overflow-clip` aby hovered <tr> bg
+//   nepřečíhal přes rounded-2xl roh, ChevronRight hover →
+//   text-accent (bylo text-sky-500 — accent picker propagation),
+//   plus sweep všech hover:text-sky-600 → hover:text-accent v
+//   garage-list, vehicle-switcher, garages stats, profile.
+const CACHE_VERSION = "fuellog-v2.19.7";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

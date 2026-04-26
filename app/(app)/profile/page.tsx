@@ -282,7 +282,7 @@ export default function ProfilePage() {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {PROVIDER_HINTS[aiProvider].blurb}{" "}
             <a
-              className="underline hover:text-sky-600"
+              className="underline hover:text-accent"
               href={PROVIDER_HINTS[aiProvider].url}
               target="_blank"
               rel="noopener noreferrer"

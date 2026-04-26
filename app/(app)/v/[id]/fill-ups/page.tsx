@@ -206,7 +206,11 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                stretched-link pattern: <tr> is `relative`, an absolute <Link>
                in the last cell spans the whole row. No more pencil column
                overflowing the card edge. */}
-          <div className="card hidden sm:block">
+          {/* v2.19.7 — `overflow-clip` (modern CSS — neblokuje sticky
+              thead jako overflow-hidden) ořeže hovered <tr> bg podle
+              rounded-2xl borderu cardu. Předtím hover bg vyčníval
+              přes pravý a levý rounded roh cardu. */}
+          <div className="card hidden sm:block overflow-clip">
             <table className="w-full text-[13px]">
               <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
                 <tr>
@@ -283,7 +287,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                           </div>
                           {/* v2.9.8 — always-visible chevron indicates the
                                row is clickable; brightens on row hover. */}
-                          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-sky-500 transition-colors shrink-0" />
+                          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-accent transition-colors shrink-0" />
                         </div>
                       </Td>
                     </FillUpRow>

@@ -236,7 +236,7 @@ export function VehicleSwitcher({
                         )}
                       </span>
                       {active && (
-                        <Check className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                        <Check className="h-4 w-4 text-accent shrink-0" />
                       )}
                     </button>
                   );

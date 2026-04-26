@@ -266,7 +266,10 @@ export function Header({
       {/* Mobile / tablet sub-nav — two dominant primary tabs. Servis / Import /
           Nastavení moved into the user menu to declutter. */}
       {inVehicle && (
-        <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-700/80 px-2 py-2">
+        /* v2.19.7 — px-4 sjednoceno s <main> p-4 (Adam: "tabs jdou
+           víc do strany než boxy pod nimi"). Předtím px-2 → tabs
+           byly o 8 px na každou stranu wider než stat-grid. */
+        <nav className="md:hidden border-t border-slate-200/80 dark:border-slate-700/80 px-4 py-2">
           <div className="grid grid-cols-2 gap-2">
             {primaryTabs.map((t) => {
               const active = pathname?.startsWith(t.href);

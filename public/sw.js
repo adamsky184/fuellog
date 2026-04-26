@@ -101,7 +101,14 @@
 //   - "Praha 8 - Žernosecká" (no comma) → vše do city
 //   - Praha-style location bez čárky se rozpozná regexem a mappuje
 //     na city; čisté ulice jako "Petrohradská 216" jdou do address.
-const CACHE_VERSION = "fuellog-v2.19.9";
+// v2.19.10: card kolem fill-up tabulky má `overflow-x-auto` (Adam:
+//   "u Octavie šipka mimo, hover přečuhuje vpravo"). Octavia má long
+//   adresy ("Žernosecká"), table-layout: auto roztáhne celkovou šíři
+//   tabulky NAD card width → poslední cell + chevron byly fyzicky za
+//   pravým okrajem cardu. LAMBO/jiné vozy mají kratší adresy → tabulka
+//   se vejde, problém nebyl. Plus chevron kontrast zvýšen z slate-300
+//   na slate-400 (původní splývalo s hover bg-slate-100).
+const CACHE_VERSION = "fuellog-v2.19.10";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

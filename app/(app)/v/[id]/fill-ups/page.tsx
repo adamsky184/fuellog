@@ -206,12 +206,13 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                stretched-link pattern: <tr> is `relative`, an absolute <Link>
                in the last cell spans the whole row. No more pencil column
                overflowing the card edge. */}
-          {/* v2.19.8 — overflow-clip vyřazen (Adam: "ta šipka tam
-              nyní vůbec není") — ořezával i ChevronRight v posledním
-              sloupci, který sedí těsně u pravé rounded zone (24 px).
-              Hover bg na <tr> teď zase teče k samému kraji cardu,
-              ale šipka je vidět. Trade-off > schovaná šipka. */}
-          <div className="card hidden sm:block">
+          {/* v2.19.10 — `overflow-x-auto` na cardu umožní horizontal
+              scroll když total table width > card width. Octavia má
+              long adresy ("Žernosecká") + table-layout: auto roztáhne
+              sloupce → content přesahoval card border vpravo a šipka
+              byla mimo. LAMBO to nemělo (kratší adresy). Teď uvnitř
+              scroll oblasti, šipka vždy viditelná. */}
+          <div className="card hidden sm:block overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
                 <tr>
@@ -288,7 +289,11 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                           </div>
                           {/* v2.9.8 — always-visible chevron indicates the
                                row is clickable; brightens on row hover. */}
-                          <ChevronRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-accent transition-colors shrink-0" />
+                          {/* v2.19.10 — kontrast zvýšen ze slate-300/600
+                              na slate-400/500, aby šipka byla viditelná
+                              i bez hover (na slate-300 splývala s hover
+                              bg). */}
+                          <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500 group-hover:text-accent transition-colors shrink-0" />
                         </div>
                       </Td>
                     </FillUpRow>

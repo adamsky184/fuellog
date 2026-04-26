@@ -10,10 +10,14 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.16.0: UX primitives — Alert + ConfirmDialog (replaces window.confirm
-// host-mounted in app layout), admin tile rainbow retired (all bg-accent),
-// admin-tab-link + multi-select sky-blue → accent.
-const CACHE_VERSION = "fuellog-v2.16.0";
+// v2.17.0: perf bundle — DueReminders fetch bounded to ±7..90 d window
+// (was unbounded), (app)/layout collapsed 3 sequential awaits → single
+// Promise.all of 5 (saves ~150 ms cold edge), DB indexes added on
+// fill_ups (vehicle_id, date DESC), maintenance_entries (vehicle_id,
+// next_due_date), vehicle_members (user_id), garage_members (user_id),
+// dead code removed (lib/currency.ts, components/skeleton.tsx, geo
+// data arrays).
+const CACHE_VERSION = "fuellog-v2.17.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

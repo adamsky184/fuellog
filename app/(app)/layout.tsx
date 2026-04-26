@@ -116,11 +116,14 @@ export default async function AppLayout({
   let isAdmin = false;
   const loadErrors: Array<{ src: string; msg: string }> = [];
 
+  // v2.17.0 — was three sequential `try { await createClient(); … }`
+  //   blocks (vehicles+date_range, garages+settings, profile). Each
+  //   round-trip ~50–80 ms over a cold edge, totaling ~150 ms before
+  //   the page even started rendering. Now we kick off all five in
+  //   parallel via a single Promise.all + a single createClient().
   try {
     const supabase = await createClient();
-    // v2.9.0 — also pull photo_path; merge with vehicle_date_range_v for the
-    // year-range badge in the switcher.
-    const [vRes, drRes] = await Promise.all([
+    const [vRes, drRes, gRes, gusRes, profRes] = await Promise.all([
       supabase
         .from("vehicles")
         .select("id, name, color, make, model, garage_id, photo_path, archived_at, created_at")
@@ -128,7 +131,19 @@ export default async function AppLayout({
       supabase
         .from("vehicle_date_range_v")
         .select("vehicle_id, first_year, last_year, last_date"),
+      supabase.from("garages").select("id, name").order("created_at", { ascending: true }),
+      supabase
+        .from("garage_user_settings")
+        .select("garage_id, sort_order")
+        .eq("user_id", userId),
+      supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .maybeSingle(),
     ]);
+
+    // --- vehicles (with year-range merge) ---
     if (vRes.error) {
       loadErrors.push({ src: "vehicles", msg: vRes.error.message });
       console.error("[(app) layout] vehicles query error", vRes.error);
@@ -142,8 +157,6 @@ export default async function AppLayout({
         const meta = dr.get(v.id as string);
         const archivedAt = (v as { archived_at: string | null }).archived_at;
         const lastDate = meta?.last_date ? new Date(meta.last_date) : null;
-        // Archived vehicles never count as "still driving" so they sort
-        // below active cars in the switcher.
         const recent = !archivedAt && lastDate
           ? today.getTime() - lastDate.getTime() < 120 * 24 * 60 * 60 * 1000
           : false;
@@ -165,21 +178,8 @@ export default async function AppLayout({
         };
       });
     }
-  } catch (e) {
-    rethrowIfNextInternal(e);
-    loadErrors.push({
-      src: "vehicles",
-      msg: e instanceof Error ? e.message : String(e),
-    });
-    console.error("[(app) layout] vehicles threw", e);
-  }
 
-  try {
-    const supabase = await createClient();
-    const [gRes, gusRes] = await Promise.all([
-      supabase.from("garages").select("id, name").order("created_at", { ascending: true }),
-      supabase.from("garage_user_settings").select("garage_id, sort_order").eq("user_id", userId),
-    ]);
+    // --- garages (with user sort order) ---
     if (gRes.error) {
       loadErrors.push({ src: "garages", msg: gRes.error.message });
       console.error("[(app) layout] garages query error", gRes.error);
@@ -194,35 +194,21 @@ export default async function AppLayout({
         sort_order: orderMap.get(g.id as string) ?? null,
       }));
     }
-  } catch (e) {
-    rethrowIfNextInternal(e);
-    loadErrors.push({
-      src: "garages",
-      msg: e instanceof Error ? e.message : String(e),
-    });
-    console.error("[(app) layout] garages threw", e);
-  }
 
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) {
-      loadErrors.push({ src: "profile", msg: error.message });
-      console.error("[(app) layout] profile query error", error);
+    // --- profile (admin flag) ---
+    if (profRes.error) {
+      loadErrors.push({ src: "profile", msg: profRes.error.message });
+      console.error("[(app) layout] profile query error", profRes.error);
     } else {
-      isAdmin = Boolean((data as { is_admin?: boolean } | null)?.is_admin);
+      isAdmin = Boolean((profRes.data as { is_admin?: boolean } | null)?.is_admin);
     }
   } catch (e) {
     rethrowIfNextInternal(e);
     loadErrors.push({
-      src: "profile",
+      src: "shell",
       msg: e instanceof Error ? e.message : String(e),
     });
-    console.error("[(app) layout] profile threw", e);
+    console.error("[(app) layout] shell threw", e);
   }
 
   return (

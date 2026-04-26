@@ -89,11 +89,23 @@ export async function DueReminders({
 }) {
   const supabase = await createClient();
 
+  // v2.17.0 — bound the fetch so DueReminders scales with current
+  //   reality, not full history. Window: anything due from -7 days
+  //   (recently overdue) to +90 days (future). The "stale" logic in
+  //   the renderer below filters further; we just keep the SQL cheap.
+  const _now = new Date();
+  const _past = new Date(_now); _past.setDate(_now.getDate() - 7);
+  const _future = new Date(_now); _future.setDate(_now.getDate() + 90);
+  const _iso = (d: Date) => d.toISOString().slice(0, 10);
+
   let query = supabase
     .from("maintenance_entries")
     .select("vehicle_id, kind, date, next_due_date, vehicles(name)")
     .not("next_due_date", "is", null)
-    .order("date", { ascending: false });
+    .gte("next_due_date", _iso(_past))
+    .lte("next_due_date", _iso(_future))
+    .order("next_due_date", { ascending: true })
+    .limit(100);
 
   if (vehicleId) query = query.eq("vehicle_id", vehicleId);
 

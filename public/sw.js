@@ -10,10 +10,11 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.0: premium polish bundle — Inter + JetBrains Mono via @fontsource,
-// compact accent-aware hero, command palette (⌘K), section headings on
-// stats dashboard, skeleton primitive, refined card hover + transitions.
-const CACHE_VERSION = "fuellog-v2.14.0";
+// v2.14.1: forced accent re-migration (sky→emerald), chart palette is
+// now reactive to accent (graphs match user's chosen colour), map hover
+// renders the active shape on top so its full outline highlights, and
+// "Přizpůsobit dashboard" moved next to the period selector.
+const CACHE_VERSION = "fuellog-v2.14.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

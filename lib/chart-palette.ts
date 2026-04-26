@@ -11,10 +11,27 @@
  * noise.
  */
 
+/** Type for the chart palette — primary slots are dynamic strings (so
+ *  the runtime accent hook can override them with rgb(...) values),
+ *  semantic ones are fixed hex literals. */
+export type ChartPalette = {
+  primary: string;
+  primaryStrong: string;
+  primarySoft: string;
+  primaryFaint: string;
+  ink: string;
+  inkSoft: string;
+  good: string;
+  warn: string;
+  danger: string;
+  grid: string;
+  gridDark: string;
+};
+
 /** Default accent (emerald-600). Overridden at runtime by the user's
  *  accent picker, but charts intentionally pin to this base palette so
  *  the visual identity stays consistent across screens. */
-export const PALETTE = {
+export const PALETTE: ChartPalette = {
   primary: "#059669",          // emerald-600 — main bars, lines
   primaryStrong: "#047857",    // emerald-700 — hover, emphasised series
   primarySoft: "#10B981",      // emerald-500 — secondary series
@@ -26,7 +43,7 @@ export const PALETTE = {
   danger: "#DC2626",           // red-600 — negative deltas, threshold lines
   grid: "#E2E8F0",             // slate-200 — light grid
   gridDark: "#334155",         // slate-700 — dark-mode grid
-} as const;
+};
 
 /** Ordered shades of the accent for stacked / multi-series charts.
  *  First element is darkest (top in a stack). */

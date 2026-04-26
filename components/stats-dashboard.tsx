@@ -728,15 +728,24 @@ export function StatsDashboard({
             {formatNumber(totalAgg.km, 0)} km
           </span>
         </div>
-        {vehicleId && (
-          <Link
-            href={`/v/${vehicleId}/report?year=${latestYear}`}
-            className="btn-secondary text-xs inline-flex items-center gap-1"
-          >
-            <FileDown className="h-3.5 w-3.5" />
-            Roční report
-          </Link>
-        )}
+        {/* v2.14.1 — visibility toggle moved up here, next to the
+              period selector + Roční report button. Premium signal:
+              "all controls live in one place". */}
+        <div className="ml-auto flex items-center gap-2">
+          <StatsVisibilityPanel
+            hidden={visibility.hidden}
+            onChange={visibility.setHidden}
+          />
+          {vehicleId && (
+            <Link
+              href={`/v/${vehicleId}/report?year=${latestYear}`}
+              className="btn-secondary text-xs inline-flex items-center gap-1"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Roční report
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Top tiles */}
@@ -906,8 +915,7 @@ export function StatsDashboard({
         <MonthlyTrends data={monthly} naked />
       </div>
 
-      {/* v2.12.0 — visibility panel: user can hide individual cards. */}
-      <StatsVisibilityPanel hidden={visibility.hidden} onChange={visibility.setHidden} />
+      {/* v2.14.1 — visibility panel moved up next to the period selector. */}
 
       {yearsAvailableAll.length > 0 && (
         <StatsCard id="calendarHeatmap" visible={visibility.isVisible("calendarHeatmap")}>

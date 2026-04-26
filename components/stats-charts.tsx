@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { countryLabel, regionLabel } from "@/lib/regions";
 import { BrandLogo } from "@/components/brand-logo";
-import { PALETTE } from "@/lib/chart-palette";
+import { useAccentPalette } from "@/lib/use-accent-palette";
 
 /**
  * Brand colors — used for per-brand bar coloring and the BrandBadge component.
@@ -139,6 +139,7 @@ type PricePoint = {
 };
 
 export function PriceTrend({ data }: { data: PricePoint[] }) {
+  const PALETTE = useAccentPalette();
   const [country, setCountry] = useState<string>("ALL");
 
   const countries = useMemo(() => {
@@ -197,6 +198,7 @@ export function PriceTrend({ data }: { data: PricePoint[] }) {
 /* --------------------------- Consumption trend ------------------------------ */
 
 export function ConsumptionTrend({ data }: { data: { date: string; consumption: number }[] }) {
+  const PALETTE = useAccentPalette();
   return (
     <div className="card p-4 overflow-hidden">
       <div className="font-semibold mb-3">Vývoj spotřeby (L/100 km)</div>
@@ -251,6 +253,7 @@ export function BrandBreakdown({ data }: { data: { brand: string; liters: number
 /* --------------------------- Country breakdown ------------------------------ */
 
 export function CountryBreakdown({ data }: { data: { country: string; liters: number; count: number }[] }) {
+  const PALETTE = useAccentPalette();
   // v2.9.10 — when there's a long tail of countries (Adam's PAST garage
   // hits ~14), the X-axis labels collide. Cap to top 8 + roll the rest
   // into "Ostatní". Sort desc by liters before slicing.
@@ -301,6 +304,7 @@ type MonthlyPoint = {
  * Bar chart over recent months with a metric toggle (km / L / Kč).
  * Months with no data are skipped on the X axis rather than zero-filled.
  */
+// MonthlyTrends consumes PALETTE; the hook call lives inside the body.
 export function MonthlyTrends({
   data,
   naked = false,
@@ -309,6 +313,7 @@ export function MonthlyTrends({
   /** When true, don't render the outer card/title — the caller provides its own. */
   naked?: boolean;
 }) {
+  const PALETTE = useAccentPalette();
   const [metric, setMetric] = useState<"km" | "liters" | "price">("km");
 
   const metricConfig = {
@@ -571,6 +576,7 @@ type RegionRow = {
  * Horizontální bar chart, seřazený sestupně.
  */
 export function RegionBreakdown({ data }: { data: RegionRow[] }) {
+  const PALETTE = useAccentPalette();
   const prepped = useMemo(() => {
     return data
       .map((r) => ({
@@ -621,6 +627,7 @@ type YearlyPoint = {
  * Doplněk k ročnímu textovému souhrnu.
  */
 export function YearlyChart({ data }: { data: YearlyPoint[] }) {
+  const PALETTE = useAccentPalette();
   if (data.length === 0) return null;
   return (
     <div className="card p-4 md:col-span-2 overflow-hidden">

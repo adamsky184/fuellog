@@ -36,7 +36,10 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 ];
 
 const STORAGE_KEY = "fuellog-accent";
-const MIGRATION_KEY = "fuellog-accent-migrated-v2-13";
+// v2.14.1 — migration flag bumped from v2-13 → v2-14 so users whose
+//   v2.13.2 migration didn't take effect (e.g. SW cached old JS, never
+//   picked up the new default) get re-migrated to emerald exactly once.
+const MIGRATION_KEY = "fuellog-accent-migrated-v2-14";
 // v2.13.0 — default switched from "sky" to "emerald" for the premium
 //   redesign. v2.13.2 adds a one-shot migration: anyone who had the
 //   OLD default "sky" still saved (i.e. they never explicitly picked
@@ -82,5 +85,13 @@ export function applyAccent(preset: AccentPreset): void {
     window.localStorage.setItem(STORAGE_KEY, preset.id);
   } catch {
     /* private mode etc. — best effort */
+  }
+  // v2.14.1 — broadcast a custom event so charts (recharts) and any
+  // other component using `useAccentPalette()` rerender immediately
+  // instead of waiting for a tab re-focus.
+  try {
+    window.dispatchEvent(new CustomEvent("fuellog:accent-changed"));
+  } catch {
+    /* no-op */
   }
 }

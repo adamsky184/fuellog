@@ -78,6 +78,58 @@ export function GeoMap({
 
   if (total === 0) return null;
 
+  // Local helper so the SVG render block (with its two-pass z-order)
+  // stays readable. Defined here, after `fillFor` / `strokeFor` /
+  // `intensity` close over component scope.
+  function renderShape(
+    s: GeoShape,
+    dataMap: Map<string, number>,
+    fmt: (n: number) => string,
+    unit: string,
+    fillFor: (v: number) => string,
+    strokeFor: (v: number, hovered: boolean) => string,
+    intensity: (v: number) => number,
+    isHovered: boolean,
+    showLabels: boolean,
+    setHovered: (code: string | null) => void,
+  ) {
+    const v = dataMap.get(s.code) ?? 0;
+    return (
+      <g
+        key={s.code}
+        onMouseEnter={() => setHovered(s.code)}
+        onMouseLeave={() => setHovered(null)}
+        style={{ cursor: "pointer" }}
+      >
+        <title>
+          {s.label}
+          {v > 0 ? ` — ${fmt(v)} ${unit}` : ""}
+        </title>
+        <path
+          d={s.d}
+          fill={fillFor(v)}
+          stroke={strokeFor(v, isHovered)}
+          strokeWidth={isHovered ? 2.5 : 1.5}
+          strokeLinejoin="round"
+        />
+        {showLabels && (
+          <text
+            x={s.centroid[0]}
+            y={s.centroid[1]}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{ pointerEvents: "none" }}
+            className={`text-[18px] font-semibold ${
+              intensity(v) > 0.5 ? "fill-white" : "fill-slate-700 dark:fill-slate-300"
+            }`}
+          >
+            {s.code === "P" ? "" : s.code}
+          </text>
+        )}
+      </g>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -94,44 +146,19 @@ export function GeoMap({
             role="img"
             aria-label={title}
           >
-            {shapes.map((s) => {
-              const v = data.get(s.code) ?? 0;
-              const isHovered = hovered === s.code;
-              return (
-                <g
-                  key={s.code}
-                  onMouseEnter={() => setHovered(s.code)}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <title>
-                    {s.label}
-                    {v > 0 ? ` — ${fmt(v)} ${unit}` : ""}
-                  </title>
-                  <path
-                    d={s.d}
-                    fill={fillFor(v)}
-                    stroke={strokeFor(v, isHovered)}
-                    strokeWidth={isHovered ? 2.5 : 1.5}
-                    strokeLinejoin="round"
-                  />
-                  {showLabels && (
-                    <text
-                      x={s.centroid[0]}
-                      y={s.centroid[1]}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      style={{ pointerEvents: "none" }}
-                      className={`text-[18px] font-semibold ${
-                        intensity(v) > 0.5 ? "fill-white" : "fill-slate-700 dark:fill-slate-300"
-                      }`}
-                    >
-                      {s.code === "P" ? "" : s.code}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+            {/* v2.14.1 — render shapes in two passes:
+                  1) all non-hovered (z-order = original)
+                  2) the hovered one ON TOP, so its accent border draws
+                     fully even where it's adjacent to another shape's
+                     stroke. Fixes Adam's "only some borders highlight"
+                     report on neighbouring kraje / countries. */}
+            {shapes
+              .filter((s) => s.code !== hovered)
+              .map((s) => renderShape(s, data, fmt, unit, fillFor, strokeFor, intensity, false, showLabels, setHovered))}
+            {hovered &&
+              shapes
+                .filter((s) => s.code === hovered)
+                .map((s) => renderShape(s, data, fmt, unit, fillFor, strokeFor, intensity, true, showLabels, setHovered))}
           </svg>
         </div>
 

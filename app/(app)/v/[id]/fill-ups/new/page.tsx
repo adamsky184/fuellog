@@ -925,7 +925,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             checked={form.is_full_tank}
             onChange={(e) => setForm({ ...form, is_full_tank: e.target.checked })}
           />
-          Plná nádrž (nutné pro správný výpočet L/100 km)
+          Plná nádrž (nutné pro správný výpočet l/100 km)
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

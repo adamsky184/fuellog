@@ -94,7 +94,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
         "Litry",
         "Kč celkem",
         "Kč/l",
-        "L/100 km",
+        "l/100 km",
         "Firma",
         "Město",
         "Kraj",
@@ -293,7 +293,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
         <h2 className="text-lg font-semibold">Export do xlsx</h2>
         <p className="text-sm text-slate-600">
           Stáhne všechna tankování tohoto auta do Excelu (list <code>SPOTŘEBA</code>).
-          Obsahuje i dopočítané sloupce (ujeto km, Kč/l, L/100 km).
+          Obsahuje i dopočítané sloupce (ujeto km, Kč/l, l/100 km).
         </p>
         <button type="button" onClick={handleExport} disabled={exporting} className="btn-primary">
           {exporting ? "Exportuji…" : "Stáhnout všechna tankování"}

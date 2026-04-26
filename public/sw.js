@@ -40,7 +40,28 @@
 // vodorovné lince. Stat tile "Posl. tankování" přejmenované na
 // "Spotřeba posl. tank." + jednotka l/100 přímo v hodnotě + kratší
 // tooltip aby se nestal oříznutým mimo viewport.
-const CACHE_VERSION = "fuellog-v2.19.2";
+// v2.19.3: jednotky napříč appkou + tooltip rewrite + header alignment
+//   final fix.
+//
+// (a) Jednotky sjednoceny — všude `l/100 km` (lowercase, plný unit).
+//     Bylo „l/100" bez km, „L/100" s velkým L, jinde „L/100 km" — ze
+//     12 callsites (stats-dashboard, stats-charts, yearly-summary,
+//     fill-ups list, report, compare, settings, import, edit form,
+//     new form). Adam: "v boxu Spotřeba 30 dní chybí km, někde je L
+//     velké, opravit jednou provždy".
+//
+// (b) InfoDot tooltip rewrite z absolute+side-flip na position:fixed
+//     s vypočtenou pozicí. Nikdy nemůže být oříznut overflow nebo
+//     viewport okrajem; vertikálně auto-flip pod/nad (≥ 120 px room
+//     below = below, jinak above). Re-měří se na scroll/resize tak
+//     aby sticky thead nehnul tooltipem.
+//
+// (c) Header — wrapper divy AccentToggle a Hamburger dostaly
+//     `inline-flex` (předtím default block), takže fungují jako
+//     řádné flex-items a aligují se s ostatními. Mobile tabs aktivní
+//     state měl `shadow-sm` — odstraněno, takže active a inactive
+//     button vypadají stejně až na barvu.
+const CACHE_VERSION = "fuellog-v2.19.3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

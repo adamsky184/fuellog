@@ -87,7 +87,7 @@ export function YearlySummaryTable({
               Ø <U>Kč/l</U>{arrow("kcL")}
             </Th>
             <Th right onClick={() => toggleSort("l100")}>
-              Ø <U>l/100</U>{arrow("l100")}
+              Ø <U>l/100 km</U>{arrow("l100")}
             </Th>
             <Th right onClick={() => toggleSort("kcKm")}>
               <U>Kč/km</U>{arrow("kcKm")}
@@ -112,7 +112,7 @@ export function YearlySummaryTable({
                 {r.kcL != null ? <>{formatNumber(r.kcL, 2)}<U>Kč/l</U></> : "—"}
               </td>
               <td className="px-2 py-1 text-right tabular-nums">
-                {r.l100 != null ? <>{formatNumber(r.l100, 2)}<U>l/100</U></> : "—"}
+                {r.l100 != null ? <>{formatNumber(r.l100, 2)}<U>l/100 km</U></> : "—"}
               </td>
               <td className="px-2 py-1 text-right tabular-nums">
                 {r.kcKm != null ? <>{formatNumber(r.kcKm, 2)}<U>Kč/km</U></> : "—"}

@@ -45,7 +45,7 @@ export function AccentToggle() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative inline-flex">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

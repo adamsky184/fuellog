@@ -497,7 +497,7 @@ export default function VehicleSettingsPage({
             <div>
               <label className="label">
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5 align-middle" />
-                Dobrá ≤ (l/100)
+                Dobrá ≤ (l/100 km)
               </label>
               <input
                 type="text"
@@ -514,7 +514,7 @@ export default function VehicleSettingsPage({
             <div>
               <label className="label">
                 <span className="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1.5 align-middle" />
-                Špatná ≥ (l/100)
+                Špatná ≥ (l/100 km)
               </label>
               <input
                 type="text"

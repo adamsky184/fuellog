@@ -87,7 +87,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
         <Stat label="Tankování"  value={`${totals?.count ?? 0}×`}                            tone="count" icon={<Hash className="h-3.5 w-3.5" />} />
         <Stat label="Celkem"     value={formatNumber(totals?.price, 0)}       unit="Kč"     tone="money" icon={<Coins className="h-3.5 w-3.5" />} />
         <Stat label="Celkem"     value={formatNumber(totals?.liters, 1)}      unit="l"      tone="fuel"  icon={<Droplet className="h-3.5 w-3.5" />} />
-        <Stat label="Ø spotřeba" value={formatNumber(avgConsumption, 2)}      unit="l/100"  tone="fuel"  icon={<Fuel className="h-3.5 w-3.5" />} />
+        <Stat label="Ø spotřeba" value={formatNumber(avgConsumption, 2)}      unit="l/100 km"  tone="fuel"  icon={<Fuel className="h-3.5 w-3.5" />} />
       </div>
       <div className="flex justify-end">
         <Link
@@ -182,7 +182,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                       <span>
                         <span className="text-slate-400">Spotřeba:</span>{" "}
                         <span className={consumptionClass(r.consumption_l_per_100km, avgConsumption, thresholds) || "font-medium"}>
-                          {formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100</UnitSuffix>
+                          {formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100 km</UnitSuffix>
                         </span>
                       </span>
                     )}
@@ -216,7 +216,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                   <Th sticky right unit="l">Litrů</Th>
                   <Th sticky right unit="Kč/l">Cena</Th>
                   <Th sticky right unit="Kč">Celkem</Th>
-                  <Th sticky right unit="l/100">Spotřeba</Th>
+                  <Th sticky right unit="l/100 km">Spotřeba</Th>
                   <Th sticky>Pumpa</Th>
                   <Th sticky>Místo</Th>
                 </tr>
@@ -256,7 +256,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                       </Td>
                       <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
                       <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption, thresholds)}>
-                        {r.consumption_l_per_100km ? <>{formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100</UnitSuffix></> : "—"}
+                        {r.consumption_l_per_100km ? <>{formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100 km</UnitSuffix></> : "—"}
                       </Td>
                       <Td>
                         {r.station_brand ? (

@@ -190,7 +190,7 @@ export default async function ReportPage({
         <ReportStat label="Spotřebováno" value={`${formatNumber(liters, 1)} l`} />
         <ReportStat label="Utraceno" value={formatCurrency(price)} />
         <ReportStat label="Tankování" value={`${rows.length}×`} />
-        <ReportStat label="Ø spotřeba" value={`${formatNumber(avgL100, 2)} l/100`} />
+        <ReportStat label="Ø spotřeba" value={`${formatNumber(avgL100, 2)} l/100 km`} />
         <ReportStat label="Ø cena" value={`${formatNumber(avgPricePerL, 2)} Kč/l`} />
         <ReportStat label="Kč/km" value={`${formatNumber(czkPerKm, 2)} Kč/km`} />
         <ReportStat label="Servis" value={formatCurrency(maintCost)} />
@@ -228,7 +228,7 @@ export default async function ReportPage({
                   <th className="text-right px-2 py-1">km</th>
                   <th className="text-right px-2 py-1">L</th>
                   <th className="text-right px-2 py-1">Kč</th>
-                  <th className="text-right px-2 py-1">Ø L/100</th>
+                  <th className="text-right px-2 py-1">Ø l/100 km</th>
                 </tr>
               </thead>
               <tbody>

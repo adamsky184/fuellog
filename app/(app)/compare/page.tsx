@@ -202,7 +202,7 @@ export default async function ComparePage({
                 strong
               />
               <Row
-                label="Ø spotřeba (l/100)"
+                label="Ø spotřeba (l/100 km)"
                 values={statsList.map((s) => s.avgL100 != null ? formatNumber(s.avgL100, 2) : "—")}
                 bestLow={statsList.map((s) => s.avgL100)}
               />

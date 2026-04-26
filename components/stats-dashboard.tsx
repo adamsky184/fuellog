@@ -100,41 +100,52 @@ function daysBetween(fromIso: string, toIso: string): number {
 
 function InfoDot({ description }: { description: string }) {
   const [open, setOpen] = useState(false);
-  // v2.18.2 — flip-side state so the bubble never overflows the
-  // viewport. On mobile, the LEFT-column Stat tile's InfoDot used to
-  // anchor a 16-rem-wide tooltip at right:0, which then stuck out the
-  // left edge of the screen and got clipped (Adam: "začátek je mimo
-  // obrazovku"). We measure on open + on hover and pick the side with
-  // more room.
-  const [side, setSide] = useState<"right" | "left" | "center">("right");
-  const ref = useRef<HTMLSpanElement | null>(null);
+  // v2.19.3 — full rewrite na position:fixed s vypočtenou pozicí,
+  // aby tooltip NIKDY nemohl být oříznutý parent overflow ani okrajem
+  // viewportu. Předchozí absolute+side-flip stále chytalo edge case
+  // ("Kolik li... období" oříznutý na top tile). Fixed positioning
+  // navíc dovoluje rendering i při sticky thead nebo overflow-hidden
+  // card.
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    placement: "below" | "above";
+  } | null>(null);
+  const wrapRef = useRef<HTMLSpanElement | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
 
-  // Re-measure after open so the bubble flips to the side with more room.
   function measure() {
     const btn = btnRef.current;
     if (!btn) return;
     const r = btn.getBoundingClientRect();
     const vw = window.innerWidth;
-    const TOOLTIP_W = 256; // matches w-[16rem]
+    const vh = window.innerHeight;
     const margin = 8;
-    const roomLeft = r.right - margin;            // bubble would end at btn.right, start at btn.right - W
-    const roomRight = vw - r.left - margin;       // bubble starts at btn.left, ends at btn.left + W
-    if (roomLeft >= TOOLTIP_W) {
-      setSide("right");                            // anchor right edge to btn (default)
-    } else if (roomRight >= TOOLTIP_W) {
-      setSide("left");                             // anchor left edge to btn
-    } else {
-      setSide("center");                           // tight viewport — center under btn, clamp
-    }
+    // Width: prefer 16 rem, ale clampuj na viewport - 2 * margin.
+    const desired = 256;
+    const width = Math.min(desired, vw - margin * 2);
+    // Horizontální: nejdřív vycentrovat na střed buttonu, pak posunout
+    //   pokud by left/right hrana přečetla viewport.
+    const btnCenter = r.left + r.width / 2;
+    let left = btnCenter - width / 2;
+    if (left < margin) left = margin;
+    if (left + width > vw - margin) left = vw - margin - width;
+    // Vertikální: pod buttonem; když pod ním není dost místa (≤ 100 px
+    //   po dolní hraně), padá nad button.
+    const spaceBelow = vh - r.bottom;
+    const placement: "below" | "above" = spaceBelow >= 120 ? "below" : "above";
+    const top = placement === "below" ? r.bottom + 6 : r.top - 6;
+    setPos({ top, left, width, placement });
   }
 
-  // Close on outside click / Escape.
+  // Close on outside click / Escape; měřit při scroll / resize abychom
+  // sledovali sticky header.
   useEffect(() => {
     if (!open) return;
     measure();
     function onDocDown(e: MouseEvent | TouchEvent) {
-      const el = ref.current;
+      const el = wrapRef.current;
       if (el && e.target instanceof Node && !el.contains(e.target)) {
         setOpen(false);
       }
@@ -142,36 +153,39 @@ function InfoDot({ description }: { description: string }) {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+    function onReposition() {
+      measure();
+    }
     document.addEventListener("mousedown", onDocDown);
     document.addEventListener("touchstart", onDocDown, { passive: true });
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onReposition, { passive: true, capture: true });
+    window.addEventListener("resize", onReposition);
     return () => {
       document.removeEventListener("mousedown", onDocDown);
       document.removeEventListener("touchstart", onDocDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onReposition, { capture: true });
+      window.removeEventListener("resize", onReposition);
     };
   }, [open]);
 
-  // Position class picked from side state.
-  const sideClass =
-    side === "left"
-      ? "left-0"
-      : side === "center"
-        ? "left-1/2 -translate-x-1/2"
-        : "right-0";
-
   return (
-    <span
-      ref={ref}
-      className="relative inline-flex group align-middle"
-    >
+    <span ref={wrapRef} className="relative inline-flex align-middle">
       <button
         ref={btnRef}
         type="button"
-        onMouseEnter={measure}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          setOpen((v) => {
+            const next = !v;
+            if (next) {
+              // Měřit synchronně před paintnutí, aby první frame už
+              //   měl správnou pozici.
+              requestAnimationFrame(() => measure());
+            }
+            return next;
+          });
         }}
         aria-label="Informace"
         aria-expanded={open}
@@ -180,13 +194,23 @@ function InfoDot({ description }: { description: string }) {
       >
         <Info className="h-3 w-3" />
       </button>
-      <span
-        className={`pointer-events-none absolute ${sideClass} top-6 z-20 w-[16rem] max-w-[calc(100vw-1rem)] p-2 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg ${
-          open ? "block" : "hidden group-hover:block"
-        }`}
-      >
-        {description}
-      </span>
+      {open && pos && (
+        <span
+          role="tooltip"
+          className="pointer-events-none fixed z-[60] p-2.5 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg whitespace-normal break-words"
+          style={{
+            top: pos.placement === "below" ? pos.top : undefined,
+            bottom:
+              pos.placement === "above"
+                ? window.innerHeight - pos.top
+                : undefined,
+            left: pos.left,
+            width: pos.width,
+          }}
+        >
+          {description}
+        </span>
+      )}
     </span>
   );
 }
@@ -371,7 +395,7 @@ function SplitTable({ title, buckets, info }: { title: string; buckets: Bucket[]
               <th className="text-right px-2 py-1">km</th>
               <th className="text-right px-2 py-1">Litry</th>
               <th className="text-right px-2 py-1">Kč</th>
-              <th className="text-right px-2 py-1">Ø L/100</th>
+              <th className="text-right px-2 py-1">Ø l/100 km</th>
               <th className="text-right px-2 py-1">Ø Kč/l</th>
               <th className="text-right px-2 py-1">Kč/km</th>
             </tr>
@@ -871,7 +895,7 @@ export function StatsDashboard({
           tone="money"
         />
         <Stat
-          label="Ø L/100 km"
+          label="Ø l/100 km"
           value={formatNumber(totalAgg.avgL100, 2)}
           info="Průměrná spotřeba — celkové litry děleno celkové kilometry krát 100. Dražší tankování mají větší váhu."
           tone="fuel"
@@ -907,7 +931,7 @@ export function StatsDashboard({
             mobileLabel="Ø 30d"
             value={
               last30dConsumption != null
-                ? `${formatNumber(last30dConsumption, 2)} l/100`
+                ? `${formatNumber(last30dConsumption, 2)} l/100 km`
                 : "—"
             }
             info="Průměrná spotřeba (l/100 km) za posledních 30 dní — sezónní trend, nezávislý na zvoleném období."
@@ -921,7 +945,7 @@ export function StatsDashboard({
             mobileLabel="Posl. tank."
             value={
               lastFillUp.consumption_l_per_100km != null
-                ? `${formatNumber(Number(lastFillUp.consumption_l_per_100km), 2)} l/100`
+                ? `${formatNumber(Number(lastFillUp.consumption_l_per_100km), 2)} l/100 km`
                 : "—"
             }
             info={`Spotřeba l/100 km u posledního tankování${lastFillUp.date ? " · " + lastFillUp.date : ""}${lastFillUp.station_brand ? " · " + lastFillUp.station_brand : ""}. Slouží k rychlé kontrole kvality paliva.`}

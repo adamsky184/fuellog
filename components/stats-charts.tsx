@@ -224,7 +224,7 @@ export function ConsumptionTrend({ data }: { data: { date: string; consumption: 
   const PALETTE = useAccentPalette();
   return (
     <div className="card p-4 overflow-hidden">
-      <div className="font-semibold mb-3">Vývoj spotřeby (L/100 km)</div>
+      <div className="font-semibold mb-3">Vývoj spotřeby (l/100 km)</div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
@@ -548,7 +548,7 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
                 className="text-right px-2 py-1 cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("consumption")}
               >
-                Ø spotřeba <U>l/100</U>{arrow("consumption")}
+                Ø spotřeba <U>l/100 km</U>{arrow("consumption")}
               </th>
             </tr>
           </thead>
@@ -574,7 +574,7 @@ export function BrandRanking({ data }: { data: BrandRankRow[] }) {
                   {r.avgPricePerL != null ? <>{r.avgPricePerL.toFixed(2)}<U>Kč/l</U></> : "—"}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
-                  {r.avgL100 != null ? <>{r.avgL100.toFixed(2)}<U>l/100</U></> : "—"}
+                  {r.avgL100 != null ? <>{r.avgL100.toFixed(2)}<U>l/100 km</U></> : "—"}
                 </td>
               </tr>
             ))}

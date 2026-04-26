@@ -8,10 +8,11 @@ import { APP_VERSION } from "@/lib/version";
 /**
  * Segment-level error boundary for the authenticated app shell.
  *
- * If `app/(app)/layout.tsx` or any nested page throws on the server, Next
- * masks `error.message` in production and only keeps `digest`. We surface
- * the digest AND the full error on screen so Adam can tell what actually
- * happened without digging through Vercel logs.
+ * v2.15.0 — stack trace is now hidden from end-users in production.
+ *   Previously the full file paths + SQL fragments were rendered into
+ *   the page, which leaked internals to anyone who hit an error.
+ *   To keep Adam's debugging story alive, append `?debug=1` to the URL
+ *   after a crash and the stack reappears.
  */
 export default function AppSegmentError({
   error,
@@ -20,6 +21,12 @@ export default function AppSegmentError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isProd = process.env.NODE_ENV === "production";
+  const showDebug =
+    !isProd ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("debug") === "1");
+
   useEffect(() => {
     console.error("[(app) segment error]", error);
   }, [error]);
@@ -52,12 +59,19 @@ export default function AppSegmentError({
         <h1 className="text-xl font-semibold">Aplikace spadla</h1>
       </div>
       <div className="card p-4 space-y-2 border-rose-200 bg-rose-50 dark:bg-rose-950/40 dark:border-rose-900">
-        <p className="text-sm">
-          <span className="font-semibold">Zpráva:</span>{" "}
-          <span className="whitespace-pre-wrap break-words">
-            {error.message || "(neznámá chyba)"}
-          </span>
-        </p>
+        {showDebug ? (
+          <p className="text-sm">
+            <span className="font-semibold">Zpráva:</span>{" "}
+            <span className="whitespace-pre-wrap break-words">
+              {error.message || "(neznámá chyba)"}
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm">
+            Něco se rozbilo při načítání stránky. Zkus prosím znovu nebo
+            obnov okno. Pokud to potrvá, ozvi se Adamovi a pošli digest níže.
+          </p>
+        )}
         {error.digest && (
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Digest: <code className="font-mono">{error.digest}</code>
@@ -75,7 +89,7 @@ export default function AppSegmentError({
             <span className="text-slate-400">načítám…</span>
           )}
         </p>
-        {error.stack && (
+        {showDebug && error.stack && (
           <details className="text-xs">
             <summary className="cursor-pointer text-slate-600 dark:text-slate-400">
               Stack
@@ -84,6 +98,11 @@ export default function AppSegmentError({
               {error.stack}
             </pre>
           </details>
+        )}
+        {!showDebug && (
+          <p className="text-[10px] text-slate-400 italic">
+            Pro detailní stack přidej <code className="font-mono">?debug=1</code> do URL.
+          </p>
         )}
       </div>
       <div className="flex gap-2 flex-wrap">

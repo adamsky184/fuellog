@@ -33,7 +33,13 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const nextPath = params.get("next") || "/vehicles";
+  // v2.15.0 — guard against open-redirect: only allow same-origin paths
+  // ("/something"), never absolute URLs or protocol-relative ("//evil.com").
+  // Same rule as /auth/callback. Without this, a crafted invite link
+  // ?next=//evil.example/x would soft-nav the user cross-origin post-login.
+  const rawNext = params.get("next") || "/vehicles";
+  const nextPath =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/vehicles";
   const errorParam = params.get("error");
 
   const [mode, setMode] = useState<Mode>("signin");

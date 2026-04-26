@@ -10,10 +10,11 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.7: stats toolbar collapsed into a single flex-wrap row, so
-// "Přizpůsobit" no longer floats orphaned on its own line on the
-// cross-garage stats page when there's no Roční report next to it.
-const CACHE_VERSION = "fuellog-v2.14.7";
+// v2.15.0: SECURITY HOTFIX — _get_ai_key_for_user revoked from
+// anon/authenticated (cross-user AI key leak), /login open-redirect
+// guard, error.tsx hides stack in prod (?debug=1 to opt back in),
+// log_error rate-limited to 60/5min/user with hard text length caps.
+const CACHE_VERSION = "fuellog-v2.15.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

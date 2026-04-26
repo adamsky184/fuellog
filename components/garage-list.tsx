@@ -345,7 +345,7 @@ export function GarageList({ groups: initialGroups }: { groups: GarageListGroup[
                             )}
                             {ageLabel && (
                               <span
-                                className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums shrink-0 font-normal whitespace-nowrap"
+                                className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums shrink-0 font-normal whitespace-nowrap"
                                 title={`Vozidlo z roku ${v.year}, dnes je mu ${ageLabel.replace(" let", "")} let`}
                               >
                                 · {ageLabel}

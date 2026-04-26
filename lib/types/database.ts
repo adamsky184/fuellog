@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      currency_rates: {
+        Row: {
+          currency: string
+          czk_per_unit: number
+          fetched_at: string
+          rate_date: string
+        }
+        Insert: {
+          currency: string
+          czk_per_unit: number
+          fetched_at?: string
+          rate_date: string
+        }
+        Update: {
+          currency?: string
+          czk_per_unit?: number
+          fetched_at?: string
+          rate_date?: string
+        }
+        Relationships: []
+      }
+      error_log: {
+        Row: {
+          context: Json | null
+          id: number
+          message: string
+          occurred_at: string
+          severity: string
+          stack: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          id?: number
+          message: string
+          occurred_at?: string
+          severity?: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          id?: number
+          message?: string
+          occurred_at?: string
+          severity?: string
+          stack?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fill_ups: {
         Row: {
           address: string | null
@@ -95,52 +152,17 @@ export type Database = {
             foreignKeyName: "fill_ups_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_date_range_v"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "fill_ups_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
-      }
-      currency_rates: {
-        Row: {
-          rate_date: string
-          currency: string
-          czk_per_unit: number
-          fetched_at: string
-        }
-        Insert: {
-          rate_date: string
-          currency: string
-          czk_per_unit: number
-          fetched_at?: string
-        }
-        Update: {
-          rate_date?: string
-          currency?: string
-          czk_per_unit?: number
-          fetched_at?: string
-        }
-        Relationships: []
-      }
-      garage_user_settings: {
-        Row: {
-          user_id: string
-          garage_id: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          user_id: string
-          garage_id: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          user_id?: string
-          garage_id?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
       }
       garage_members: {
         Row: {
@@ -167,6 +189,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "garage_members_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      garage_user_settings: {
+        Row: {
+          garage_id: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          garage_id: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          garage_id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_user_settings_garage_id_fkey"
             columns: ["garage_id"]
             isOneToOne: false
             referencedRelation: "garages"
@@ -255,6 +306,13 @@ export type Database = {
             foreignKeyName: "maintenance_entries_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_date_range_v"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "maintenance_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -304,6 +362,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "garages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_invites_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_date_range_v"
+            referencedColumns: ["vehicle_id"]
           },
           {
             foreignKeyName: "pending_invites_vehicle_id_fkey"
@@ -398,6 +463,13 @@ export type Database = {
             foreignKeyName: "vehicle_members_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_date_range_v"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "vehicle_members_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -405,6 +477,7 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          archived_at: string | null
           color: string | null
           created_at: string
           created_by: string
@@ -417,12 +490,12 @@ export type Database = {
           model: string | null
           name: string
           photo_path: string | null
-          archived_at: string | null
           tank_capacity_liters: number | null
           updated_at: string
           year: number | null
         }
         Insert: {
+          archived_at?: string | null
           color?: string | null
           created_at?: string
           created_by: string
@@ -435,12 +508,12 @@ export type Database = {
           model?: string | null
           name: string
           photo_path?: string | null
-          archived_at?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null
         }
         Update: {
+          archived_at?: string | null
           color?: string | null
           created_at?: string
           created_by?: string
@@ -453,7 +526,6 @@ export type Database = {
           model?: string | null
           name?: string
           photo_path?: string | null
-          archived_at?: string | null
           tank_capacity_liters?: number | null
           updated_at?: string
           year?: number | null
@@ -470,18 +542,6 @@ export type Database = {
       }
     }
     Views: {
-      vehicle_date_range_v: {
-        Row: {
-          vehicle_id: string | null
-          first_date: string | null
-          last_date: string | null
-          first_year: number | null
-          last_year: number | null
-          fill_up_count: number | null
-          current_odometer: number | null
-        }
-        Relationships: []
-      }
       fill_up_stats_v: {
         Row: {
           address: string | null
@@ -518,10 +578,29 @@ export type Database = {
             foreignKeyName: "fill_ups_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_date_range_v"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "fill_ups_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      vehicle_date_range_v: {
+        Row: {
+          current_odometer: number | null
+          fill_up_count: number | null
+          first_date: string | null
+          first_year: number | null
+          last_date: string | null
+          last_year: number | null
+          vehicle_id: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -532,7 +611,7 @@ export type Database = {
           provider: string
         }[]
       }
-      accept_pending_invites: { Args: Record<string, never>; Returns: Json }
+      accept_pending_invites: { Args: never; Returns: Json }
       add_garage_member: {
         Args: {
           p_email: string
@@ -560,7 +639,7 @@ export type Database = {
         Returns: undefined
       }
       admin_list_fill_ups: {
-        Args: { p_limit?: number; p_vehicle_id?: string | null }
+        Args: { p_limit?: number; p_vehicle_id?: string }
         Returns: {
           city: string
           country: string
@@ -583,7 +662,7 @@ export type Database = {
         }[]
       }
       admin_list_garages: {
-        Args: Record<string, never>
+        Args: never
         Returns: {
           created_at: string
           created_by: string
@@ -597,7 +676,7 @@ export type Database = {
         }[]
       }
       admin_list_users: {
-        Args: Record<string, never>
+        Args: never
         Returns: {
           avatar_url: string
           created_at: string
@@ -611,7 +690,7 @@ export type Database = {
         }[]
       }
       admin_list_vehicles: {
-        Args: Record<string, never>
+        Args: never
         Returns: {
           color: string
           created_at: string
@@ -694,7 +773,11 @@ export type Database = {
         Returns: boolean
       }
       cancel_pending_invite: { Args: { p_invite_id: string }; Returns: Json }
-      clear_ai_key: { Args: Record<string, never>; Returns: undefined }
+      clear_ai_key: { Args: never; Returns: undefined }
+      convert_to_czk: {
+        Args: { amount: number; currency: string; txn_date?: string }
+        Returns: number
+      }
       get_forward_receipt_context: {
         Args: { p_fill_up_id: string }
         Returns: {
@@ -729,7 +812,8 @@ export type Database = {
           vehicle_plate: string
         }[]
       }
-      is_admin: { Args: Record<string, never>; Returns: boolean }
+      get_user_label: { Args: { p_user_id: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
       is_garage_member: {
         Args: { g_id: string; u_id: string }
         Returns: boolean
@@ -784,6 +868,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      log_error: {
+        Args: {
+          p_context?: Json
+          p_message: string
+          p_severity?: string
+          p_stack?: string
+          p_url?: string
+          p_user_agent?: string
+        }
+        Returns: number
+      }
+      refresh_cnb_rates: { Args: { target_date?: string }; Returns: Json }
       remove_garage_member: {
         Args: { p_garage_id: string; p_user_id: string }
         Returns: undefined
@@ -812,6 +908,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      shares_resource_with_me: { Args: { other: string }; Returns: boolean }
     }
     Enums: {
       fuel_type: "gasoline" | "diesel" | "lpg" | "electric" | "hybrid"

@@ -43,7 +43,7 @@ export default async function AdminFillUpsPage({
     const limitN = Math.min(Math.max(Number(limit) || 500, 50), 5000);
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("admin_list_fill_ups", {
-      p_vehicle_id: vehicle ?? null,
+      p_vehicle_id: vehicle ?? undefined,
       p_limit: limitN,
     });
     if (error) throw new Error(`admin_list_fill_ups: ${error.message}`);

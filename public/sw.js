@@ -10,12 +10,11 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.10.0: bundled release — security tightening (admin-probe gate,
-// open-redirect fix, security_invoker on stats views), paginated fetches
-// for fill-ups list / xlsx export / brand history, year-of-manufacture
-// surfaced in homepage fleet summary + per-vehicle annual report,
-// and tap-target sizes bumped to 36 px.
-const CACHE_VERSION = "fuellog-v2.10.0";
+// v2.11.0: kraj auto-fill from city, highway dropdown, "kdo přidal"
+// provenance, narrowed profiles RLS, CHECK constraints + UNIQUE on
+// fill_ups, error_log table + global error catcher, accent colour
+// picker, choropleth tile maps (Evropa / kraje / Praha).
+const CACHE_VERSION = "fuellog-v2.11.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

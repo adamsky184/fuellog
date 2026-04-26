@@ -10,7 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        accent: "#0ea5e9",
+        // v2.11.0 — accent is now driven by a CSS custom property so the
+        // user's accent-picker preference (lib/theme.ts) takes effect on
+        // every utility (bg-accent / text-accent / border-accent / ring).
+        // Default value is set in globals.css.
+        accent: "var(--accent, #0ea5e9)",
+        "accent-hover": "var(--accent-hover, #0284c7)",
         ink: "#0f172a",
         paper: "#f8fafc",
         // Dark mode surfaces — tuned once here so utility usage stays readable.

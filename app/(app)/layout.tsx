@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
 import { OfflineSync } from "@/components/offline-sync";
 import { BackToTop } from "@/components/back-to-top";
+import { GlobalErrorCatcher } from "@/components/global-error-catcher";
+import { AccentInit } from "@/components/accent-init";
 import { AlertTriangle } from "lucide-react";
 import { rethrowIfNextInternal } from "@/lib/next-errors";
 
@@ -251,6 +253,8 @@ export default async function AppLayout({
       </main>
       <OfflineSync />
       <BackToTop />
+      <GlobalErrorCatcher />
+      <AccentInit />
     </>
   );
 }

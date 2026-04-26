@@ -11,6 +11,8 @@ import {
   parseRegionKey,
   regionKey,
 } from "@/lib/regions";
+import { cityToKraj } from "@/lib/city-to-kraj";
+import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress } from "@/lib/highways";
 import { enqueueFillUp } from "@/lib/offline-queue";
 import { PhotoOcr } from "@/components/photo-ocr";
 import { RegionInfobox } from "@/components/region-infobox";
@@ -250,6 +252,26 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.region_key]);
+
+  // v2.11.0 — auto-fill kraj when city is recognised in the lookup table.
+  // Triggers only when region is empty, so we never clobber a user choice.
+  // Recognises cities like Plzeň, Rozvadov, Humpolec, Mladá Boleslav, …
+  useEffect(() => {
+    if (form.region_key) return;
+    const krajCode = cityToKraj(form.city) ?? cityToKraj(form.address);
+    if (krajCode) {
+      setForm((f) => (f.region_key ? f : { ...f, region_key: `CZ:${krajCode}` }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.city, form.address]);
+
+  // v2.11.0 — when the user picks a highway code, prepend "DXX · " to the
+  // existing address (replacing any old DXX prefix). Stored as a separate
+  // local state for clarity; the actual DB write still goes through `address`.
+  const currentHighwayCode = parseHighwayCode(form.address);
+  function setHighwayCode(code: string | null) {
+    setForm((f) => ({ ...f, address: applyHighwayCodeToAddress(f.address, code) }));
+  }
 
   // Resolve the currently-typed brand (select vs. free-form Jiná…)
   const currentBrand =
@@ -884,11 +906,41 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
           <input
             type="checkbox"
             checked={form.is_highway}
-            onChange={(e) => setForm({ ...form, is_highway: e.target.checked })}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setForm({ ...form, is_highway: next });
+              // v2.11.0 — when un-toggling highway, clear any DXX prefix
+              // from address so we don't leave dangling "D5" everywhere.
+              if (!next && currentHighwayCode) setHighwayCode(null);
+            }}
           />
           Dálnice (počítat zvlášť ve statistice)
         </label>
       </div>
+
+      {/* v2.11.0 — explicit highway-number picker. Only rendered when
+          is_highway is on. Selecting a code prepends "DXX · " to the
+          address and replaces any existing DXX prefix. */}
+      {form.is_highway && (
+        <div>
+          <label className="label">Číslo dálnice</label>
+          <select
+            className="input"
+            value={currentHighwayCode ?? ""}
+            onChange={(e) => setHighwayCode(e.target.value || null)}
+          >
+            <option value="">— vyber —</option>
+            {CZ_HIGHWAYS.map((h) => (
+              <option key={h.code} value={h.code}>
+                {h.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+            Volba se uloží jako prefix do adresy (např. „D5 · Rozvadov").
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="label">Poznámka</label>

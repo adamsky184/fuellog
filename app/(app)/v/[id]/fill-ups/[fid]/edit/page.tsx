@@ -10,6 +10,9 @@ import {
   parseRegionKey,
   regionKey,
 } from "@/lib/regions";
+import { cityToKraj } from "@/lib/city-to-kraj";
+import { CZ_HIGHWAYS, parseHighwayCode, applyHighwayCodeToAddress } from "@/lib/highways";
+import { formatDate } from "@/lib/utils";
 
 const OTHER_BRAND = "__other__";
 const OTHER_COUNTRY_KEY = "C:__other__";
@@ -31,6 +34,13 @@ export default function EditFillUpPage({
   const [brandSelect, setBrandSelect] = useState<string>("");
   const [brandNew, setBrandNew] = useState<string>("");
   const [customCountry, setCustomCountry] = useState<string>("");
+  // v2.11.0 — provenance: who created this entry, when. Visible read-only
+  // for shared vehicles so Adam knows whether he or Milan added the row.
+  const [meta, setMeta] = useState<{
+    createdBy: string | null;
+    createdAt: string | null;
+    creatorEmail: string | null;
+  }>({ createdBy: null, createdAt: null, creatorEmail: null });
 
   const [form, setForm] = useState({
     date: "",
@@ -68,6 +78,21 @@ export default function EditFillUpPage({
         return;
       }
       const r = rowRes.data;
+      // v2.11.0 — fetch a human label for the creator via SECURITY DEFINER
+      //   RPC `get_user_label`. The RPC enforces the same self/shares/admin
+      //   gate as the narrowed profiles RLS, so it never leaks identities.
+      if (r.created_by) {
+        const { data: label } = await supabase.rpc("get_user_label", {
+          p_user_id: r.created_by,
+        });
+        if (!cancelled) {
+          setMeta({
+            createdBy: r.created_by,
+            createdAt: r.created_at ?? null,
+            creatorEmail: typeof label === "string" ? label : null,
+          });
+        }
+      }
       // Known foreign countries round-trip via regionKey; unknown codes (e.g.
       // "Jiný stát…" previously saved) need to re-enter via the custom input.
       const knownForeign = FOREIGN_COUNTRIES.some((c) => c.country === r.country);
@@ -138,6 +163,24 @@ export default function EditFillUpPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.region_key]);
 
+  // v2.11.0 — auto-fill kraj when city is recognised. Only fires when
+  // region is empty so we never override an explicit user choice.
+  useEffect(() => {
+    if (loading) return;
+    if (form.region_key) return;
+    const krajCode = cityToKraj(form.city) ?? cityToKraj(form.address);
+    if (krajCode) {
+      setForm((f) => (f.region_key ? f : { ...f, region_key: `CZ:${krajCode}` }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.city, form.address]);
+
+  // v2.11.0 — highway dropdown helpers (mirrors new-fill-up page).
+  const currentHighwayCode = parseHighwayCode(form.address);
+  function setHighwayCode(code: string | null) {
+    setForm((f) => ({ ...f, address: applyHighwayCodeToAddress(f.address, code) }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -207,6 +250,25 @@ export default function EditFillUpPage({
   return (
     <form onSubmit={handleSubmit} className="card p-5 sm:p-6 space-y-4 max-w-xl">
       <h2 className="text-lg font-semibold">Upravit tankování</h2>
+      {/* v2.11.0 — provenance line (kdo přidal). Hidden until profile resolved. */}
+      {(meta.creatorEmail || meta.createdAt) && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {meta.creatorEmail && (
+            <>
+              <span className="text-slate-400">Přidal:</span>{" "}
+              <span className="font-medium text-slate-700 dark:text-slate-200">
+                {meta.creatorEmail}
+              </span>
+            </>
+          )}
+          {meta.creatorEmail && meta.createdAt && " · "}
+          {meta.createdAt && (
+            <>
+              <span className="text-slate-400">{formatDate(meta.createdAt)}</span>
+            </>
+          )}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -377,11 +439,34 @@ export default function EditFillUpPage({
           <input
             type="checkbox"
             checked={form.is_highway}
-            onChange={(e) => setForm({ ...form, is_highway: e.target.checked })}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setForm({ ...form, is_highway: next });
+              if (!next && currentHighwayCode) setHighwayCode(null);
+            }}
           />
           Dálnice (počítat zvlášť ve statistice)
         </label>
       </div>
+
+      {/* v2.11.0 — explicit highway-number picker on edit too. */}
+      {form.is_highway && (
+        <div>
+          <label className="label">Číslo dálnice</label>
+          <select
+            className="input"
+            value={currentHighwayCode ?? ""}
+            onChange={(e) => setHighwayCode(e.target.value || null)}
+          >
+            <option value="">— vyber —</option>
+            {CZ_HIGHWAYS.map((h) => (
+              <option key={h.code} value={h.code}>
+                {h.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="label">Poznámka</label>

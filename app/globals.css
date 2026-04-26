@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: light;
+  /* v2.11.0 — accent is overridden by lib/theme.ts → applyAccent(). */
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-soft: rgba(14, 165, 233, 0.12);
 }
 
 .dark {
@@ -25,7 +29,14 @@ body {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition select-none;
 }
 .btn-primary {
-  @apply btn bg-accent text-white hover:bg-sky-600 active:bg-sky-700 disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-700 dark:disabled:text-slate-500;
+  /* v2.11.0 — hover/active now derive from CSS var so accent picker propagates. */
+  @apply btn bg-accent text-white disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-700 dark:disabled:text-slate-500;
+}
+.btn-primary:not(:disabled):hover {
+  background-color: var(--accent-hover, #0284c7);
+}
+.btn-primary:not(:disabled):active {
+  filter: brightness(0.92);
 }
 .btn-secondary {
   @apply btn bg-white text-ink border border-slate-200 hover:bg-slate-50 active:bg-slate-100

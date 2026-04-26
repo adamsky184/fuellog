@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, Sparkles, User } from "lucide-react";
+import { KeyRound, Palette, Sparkles, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AccentPicker } from "@/components/accent-picker";
 
 type AiProvider = "gemini" | "openai" | "anthropic" | "openrouter";
 
@@ -311,6 +312,14 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      <div className="card p-5 sm:p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Palette className="h-4 w-4 text-slate-500" />
+          <h2 className="font-semibold">Vzhled</h2>
+        </div>
+        <AccentPicker />
+      </div>
 
       <form onSubmit={handleChangePassword} className="card p-5 sm:p-6 space-y-4">
         <div className="flex items-center gap-2">

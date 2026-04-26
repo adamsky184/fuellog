@@ -48,6 +48,7 @@ import {
 } from "@/components/stats-charts";
 import { CalendarHeatmap } from "@/components/calendar-heatmap";
 import { YearlySummaryTable } from "@/components/yearly-summary-table";
+import { StatsMaps } from "@/components/stats-maps";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { countryLabel } from "@/lib/regions";
 
@@ -890,6 +891,11 @@ export function StatsDashboard({
         <RegionBreakdown data={regionData} />
         <YearlyChart data={yearlyChartData} />
       </div>
+
+      {/* v2.11.0 — three tile-style choropleths fed from the filtered rows.
+           Lazy-loaded so the maps + their layouts only download when this
+           page is opened. */}
+      <StatsMaps rows={filtered} />
 
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">

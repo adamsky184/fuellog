@@ -30,10 +30,13 @@ export default async function ReportPage({
     .maybeSingle();
   if (!vehicle) notFound();
 
+  // v2.18.3 — tahej i total_price_czk, jinak EUR/USD/PLN tankování by se
+  //   sčítala v cizí měně (177 EUR jako 177 Kč) a deformovala roční sumu.
+  //   Stejně tak price_per_liter musí mít CZK variantu.
   const { data: rowsRaw } = await supabase
     .from("fill_up_stats_v")
     .select(
-      "date, odometer_km, liters, total_price, price_per_liter, consumption_l_per_100km, km_since_last, station_brand, country, region, is_baseline, is_highway",
+      "date, odometer_km, liters, total_price, total_price_czk, price_per_liter, price_per_liter_czk, consumption_l_per_100km, km_since_last, station_brand, country, region, is_baseline, is_highway",
     )
     .eq("vehicle_id", id)
     .gte("date", `${year}-01-01`)
@@ -42,6 +45,11 @@ export default async function ReportPage({
 
   const rowsAll = rowsRaw ?? [];
   const rows = rowsAll.filter((r) => !r.is_baseline);
+
+  // Helper: vždy sahej po CZK ekvivalentu, fallback na původní hodnotu (pro
+  //   řádky vytvořené před tím, než byla funkce convert_to_czk dostupná).
+  const priceCzk = (r: { total_price: number | null; total_price_czk: number | null }) =>
+    Number(r.total_price_czk ?? r.total_price ?? 0);
 
   const { data: yearsRows } = await supabase
     .from("fill_ups")
@@ -54,7 +62,7 @@ export default async function ReportPage({
   const years = Array.from(yearsSet).sort();
 
   const liters = rows.reduce((a, r) => a + Number(r.liters ?? 0), 0);
-  const price = rows.reduce((a, r) => a + Number(r.total_price ?? 0), 0);
+  const price = rows.reduce((a, r) => a + priceCzk(r), 0);
   const km = rows.reduce((a, r) => a + Number(r.km_since_last ?? 0), 0);
   const avgL100 = km > 0 ? (liters / km) * 100 : null;
   const avgPricePerL = liters > 0 ? price / liters : null;
@@ -87,7 +95,7 @@ export default async function ReportPage({
     const key = r.station_brand?.trim() || "—";
     const e = byBrand.get(key) ?? { liters: 0, price: 0, count: 0 };
     e.liters += Number(r.liters ?? 0);
-    e.price += Number(r.total_price ?? 0);
+    e.price += priceCzk(r);
     e.count += 1;
     byBrand.set(key, e);
   }
@@ -118,7 +126,7 @@ export default async function ReportPage({
     const e = byMonth.get(m) ?? { km: 0, liters: 0, price: 0, count: 0 };
     e.km += Number(r.km_since_last ?? 0);
     e.liters += Number(r.liters ?? 0);
-    e.price += Number(r.total_price ?? 0);
+    e.price += priceCzk(r);
     e.count += 1;
     byMonth.set(m, e);
   }

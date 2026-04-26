@@ -35,7 +35,15 @@ export function CalendarHeatmap({
   rows,
   yearsAvailable,
 }: {
-  rows: Array<{ date: string | null; liters: number | null; total_price: number | null; is_baseline: boolean | null }>;
+  rows: Array<{
+    date: string | null;
+    liters: number | null;
+    /** v2.18.3 — preferovaná, CZK-normalizovaná cena z fill_up_stats_v. */
+    total_price_czk?: number | null;
+    /** Fallback (v původní měně) pro starší řádky bez převodu. */
+    total_price: number | null;
+    is_baseline: boolean | null;
+  }>;
   yearsAvailable: number[];
 }) {
   const latest = yearsAvailable[yearsAvailable.length - 1] ?? new Date().getFullYear();
@@ -50,7 +58,9 @@ export function CalendarHeatmap({
       const cur = map.get(r.date) ?? { date: r.date, count: 0, liters: 0, price: 0 };
       cur.count += 1;
       cur.liters += Number(r.liters ?? 0);
-      cur.price += Number(r.total_price ?? 0);
+      // v2.18.3 — preferuj CZK ekvivalent. Bez tohoto by se EUR/USD/PLN
+      //   tankování přičítaly v cizí měně a heatmap denní suma byla špatně.
+      cur.price += Number(r.total_price_czk ?? r.total_price ?? 0);
       map.set(r.date, cur);
     }
     return map;

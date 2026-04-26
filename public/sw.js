@@ -10,14 +10,14 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.18.2: brand-logo + tooltip polish — BrandLogo unified to a
-// circular tile (square JPEGs no longer mismatch with the round
-// initial-badges); BrandBadge fallback colour now derived from a
-// hash of the brand name so unknown stations get distinct hues
-// instead of all sky-blue; InfoDot tooltip auto-flips left/right/
-// center based on viewport room so the bubble no longer overflows
-// the left edge on mobile (Adam: "začátek je mimo obrazovku").
-const CACHE_VERSION = "fuellog-v2.18.2";
+// v2.18.3: currency conversion bugfix — Roční report a Calendar
+// heatmap sčítaly total_price přímo (bez CZK konverze), takže fill-up
+// v EUR/USD/PLN se počítal v cizí měně místo v Kč. /report/page.tsx
+// teď tahá total_price_czk z fill_up_stats_v + má `priceCzk(r)`
+// helper, calendar-heatmap dostává navíc `total_price_czk?` prop a
+// preferuje ho přes původní hodnotu. fill_up_stats_v + convert_to_czk
+// na DB jsou nezměněné, problém byl čistě v klientském aggregování.
+const CACHE_VERSION = "fuellog-v2.18.3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

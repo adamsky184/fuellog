@@ -668,11 +668,13 @@ export function StatsDashboard({
     year, km: Math.round(e.km), liters: Number(e.liters.toFixed(1)), price: Math.round(e.price),
   }));
 
-  // Heatmap input — always all years (ignores period)
+  // Heatmap input — always all years (ignores period).
+  // v2.18.3 — předávej i total_price_czk, jinak heatmap zobrazí EUR/USD jako Kč.
   const heatmapRows = rowsAll.map((r) => ({
     date: r.date ?? null,
     liters: r.liters == null ? null : Number(r.liters),
     total_price: r.total_price == null ? null : Number(r.total_price),
+    total_price_czk: r.total_price_czk == null ? null : Number(r.total_price_czk),
     is_baseline: r.is_baseline ?? null,
   }));
   const yearsAvailableAll = useMemo(() => {

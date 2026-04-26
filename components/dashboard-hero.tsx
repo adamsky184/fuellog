@@ -1,16 +1,13 @@
 /**
- * v2.13.0 — premium hero card on the /vehicles homepage.
+ * v2.14.0 — compact, accent-aware hero.
  *
- * Server component. Loads the user's last-30d totals across ALL vehicles
- * they can see (RLS handles filtering) and renders a single dark "hero"
- * card with the month spend, plus three small stat lines and a delta
- * badge vs the previous 30 days.
- *
- * Inspired by Adam's Testora screenshot — single tonal accent + dark
- * focal element + everything else neutral.
+ * Replaces the v2.13.0 dark slab. Now ~40 % shorter, single horizontal
+ * row, with a thin gradient accent bar on the left so the colour
+ * picks up whatever the user has set in /profile or via the header
+ * AccentToggle. Premium, not loud.
  */
 
-import { Wallet, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatNumber } from "@/lib/utils";
 
@@ -26,7 +23,6 @@ async function aggregate(
   supabase: Awaited<ReturnType<typeof createClient>>,
   range: Range,
 ): Promise<{ priceCzk: number; liters: number; km: number; count: number }> {
-  // Paginated fetch — same pattern as fetch-all-stats.ts.
   const PAGE = 1000;
   let priceCzk = 0;
   let liters = 0;
@@ -69,72 +65,74 @@ export async function DashboardHero() {
     aggregate(supabase, prev30),
   ]);
 
-  // Hide hero entirely when the user has no fill-ups at all.
   if (now.count === 0 && prev.count === 0) return null;
 
-  // Delta vs previous period.
   let deltaPct: number | null = null;
   if (prev.priceCzk > 0) {
     deltaPct = ((now.priceCzk - prev.priceCzk) / prev.priceCzk) * 100;
   }
-  const deltaIcon = deltaPct == null
-    ? <Minus className="h-3 w-3" />
-    : deltaPct > 0
-      ? <TrendingUp className="h-3 w-3" />
-      : <TrendingDown className="h-3 w-3" />;
-  const deltaTone = deltaPct == null
-    ? "bg-white/10 text-white/70"
-    : deltaPct > 0
-      ? "bg-white/15 text-white"
-      : "bg-emerald-300/20 text-emerald-100";
-  const deltaText = deltaPct == null
-    ? "—"
-    : `${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%`;
+
+  const deltaIcon =
+    deltaPct == null ? <Minus className="h-3 w-3" /> :
+    deltaPct > 0 ? <TrendingUp className="h-3 w-3" /> :
+    <TrendingDown className="h-3 w-3" />;
+
+  const deltaTone =
+    deltaPct == null ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" :
+    deltaPct > 0 ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" :
+    "bg-accent/15 text-accent";
+
+  const deltaText =
+    deltaPct == null ? "—" :
+    `${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%`;
 
   return (
-    <section className="rounded-2xl bg-slate-900 dark:bg-slate-950 text-white p-5 sm:p-6 ring-1 ring-white/5">
-      <div className="flex items-start justify-between gap-3">
+    <section className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden flex">
+      <div
+        aria-hidden
+        className="w-1 shrink-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-hover-rgb)) 100%)",
+        }}
+      />
+      <div className="flex-1 px-4 py-3 sm:px-5 sm:py-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-white/55 inline-flex items-center gap-1.5">
-            <Wallet className="h-3 w-3" />
+          <div className="text-[10px] font-medium uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400">
             Posledních 30 dní
           </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-medium tracking-tight tabular-nums">
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl sm:text-[26px] font-medium tracking-tight tabular-nums">
               {formatNumber(now.priceCzk, 0)}
             </span>
-            <span className="text-base text-white/60">Kč</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Kč</span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${deltaTone}`}
+            >
+              {deltaIcon}
+              <span className="tabular-nums">{deltaText}</span>
+            </span>
           </div>
         </div>
-        <div className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${deltaTone}`}>
-          {deltaIcon}
-          <span className="tabular-nums">{deltaText}</span>
-        </div>
-      </div>
-
-      <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-3 gap-3 text-sm">
-        <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.05em] text-white/50">Tankování</div>
-          <div className="mt-0.5 tabular-nums">
-            <span className="font-medium">{now.count}</span>
-            <span className="text-white/55">×</span>
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.05em] text-white/50">Litry</div>
-          <div className="mt-0.5 tabular-nums">
-            <span className="font-medium">{formatNumber(now.liters, 1)}</span>
-            <span className="text-white/55 ml-1">l</span>
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.05em] text-white/50">Ujeto</div>
-          <div className="mt-0.5 tabular-nums">
-            <span className="font-medium">{formatNumber(now.km, 0)}</span>
-            <span className="text-white/55 ml-1">km</span>
-          </div>
+        <div className="flex gap-5 sm:gap-6 text-[12px]">
+          <Mini label="Tankování" value={`${now.count}×`} />
+          <Mini label="Litry" value={`${formatNumber(now.liters, 1)} l`} />
+          <Mini label="Ujeto" value={`${formatNumber(now.km, 0)} km`} />
         </div>
       </div>
     </section>
+  );
+}
+
+function Mini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-right">
+      <div className="text-[10px] font-medium uppercase tracking-[0.05em] text-slate-400 dark:text-slate-500">
+        {label}
+      </div>
+      <div className="mt-0.5 font-medium tabular-nums text-slate-700 dark:text-slate-200">
+        {value}
+      </div>
+    </div>
   );
 }

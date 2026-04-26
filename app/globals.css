@@ -4,6 +4,13 @@
 
 :root {
   color-scheme: light;
+  /* v2.14.0 — typography variables for tailwind + body fallback. Inter
+     Variable + JetBrains Mono Variable are loaded via @fontsource imports
+     in app/layout.tsx so the actual font face name is fixed below. */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
   /* v2.13.0 — green is the new default accent for the premium redesign.
      Stored as RGB triplets (e.g. "5 150 105") so Tailwind's alpha modifier
      (bg-accent/30, ring-accent/30 …) works through the CSS variable.
@@ -22,9 +29,17 @@
 html,
 body {
   @apply bg-paper text-ink antialiased;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  /* v2.14.0 — Inter via next/font (set on <html> as --font-sans). System
+     fallbacks keep things readable during the brief font load. */
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+/* v2.14.0 — every tabular-nums helper inherits the proper variable too. */
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
 .dark body {
   @apply bg-paper-dark text-ink-dark;
@@ -58,8 +73,16 @@ body {
 }
 
 .card {
-  @apply rounded-2xl bg-white border border-slate-200/60 shadow-sm
-    dark:bg-card-dark dark:border-slate-700/60 dark:shadow-none;
+  /* v2.14.0 — premium card: subtle border, no shadow by default,
+     small lift on hover to suggest interactivity. Cards can opt-out
+     of the lift by adding `.card-static` (e.g. for non-interactive
+     summary cards we don't want bouncing under the cursor). */
+  @apply rounded-2xl bg-white border border-slate-200/70
+    dark:bg-card-dark dark:border-slate-700/60
+    transition-[border-color,box-shadow,transform] duration-150;
+}
+.card:not(.card-static):hover {
+  @apply border-slate-300 dark:border-slate-600;
 }
 
 .label {

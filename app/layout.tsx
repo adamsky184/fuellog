@@ -1,4 +1,11 @@
 import type { Metadata, Viewport } from "next";
+// v2.14.0 — premium typography via self-hosted @fontsource. Google Fonts
+// would be blocked from this build environment; @fontsource ships the
+// woff2 files inside the bundle and exposes them as plain CSS imports.
+// Inter for body, JetBrains Mono for tabular numerics. CSS variable names
+// match what tailwind.config.ts + globals.css expect.
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "./globals.css";
 import { Footer } from "@/components/footer";
 import { SWRegister } from "@/components/sw-register";
@@ -69,7 +76,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#0ea5e9" },
+    { media: "(prefers-color-scheme: light)", color: "#059669" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
   ],
   width: "device-width",

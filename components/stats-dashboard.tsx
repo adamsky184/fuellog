@@ -370,6 +370,23 @@ function SplitTable({ title, buckets, info }: { title: string; buckets: Bucket[]
 
 /* ----- Component ----- */
 
+/** v2.14.0 — uniform section heading used between dashboard groupings. */
+function SectionHeading({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="pt-2 pb-1">
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-sm font-medium tracking-tight text-slate-700 dark:text-slate-200 uppercase letter-spacing-wide">
+          {title}
+        </h2>
+        <div className="flex-1 h-px bg-slate-200/70 dark:bg-slate-800" />
+        {hint && (
+          <span className="text-[11px] text-slate-400">{hint}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function StatsDashboard({
   rows,
   vehicleId,
@@ -898,6 +915,9 @@ export function StatsDashboard({
         </StatsCard>
       )}
 
+      {/* v2.14.0 — sectioned for clearer hierarchy: Vývoj v čase →
+            Podle kategorie → Geografie → Po letech. */}
+      <SectionHeading title="Vývoj v čase" hint="Cena litru a spotřeba měsíc po měsíci" />
       <div className="grid md:grid-cols-2 gap-4">
         <StatsCard id="priceTrend" visible={visibility.isVisible("priceTrend")}>
           <PriceTrend data={priceSeries} />
@@ -905,6 +925,10 @@ export function StatsDashboard({
         <StatsCard id="consumptionTrend" visible={visibility.isVisible("consumptionTrend")}>
           <ConsumptionTrend data={consumptionSeries} />
         </StatsCard>
+      </div>
+
+      <SectionHeading title="Podle kategorie" hint="Kde a u koho tankuju nejčastěji" />
+      <div className="grid md:grid-cols-2 gap-4">
         <StatsCard id="brandRanking" visible={visibility.isVisible("brandRanking")}>
           <BrandRanking data={brandData} />
         </StatsCard>
@@ -917,22 +941,19 @@ export function StatsDashboard({
         <StatsCard id="regionBreakdown" visible={visibility.isVisible("regionBreakdown")}>
           <RegionBreakdown data={regionData} />
         </StatsCard>
-        <StatsCard id="yearlyChart" visible={visibility.isVisible("yearlyChart")}>
-          <YearlyChart data={yearlyChartData} />
-        </StatsCard>
       </div>
 
-      {/* v2.11.0 — three tile-style choropleths fed from the filtered rows. */}
       <StatsCard id="maps" visible={visibility.isVisible("maps")}>
+        <SectionHeading title="Geografie" hint="ČR kraje, Praha okresy, Evropa" />
         <StatsMaps rows={filtered} />
       </StatsCard>
 
+      <SectionHeading title="Po letech" hint="Souhrn po kalendářních letech" />
+      <StatsCard id="yearlyChart" visible={visibility.isVisible("yearlyChart")}>
+        <YearlyChart data={yearlyChartData} />
+      </StatsCard>
       <StatsCard id="yearlySummary" visible={visibility.isVisible("yearlySummary")}>
         <div className="card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="font-semibold">Roční souhrn</div>
-            <InfoDot description="Souhrn po kalendářních letech — jen roky spadající do vybraného období. Klikni na sloupec pro seřazení." />
-          </div>
           <YearlySummaryTable rows={yearly} />
         </div>
       </StatsCard>

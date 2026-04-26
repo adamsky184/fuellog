@@ -36,7 +36,10 @@ export const ACCENT_PRESETS: AccentPreset[] = [
 ];
 
 const STORAGE_KEY = "fuellog-accent";
-const DEFAULT_ID = "sky";
+// v2.13.0 — default switched from "sky" to "emerald" for the premium
+//   redesign. Existing users keep their saved choice; new users start
+//   on green and can change in /profile.
+const DEFAULT_ID = "emerald";
 
 export function loadAccent(): AccentPreset {
   if (typeof window === "undefined") return ACCENT_PRESETS[0];

@@ -99,7 +99,10 @@ export function useStatsVisibility(): {
   };
 }
 
-/** Inline panel rendered at the top of the dashboard. */
+/**
+ * v2.12.1 — prominent button + popover. The previous <details> disclosure
+ * was visually buried; Adam asked for something obviously clickable.
+ */
 export function StatsVisibilityPanel({
   hidden,
   onChange,
@@ -109,52 +112,91 @@ export function StatsVisibilityPanel({
 }) {
   const [open, setOpen] = useState(false);
   const visibleCount = ALL_IDS.length - hidden.size;
+  const hiddenCount = hidden.size;
+
   return (
-    <details
-      className="card p-3"
-      open={open}
-      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
-    >
-      <summary className="cursor-pointer select-none flex items-center gap-2 text-sm">
-        <Settings2 className="h-4 w-4 text-slate-500" />
-        <span className="font-medium">Co zobrazit</span>
-        <span className="text-xs text-slate-400 ml-auto">
-          {visibleCount} z {ALL_IDS.length} aktivních
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full inline-flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm transition border ${
+          open
+            ? "bg-accent text-white border-accent shadow-sm"
+            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-accent hover:shadow-sm"
+        }`}
+      >
+        <span className="inline-flex items-center gap-2 font-medium">
+          <Settings2 className="h-4 w-4" />
+          Přizpůsobit dashboard
         </span>
-      </summary>
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-        {ALL_IDS.map((id) => {
-          const isHidden = hidden.has(id);
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                const next = new Set(hidden);
-                if (isHidden) next.delete(id);
-                else next.add(id);
-                onChange(next);
-              }}
-              className={`inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-left transition ${
-                isHidden
-                  ? "bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100"
-                  : "bg-accent/10 text-accent hover:bg-accent/20"
-              }`}
-            >
-              {isHidden ? (
-                <EyeOff className="h-3.5 w-3.5 shrink-0" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 shrink-0" />
-              )}
-              <span className="truncate">{STATS_CARD_LABELS[id]}</span>
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-[11px] text-slate-400 mt-2">
-        Volba se uloží jen v tomto prohlížeči.
-      </p>
-    </details>
+        <span className={`text-xs tabular-nums px-2 py-0.5 rounded-full ${
+          open
+            ? "bg-white/20 text-white"
+            : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+        }`}>
+          {visibleCount} z {ALL_IDS.length} sekcí
+          {hiddenCount > 0 && ` · ${hiddenCount} skryto`}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute z-30 left-0 right-0 mt-2 card p-4 space-y-3 shadow-lg border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-sm">Co zobrazit</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                Klikni na sekci pro zapnutí / skrytí.
+              </div>
+            </div>
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onChange(new Set())}
+                className="text-xs px-2 py-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Zobrazit vše
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-xs px-2 py-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Zavřít
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {ALL_IDS.map((id) => {
+              const isHidden = hidden.has(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    const next = new Set(hidden);
+                    if (isHidden) next.delete(id);
+                    else next.add(id);
+                    onChange(next);
+                  }}
+                  className={`inline-flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-left transition border ${
+                    isHidden
+                      ? "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400"
+                      : "border-accent/30 bg-accent/10 text-accent"
+                  }`}
+                >
+                  {isHidden ? (
+                    <EyeOff className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  <span className="truncate">{STATS_CARD_LABELS[id]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

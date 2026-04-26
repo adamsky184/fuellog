@@ -10,12 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.12.0: real SVG choropleth maps (CZ kraje, Praha okresy, Evropa) +
-// side-panel ranking, vehicle comparison page (/compare), per-card
-// stats hide/show toggles, pump ranking with total Kč column,
-// city → highway-code heuristic (Rozvadov→D5, Humpolec→D1 …),
-// xlsx lazy-loaded only on import page.
-const CACHE_VERSION = "fuellog-v2.12.0";
+// v2.13.0: premium redesign — emerald accent default, dashboard hero
+// card with last-30d totals + delta, REAL geographic Europe map (from
+// world-atlas via d3-geo), unified chart palette (no rainbow),
+// neutral stats tiles with accent icons, prominent stats visibility
+// toolbar.
+const CACHE_VERSION = "fuellog-v2.13.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

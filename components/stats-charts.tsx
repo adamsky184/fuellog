@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { countryLabel, regionLabel } from "@/lib/regions";
 import { BrandLogo } from "@/components/brand-logo";
+import { PALETTE } from "@/lib/chart-palette";
 
 /**
  * Brand colors — used for per-brand bar coloring and the BrandBadge component.
@@ -185,7 +186,7 @@ export function PriceTrend({ data }: { data: PricePoint[] }) {
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
             <Tooltip isAnimationActive={false} />
-            <Line type="monotone" dataKey="pricePerLiter" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="pricePerLiter" stroke={PALETTE.primary} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -206,7 +207,7 @@ export function ConsumptionTrend({ data }: { data: { date: string; consumption: 
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
             <Tooltip isAnimationActive={false} />
-            <Line type="monotone" dataKey="consumption" stroke="#10b981" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="consumption" stroke={PALETTE.primaryStrong} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -279,7 +280,7 @@ export function CountryBreakdown({ data }: { data: { country: string; liters: nu
               formatter={(v: number) => `${v.toLocaleString("cs-CZ")} l`}
               isAnimationActive={false}
             />
-            <Bar dataKey="liters" fill="#f59e0b" name="Litry" isAnimationActive={false} />
+            <Bar dataKey="liters" fill={PALETTE.primary} name="Litry" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -598,7 +599,7 @@ export function RegionBreakdown({ data }: { data: RegionRow[] }) {
             <XAxis type="number" tick={{ fontSize: 10 }} />
             <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={80} />
             <Tooltip formatter={(v: number) => `${v.toLocaleString("cs-CZ")} l`} />
-            <Bar dataKey="liters" fill="#8b5cf6" name="Litry"  isAnimationActive={false} />
+            <Bar dataKey="liters" fill={PALETTE.primaryStrong} name="Litry"  isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -648,12 +649,12 @@ export function YearlyChart({ data }: { data: YearlyPoint[] }) {
               }}
             />
             <Legend />
-            <Bar yAxisId="left" dataKey="km" fill="#0ea5e9" name="km"  isAnimationActive={false} />
+            <Bar yAxisId="left" dataKey="km" fill={PALETTE.primarySoft} name="km"  isAnimationActive={false} />
             <Line
               yAxisId="right"
               type="monotone"
               dataKey="price"
-              stroke="#ef4444"
+              stroke={PALETTE.danger}
               strokeWidth={2}
               name="Kč"
               dot

@@ -305,25 +305,14 @@ function UnitSuffix({ children }: { children: React.ReactNode }) {
   );
 }
 
+// v2.13.0 — `tone` kept for API compatibility but visually unified.
+//   Premium redesign brief: neutral white card + accent icon only.
 type StatTone = "km" | "fuel" | "money" | "count";
-const TONE_BG: Record<StatTone, string> = {
-  km:    "bg-sky-50/60 dark:bg-sky-950/20",
-  fuel:  "bg-amber-50/60 dark:bg-amber-950/20",
-  money: "bg-emerald-50/60 dark:bg-emerald-950/20",
-  count: "bg-slate-50/60 dark:bg-slate-800/40",
-};
-const TONE_ICON: Record<StatTone, { bg: string; fg: string; ring: string }> = {
-  km:    { bg: "bg-sky-100 dark:bg-sky-900/40",       fg: "text-sky-600 dark:text-sky-300",       ring: "ring-sky-200/60 dark:ring-sky-800/60" },
-  fuel:  { bg: "bg-amber-100 dark:bg-amber-900/40",   fg: "text-amber-600 dark:text-amber-300",   ring: "ring-amber-200/60 dark:ring-amber-800/60" },
-  money: { bg: "bg-emerald-100 dark:bg-emerald-900/40", fg: "text-emerald-600 dark:text-emerald-300", ring: "ring-emerald-200/60 dark:ring-emerald-800/60" },
-  count: { bg: "bg-slate-100 dark:bg-slate-700/60",   fg: "text-slate-600 dark:text-slate-300",   ring: "ring-slate-200/60 dark:ring-slate-700/60" },
-};
 
 function Stat({
   label,
   value,
   unit,
-  tone,
   icon,
 }: {
   label: string;
@@ -332,22 +321,22 @@ function Stat({
   tone?: StatTone;
   icon?: React.ReactNode;
 }) {
-  const bg = tone ? TONE_BG[tone] : "";
-  const ic = tone ? TONE_ICON[tone] : null;
   return (
-    <div className={`card p-2.5 sm:p-3 ${bg}`}>
-      <div className="flex items-center gap-1.5">
-        {icon && ic && (
-          <span className={`inline-flex items-center justify-center h-5 w-5 rounded-md ${ic.bg} ${ic.fg} ring-1 ${ic.ring}`}>
+    <div className="card p-3">
+      <div className="flex items-center gap-2">
+        {icon && (
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-lg bg-accent/10 text-accent">
             {icon}
           </span>
         )}
-        <div className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</div>
+        <div className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">
+          {label}
+        </div>
       </div>
-      <div className="font-semibold text-base sm:text-lg mt-1 leading-tight">
+      <div className="font-medium text-lg sm:text-xl mt-2 leading-tight tracking-tight">
         <span className="tabular-nums">{value}</span>
         {unit && (
-          <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-normal ml-1">
+          <span className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-normal ml-1">
             {unit}
           </span>
         )}

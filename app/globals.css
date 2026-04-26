@@ -4,15 +4,15 @@
 
 :root {
   color-scheme: light;
-  /* v2.11.0 — accent is overridden by lib/theme.ts → applyAccent().
-     Stored as RGB triplets (e.g. "14 165 233") so Tailwind's alpha modifier
+  /* v2.13.0 — green is the new default accent for the premium redesign.
+     Stored as RGB triplets (e.g. "5 150 105") so Tailwind's alpha modifier
      (bg-accent/30, ring-accent/30 …) works through the CSS variable.
      The plain hex --accent is kept for inline styles outside Tailwind. */
-  --accent-rgb: 14 165 233;
-  --accent-hover-rgb: 2 132 199;
-  --accent: #0ea5e9;
-  --accent-hover: #0284c7;
-  --accent-soft: rgba(14, 165, 233, 0.12);
+  --accent-rgb: 5 150 105;
+  --accent-hover-rgb: 4 120 87;
+  --accent: #059669;
+  --accent-hover: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.12);
 }
 
 .dark {

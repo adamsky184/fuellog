@@ -14,7 +14,7 @@ import { useMemo, useState } from "react";
 import { GeoMap } from "@/components/geo-map";
 import { CZ_KRAJE_PATHS, CZ_VIEWBOX } from "@/lib/geo/cz-kraje";
 import { PRAHA_DISTRICT_PATHS, PRAHA_VIEWBOX } from "@/lib/geo/cz-praha";
-import { EUROPE_COUNTRY_PATHS, EUROPE_VIEWBOX } from "@/lib/geo/europe";
+import { EUROPE_COUNTRY_PATHS_REAL, EUROPE_VIEWBOX_REAL } from "@/lib/geo/europe-real";
 import { countryFlag } from "@/lib/country-flags";
 import type { RawStatsRow } from "@/components/stats-dashboard";
 
@@ -97,10 +97,11 @@ export function StatsMaps({ rows }: { rows: RawStatsRow[] }) {
       {safeActive === "europe" && (
         <GeoMap
           title="Litry tankované v Evropě"
-          viewBox={EUROPE_VIEWBOX}
-          shapes={EUROPE_COUNTRY_PATHS}
+          viewBox={EUROPE_VIEWBOX_REAL}
+          shapes={EUROPE_COUNTRY_PATHS_REAL}
           data={europe}
           flagFor={(code) => countryFlag(code)}
+          showLabels={false}
         />
       )}
     </div>

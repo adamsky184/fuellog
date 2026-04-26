@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DueReminders } from "@/components/due-reminders";
 import { GarageList, type GarageListGroup, type GarageListVehicle } from "@/components/garage-list";
 import { GarageManager } from "@/components/garage-manager";
+import { DashboardHero } from "@/components/dashboard-hero";
 
 type VehicleRow = {
   id: string;
@@ -211,6 +212,9 @@ export default async function VehiclesPage({
           </Link>
         </div>
       </div>
+
+      {/* v2.13.0 — premium hero card with last 30d totals + delta. */}
+      <DashboardHero />
 
       <DueReminders />
 

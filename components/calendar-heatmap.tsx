@@ -93,15 +93,17 @@ export function CalendarHeatmap({
     }
   }
 
+  // v2.14.4 — heatmap intensity ramp now follows the user's accent
+  //   (alpha-modifier on bg-accent). Empty days stay slate-100.
   function colorFor(b: DayBucket | null, inYear: boolean): string {
     if (!inYear) return "bg-transparent";
     if (!b) return "bg-slate-100 dark:bg-slate-800";
-    if (max <= 1) return "bg-sky-400 dark:bg-sky-500";
+    if (max <= 1) return "bg-accent/60";
     const intensity = Math.min(1, b.count / Math.max(1, max));
-    if (intensity >= 0.75) return "bg-sky-600 dark:bg-sky-400";
-    if (intensity >= 0.5) return "bg-sky-500 dark:bg-sky-500";
-    if (intensity >= 0.25) return "bg-sky-400 dark:bg-sky-600";
-    return "bg-sky-200 dark:bg-sky-800";
+    if (intensity >= 0.75) return "bg-accent";
+    if (intensity >= 0.5) return "bg-accent/75";
+    if (intensity >= 0.25) return "bg-accent/50";
+    return "bg-accent/25";
   }
 
   const totals = useMemo(() => {
@@ -187,10 +189,10 @@ export function CalendarHeatmap({
           <div className="flex items-center gap-1.5 pl-6 pt-1">
             <span>Méně</span>
             <span className="rounded-[2px] bg-slate-100 dark:bg-slate-800" style={{ width: 10, height: 10 }} />
-            <span className="rounded-[2px] bg-sky-200 dark:bg-sky-800" style={{ width: 10, height: 10 }} />
-            <span className="rounded-[2px] bg-sky-400 dark:bg-sky-600" style={{ width: 10, height: 10 }} />
-            <span className="rounded-[2px] bg-sky-500" style={{ width: 10, height: 10 }} />
-            <span className="rounded-[2px] bg-sky-600 dark:bg-sky-400" style={{ width: 10, height: 10 }} />
+            <span className="rounded-[2px] bg-accent/25" style={{ width: 10, height: 10 }} />
+            <span className="rounded-[2px] bg-accent/50" style={{ width: 10, height: 10 }} />
+            <span className="rounded-[2px] bg-accent/75" style={{ width: 10, height: 10 }} />
+            <span className="rounded-[2px] bg-accent" style={{ width: 10, height: 10 }} />
             <span>Více</span>
           </div>
         </div>

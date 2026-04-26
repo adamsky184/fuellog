@@ -10,11 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.3: removed hardcoded sky-blue gradients from "+ Tankování"
-// header button, stats KPI tiles (km/fuel/money/count rainbow), and
-// stats-charts headings. Everything that was meant to follow the
-// accent now actually does.
-const CACHE_VERSION = "fuellog-v2.14.3";
+// v2.14.4: MonthlyTrends + CalendarHeatmap now follow accent (no more
+// sky/amber/emerald rainbow). Map side panel scrolls instead of
+// truncating with "… a dalších N". Praha okresy redrawn from memory
+// of actual P1-P10 geography (river-aware, larger districts P4/P5/P6/
+// P8/P9, smaller P1/P2/P3/P7).
+const CACHE_VERSION = "fuellog-v2.14.4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

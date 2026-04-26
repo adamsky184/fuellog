@@ -162,9 +162,12 @@ export function GeoMap({
           </svg>
         </div>
 
-        {/* Side panel — top regions ranked by value. */}
-        <div className="space-y-1.5">
-          {ranked.slice(0, 12).map((r, i) => {
+        {/* v2.14.4 — side panel renders ALL regions in a scrollable
+              column. Adam: "u Mapa tankování je '… a dalších 2', dej
+              tam decentní posuvník". Max-height matches the SVG so the
+              two columns line up; thin custom scrollbar. */}
+        <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+          {ranked.map((r, i) => {
             const share = total > 0 ? r.value / total : 0;
             const isTop = i === 0 && r.value > 0;
             const isHover = hovered === r.code;
@@ -201,11 +204,6 @@ export function GeoMap({
               </button>
             );
           })}
-          {ranked.length > 12 && (
-            <p className="text-[11px] text-slate-400 text-center pt-1">
-              … a dalších {ranked.length - 12}
-            </p>
-          )}
         </div>
       </div>
     </div>

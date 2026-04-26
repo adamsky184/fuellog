@@ -316,11 +316,14 @@ export function MonthlyTrends({
   const PALETTE = useAccentPalette();
   const [metric, setMetric] = useState<"km" | "liters" | "price">("km");
 
+  // v2.14.4 — all three metrics now share the user's accent (no more
+  //   hardcoded sky/amber/emerald rainbow). Metric is distinguished by
+  //   the toggle pill, not by colour.
   const metricConfig = {
-    km: { label: "Ujeté km", color: "#0ea5e9", unit: "km" },
-    liters: { label: "Litry", color: "#f59e0b", unit: "l" },
-    price: { label: "Kč", color: "#10b981", unit: "Kč" },
-  } as const;
+    km: { label: "Ujeté km", color: PALETTE.primary, unit: "km" },
+    liters: { label: "Litry", color: PALETTE.primary, unit: "l" },
+    price: { label: "Kč", color: PALETTE.primary, unit: "Kč" },
+  };
 
   const cfg = metricConfig[metric];
 

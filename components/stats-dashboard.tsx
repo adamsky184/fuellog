@@ -100,11 +100,39 @@ function daysBetween(fromIso: string, toIso: string): number {
 
 function InfoDot({ description }: { description: string }) {
   const [open, setOpen] = useState(false);
+  // v2.18.2 — flip-side state so the bubble never overflows the
+  // viewport. On mobile, the LEFT-column Stat tile's InfoDot used to
+  // anchor a 16-rem-wide tooltip at right:0, which then stuck out the
+  // left edge of the screen and got clipped (Adam: "začátek je mimo
+  // obrazovku"). We measure on open + on hover and pick the side with
+  // more room.
+  const [side, setSide] = useState<"right" | "left" | "center">("right");
   const ref = useRef<HTMLSpanElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Re-measure after open so the bubble flips to the side with more room.
+  function measure() {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const TOOLTIP_W = 256; // matches w-[16rem]
+    const margin = 8;
+    const roomLeft = r.right - margin;            // bubble would end at btn.right, start at btn.right - W
+    const roomRight = vw - r.left - margin;       // bubble starts at btn.left, ends at btn.left + W
+    if (roomLeft >= TOOLTIP_W) {
+      setSide("right");                            // anchor right edge to btn (default)
+    } else if (roomRight >= TOOLTIP_W) {
+      setSide("left");                             // anchor left edge to btn
+    } else {
+      setSide("center");                           // tight viewport — center under btn, clamp
+    }
+  }
 
   // Close on outside click / Escape.
   useEffect(() => {
     if (!open) return;
+    measure();
     function onDocDown(e: MouseEvent | TouchEvent) {
       const el = ref.current;
       if (el && e.target instanceof Node && !el.contains(e.target)) {
@@ -124,26 +152,36 @@ function InfoDot({ description }: { description: string }) {
     };
   }, [open]);
 
+  // Position class picked from side state.
+  const sideClass =
+    side === "left"
+      ? "left-0"
+      : side === "center"
+        ? "left-1/2 -translate-x-1/2"
+        : "right-0";
+
   return (
     <span
       ref={ref}
       className="relative inline-flex group align-middle"
     >
       <button
+        ref={btnRef}
         type="button"
+        onMouseEnter={measure}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
         aria-label="Informace"
         aria-expanded={open}
-        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-white dark:bg-slate-800 cursor-help focus:outline-none focus:ring-2 focus:ring-sky-400"
+        className="inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 bg-white dark:bg-slate-800 cursor-help focus:outline-none focus:ring-2 focus:ring-accent/60"
         style={{ width: 18, height: 18 }}
       >
         <Info className="h-3 w-3" />
       </button>
       <span
-        className={`pointer-events-none absolute right-0 top-6 z-20 w-[16rem] max-w-[calc(100vw-2rem)] p-2 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg ${
+        className={`pointer-events-none absolute ${sideClass} top-6 z-20 w-[16rem] max-w-[calc(100vw-1rem)] p-2 text-xs leading-snug rounded-md bg-slate-900 text-white shadow-lg ${
           open ? "block" : "hidden group-hover:block"
         }`}
       >

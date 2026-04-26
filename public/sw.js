@@ -10,14 +10,14 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.18.1: stats toolbar redesign — Garáže/Vozidla collapsed from
-// big coloured ikon-tile + uppercase label into quiet h-8 chip pills
-// that activate (accent border+bg) only when a filter is applied,
-// "OBDOBÍ" label + ikon-tile dropped (segmented buttons speak for
-// themselves), stats badge moved out of the toolbar into a subtitle
-// under the H1 ("N tankování · K km"), Přizpůsobit collapsed to a
-// 32×32 icon-only button with an accent dot when sections are hidden.
-const CACHE_VERSION = "fuellog-v2.18.1";
+// v2.18.2: brand-logo + tooltip polish — BrandLogo unified to a
+// circular tile (square JPEGs no longer mismatch with the round
+// initial-badges); BrandBadge fallback colour now derived from a
+// hash of the brand name so unknown stations get distinct hues
+// instead of all sky-blue; InfoDot tooltip auto-flips left/right/
+// center based on viewport room so the bubble no longer overflows
+// the left edge on mobile (Adam: "začátek je mimo obrazovku").
+const CACHE_VERSION = "fuellog-v2.18.2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

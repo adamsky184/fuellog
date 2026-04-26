@@ -75,13 +75,21 @@ function findLogo(brand: string): Logo | null {
 
 /* ------------------------------ BrandLogo main ---------------------------- */
 
+/**
+ * v2.18.2 — unified to a circular tile so square JPEGs (PRIM, AGIP,
+ * ROBINOIL, MOL, STOPKA) match the round badges shown for brands
+ * without a logo file. Adam's note: the mixed shapes looked
+ * untidy in the leaderboard. The image keeps `object-contain` and
+ * gets a slightly bigger inset so a square logo fits cleanly inside
+ * the circle without its corners getting clipped.
+ */
 export function BrandLogo({
   brand,
   size = 22,
-  rounded = true,
 }: {
   brand: string;
   size?: number;
+  /** @deprecated retained for caller compatibility; tile is always circular now. */
   rounded?: boolean;
 }) {
   const logo = findLogo(brand);
@@ -89,15 +97,17 @@ export function BrandLogo({
     return <BrandBadge brand={brand} size={size} />;
   }
 
-  const radius = rounded ? Math.round(size * 0.22) : Math.round(size * 0.08);
+  // Inset slightly more than the previous 0.5px padding so square logos
+  // don't touch the circular edge.
+  const inset = Math.max(2, Math.round(size * 0.1));
 
   return (
     <span
-      className="shrink-0 inline-block overflow-hidden ring-1 ring-slate-200/60 dark:ring-slate-700/60 relative"
+      className="shrink-0 inline-flex items-center justify-center overflow-hidden ring-1 ring-slate-200/60 dark:ring-slate-700/60 relative"
       style={{
         width: size,
         height: size,
-        borderRadius: radius,
+        borderRadius: "9999px",
         backgroundColor: logo.bg,
       }}
       title={brand}
@@ -107,8 +117,11 @@ export function BrandLogo({
         alt={brand}
         width={size}
         height={size}
-        className="object-contain p-0.5"
-        style={{ width: size, height: size }}
+        className="object-contain"
+        style={{
+          width: size - inset * 2,
+          height: size - inset * 2,
+        }}
         unoptimized
       />
     </span>

@@ -70,11 +70,34 @@ export const BRAND_COLORS: Record<string, string> = {
 };
 const DEFAULT_BAR = "#0ea5e9";
 
+/**
+ * v2.18.2 — deterministic HSL palette for brands without a known colour.
+ *
+ * Adam's note: every unknown station currently rendered as the same
+ * sky-blue badge — three "no-logo" pumps in the leaderboard all looked
+ * identical. We now hash the normalised brand name into the HSL space
+ * so each unknown brand gets its own stable hue. Saturation/lightness
+ * are clamped to a vivid-but-readable band that mirrors the curated
+ * BRAND_COLORS palette (avoid muddy or neon tones).
+ */
+function fallbackColorFromHash(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) | 0;
+  }
+  const hue = ((h % 360) + 360) % 360;
+  // Sat 65 / Light 45 sits in the same brightness band as the curated
+  // BRAND_COLORS entries (e.g. shell amber, omv royal blue).
+  return `hsl(${hue}, 65%, 45%)`;
+}
+
 function colorForBrand(brand: string): string {
   // Normalise: lowercase, strip non-alphanumeric (handles "Robin Oil",
   // "RobinOil", "ROBIN OIL" → "robinoil").
   const key = brand.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-  return BRAND_COLORS[key] ?? DEFAULT_BAR;
+  if (BRAND_COLORS[key]) return BRAND_COLORS[key];
+  if (!key) return DEFAULT_BAR;
+  return fallbackColorFromHash(key);
 }
 
 function initialsForBrand(brand: string): string {

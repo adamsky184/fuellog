@@ -7,6 +7,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { IconButton } from "@/components/icon-button";
 
 type Theme = "light" | "dark";
 
@@ -42,29 +43,22 @@ export function ThemeToggle() {
     applyTheme(next);
   }
 
-  // Render a placeholder during SSR so the icon doesn't flicker.
+  // SSR placeholder + active button — single component, identický styl.
   if (!mounted) {
     return (
-      <button
-        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-        aria-label="Přepnout tmavý režim"
-        title="Přepnout tmavý režim"
-        type="button"
-      >
-        <Sun className="h-3.5 w-3.5" />
-      </button>
+      <IconButton aria-label="Přepnout tmavý režim" title="Přepnout tmavý režim">
+        <Sun className="h-4 w-4" />
+      </IconButton>
     );
   }
 
   return (
-    <button
+    <IconButton
       onClick={toggle}
-      className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
       aria-label={theme === "dark" ? "Přepnout na světlý režim" : "Přepnout na tmavý režim"}
       title={theme === "dark" ? "Světlý režim" : "Tmavý režim"}
-      type="button"
     >
-      {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-    </button>
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </IconButton>
   );
 }

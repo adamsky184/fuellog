@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccentToggle } from "@/components/accent-toggle";
+import { IconButton } from "@/components/icon-button";
 import { VehicleSwitcher, type SwitcherVehicle, type SwitcherGarage } from "@/components/vehicle-switcher";
 
 export function Header({
@@ -153,18 +154,17 @@ export function Header({
         )}
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2 text-sm">
+          {/* v2.19.4 — všechna 4 tlačítka v pravé řadě (Tankování,
+              Accent, Theme, Hamburger) sdílí <IconButton> → identický
+              shape, alignment vyřešen jednou pro vždy. */}
           {quickAddVehicleId && (
             <Link
               href={`/v/${quickAddVehicleId}/fill-ups/new`}
-              /* v2.14.3 — accent CSS var místo hardcoded sky/indigo.
-                 v2.19.2 — h-9 + px-3 sjednoceno s AccentToggle / Theme
-                 / Hamburger (Adam: "hamburger pořád mimo"). */
-              className="inline-flex items-center justify-center gap-1 rounded-lg bg-accent text-white h-9 px-3 text-xs font-semibold shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent text-white shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition shrink-0"
               title="Nové tankování"
               aria-label="Nové tankování"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Tankování</span>
             </Link>
           )}
 
@@ -172,18 +172,10 @@ export function Header({
           <ThemeToggle />
 
           {/* Unified user menu — visible on ALL breakpoints so mobile users
-              can reach Profil, Admin, Odhlásit. Replaces the old
-              hidden-on-mobile email link + separate Admin/Logout buttons. */}
-          {/* v2.9.11 — `shrink-0` so the hamburger never gets pushed off
-              the right edge by a long vehicle name in the switcher.
-              v2.19.1 — square w-9 h-9 button to match AccentToggle +
-              ThemeToggle (was px-2 py-1.5 → h-7, vyčnívalo o 8 px nad
-              ostatní). Adam: "hamburger je opět mimo ostatní". */}
+              can reach Profil, Admin, Odhlásit. */}
           <div ref={menuRef} className="relative shrink-0 inline-flex">
-            <button
-              type="button"
+            <IconButton
               onClick={() => setMenuOpen((v) => !v)}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               title="Menu"
               aria-label="Otevřít menu"
               aria-expanded={menuOpen}
@@ -193,7 +185,7 @@ export function Header({
               ) : (
                 <Menu className="h-4 w-4" />
               )}
-            </button>
+            </IconButton>
             {menuOpen && (
               <div
                 className="absolute right-0 mt-1.5 w-64 rounded-xl border border-slate-200 bg-white shadow-lg dark:bg-slate-900 dark:border-slate-700 overflow-hidden z-20"
@@ -278,12 +270,11 @@ export function Header({
                 <Link
                   key={t.href}
                   href={t.href}
-                  /* v2.19.3 — odstraněn shadow-sm u active state, takže
-                     active a inactive button mají naprosto stejný box
-                     shape (jediný rozdíl je barva pozadí + textu).
-                     Adam: "na mobilu je trochu rozšířený button
-                     statistiky". */
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  /* v2.19.4 — explicit `border border-transparent` na
+                     OBOU větvích, aby mít naprosto stejný box-sizing.
+                     Adam viděl Statistiky o pixel/dva širší — bez
+                     border tailwind dává různé layout výchozí. */
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium border border-transparent transition ${
                     active
                       ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"

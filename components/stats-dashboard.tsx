@@ -177,15 +177,12 @@ function InfoDot({ description }: { description: string }) {
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => {
-            const next = !v;
-            if (next) {
-              // Měřit synchronně před paintnutí, aby první frame už
-              //   měl správnou pozici.
-              requestAnimationFrame(() => measure());
-            }
-            return next;
-          });
+          // Synchronně změř BEFORE setOpen → první render už má pos.
+          //   Bez tohoto byl `pos = null` v open=true momentu a první
+          //   render tooltip vůbec nezobrazil; ten se objevil teprve
+          //   po RAF callbacku, takže to vypadalo na "click no-op".
+          if (!open) measure();
+          setOpen((v) => !v);
         }}
         aria-label="Informace"
         aria-expanded={open}

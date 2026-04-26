@@ -61,7 +61,15 @@
 //     řádné flex-items a aligují se s ostatními. Mobile tabs aktivní
 //     state měl `shadow-sm` — odstraněno, takže active a inactive
 //     button vypadají stejně až na barvu.
-const CACHE_VERSION = "fuellog-v2.19.3";
+// v2.19.4: header alignment FINAL fix přes shared <IconButton>
+//   komponentu. Tři předchozí pokusy (v2.18, v2.19.1, v2.19.3)
+//   driftovaly kvůli per-tlačítkovým klauzulím className. Teď
+//   AccentToggle, ThemeToggle, hamburger a + Tankování všichni
+//   share <IconButton> = 1 zdroj pravdy. Mobile tabs explicit
+//   border-transparent na obou variantách (active i inactive).
+//   InfoDot tooltip měřit pos synchronně v onClick (předtím v RAF
+//   → první render měl pos=null a tooltip se nezobrazil).
+const CACHE_VERSION = "fuellog-v2.19.4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

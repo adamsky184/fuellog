@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Palette } from "lucide-react";
 import { ACCENT_PRESETS, applyAccent, loadAccent, type AccentPreset } from "@/lib/theme";
+import { IconButton } from "@/components/icon-button";
 
 export function AccentToggle() {
   const [active, setActive] = useState<AccentPreset>(ACCENT_PRESETS[0]);
@@ -46,20 +47,19 @@ export function AccentToggle() {
 
   return (
     <div ref={ref} className="relative inline-flex">
-      <button
-        type="button"
+      <IconButton
         onClick={() => setOpen((o) => !o)}
         aria-label="Změnit barvu rozhraní"
         title="Barva rozhraní"
-        className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+        className="relative"
       >
-        <Palette className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <Palette className="h-4 w-4" />
         <span
           aria-hidden
           className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full ring-1 ring-white dark:ring-slate-900"
           style={{ backgroundColor: active.swatch }}
         />
-      </button>
+      </IconButton>
       {open && (
         <div
           role="menu"

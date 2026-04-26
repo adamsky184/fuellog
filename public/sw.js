@@ -10,12 +10,10 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.5: vehicle colour ring on logo avatars (visible on per-vehicle
-// pages and inside multi-selects), thin colour stripe in /compare and
-// the cross-garage Vozidla picker, country-flag whitelist removed (NO,
-// SE, FI, IE, DK now show flags), accent applied to multi-select
-// pills + checkboxes that were sky-blue.
-const CACHE_VERSION = "fuellog-v2.14.5";
+// v2.14.6: vehicle avatar polish — coloured ring shrunk from 2 px → 1 px
+// (less heavy), logo centring made explicit so brand marks sit dead-
+// centre instead of drifting a few pixels off-axis.
+const CACHE_VERSION = "fuellog-v2.14.6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

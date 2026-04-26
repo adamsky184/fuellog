@@ -66,15 +66,17 @@ export function VehicleAvatar({
     // v2.9.2 — `object-contain` instead of `object-cover` so wide logos
     // (Škoda, Infiniti, Lambo) aren't cropped. Tile background = white so
     // the logo still has a clean frame regardless of source colour.
-    // v2.14.5 — when the user has set a vehicle colour AND there is a
-    //   logo, paint the ring around the avatar in that colour. Subtle
-    //   2 px hairline so it reads as identification, not decoration.
+    // v2.14.6 — ring shrunk to 1 px (Adam's eye called the previous 2 px
+    //   too thick). Logo centring made explicit with flex + symmetric
+    //   inset; previous grid+maxWidth combo could shift the image a few
+    //   pixels off-centre because next/image rendered at full px width
+    //   while CSS scaled it to 82 %.
     const ringStyle = color
-      ? { boxShadow: `0 0 0 2px ${color}`, borderColor: "transparent" }
+      ? { boxShadow: `0 0 0 1px ${color}`, borderColor: "transparent" }
       : undefined;
     return (
       <span
-        className={`rounded-full border border-slate-200 dark:border-slate-700 shrink-0 grid place-items-center bg-white overflow-hidden ${className}`}
+        className={`relative rounded-full border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center bg-white overflow-hidden ${className}`}
         style={{ width: px, height: px, ...ringStyle }}
       >
         <Image
@@ -83,8 +85,13 @@ export function VehicleAvatar({
           width={px}
           height={px}
           unoptimized
-          className="object-contain"
-          style={{ maxWidth: "82%", maxHeight: "82%" }}
+          style={{
+            width: "78%",
+            height: "78%",
+            objectFit: "contain",
+            objectPosition: "center",
+            display: "block",
+          }}
         />
       </span>
     );

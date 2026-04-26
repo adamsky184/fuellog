@@ -175,12 +175,15 @@ export function Header({
               can reach Profil, Admin, Odhlásit. Replaces the old
               hidden-on-mobile email link + separate Admin/Logout buttons. */}
           {/* v2.9.11 — `shrink-0` so the hamburger never gets pushed off
-              the right edge by a long vehicle name in the switcher. */}
+              the right edge by a long vehicle name in the switcher.
+              v2.19.1 — square w-9 h-9 button to match AccentToggle +
+              ThemeToggle (was px-2 py-1.5 → h-7, vyčnívalo o 8 px nad
+              ostatní). Adam: "hamburger je opět mimo ostatní". */}
           <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1.5"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               title="Menu"
               aria-label="Otevřít menu"
               aria-expanded={menuOpen}

@@ -21,6 +21,21 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const supabase = await createClient();
 
+  // v2.19.1 — load thresholds for consumption coloring per vehicle.
+  const { data: vehicleRow } = await supabase
+    .from("vehicles")
+    .select("consumption_threshold_good, consumption_threshold_bad")
+    .eq("id", id)
+    .maybeSingle();
+  const thresholds = {
+    good: vehicleRow?.consumption_threshold_good != null
+      ? Number(vehicleRow.consumption_threshold_good)
+      : null,
+    bad: vehicleRow?.consumption_threshold_bad != null
+      ? Number(vehicleRow.consumption_threshold_bad)
+      : null,
+  };
+
   // v2.10.0 — paginated fetch (PostgREST caps a single response at 1000 rows
   // regardless of `.range()`, so for vehicles with long histories we'd
   // silently truncate and miss older fill-ups).
@@ -166,7 +181,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                     {r.consumption_l_per_100km && (
                       <span>
                         <span className="text-slate-400">Spotřeba:</span>{" "}
-                        <span className={consumptionClass(r.consumption_l_per_100km, avgConsumption) || "font-medium"}>
+                        <span className={consumptionClass(r.consumption_l_per_100km, avgConsumption, thresholds) || "font-medium"}>
                           {formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100</UnitSuffix>
                         </span>
                       </span>
@@ -240,7 +255,7 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         {r.price_per_liter ? <>{formatNumber(r.price_per_liter, 2)}<UnitSuffix>{(r.currency ?? "CZK")}/l</UnitSuffix></> : "—"}
                       </Td>
                       <Td right>{r.total_price ? formatCurrency(r.total_price, r.currency ?? "CZK") : "—"}</Td>
-                      <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption)}>
+                      <Td right className={consumptionClass(r.consumption_l_per_100km, avgConsumption, thresholds)}>
                         {r.consumption_l_per_100km ? <>{formatNumber(r.consumption_l_per_100km, 2)}<UnitSuffix>l/100</UnitSuffix></> : "—"}
                       </Td>
                       <Td>
@@ -389,12 +404,44 @@ function Td({
   return <td className={`px-2 py-2 ${right ? "text-right" : "text-left"} ${className}`}>{children}</td>;
 }
 
+/**
+ * v2.19.1 — threshold-aware consumption coloring.
+ *
+ * If the vehicle has explicit `consumption_threshold_good` /
+ * `consumption_threshold_bad` set (in `vehicles` table), those are used
+ * as hard l/100km cutoffs:
+ *   value <= good → green
+ *   value >= bad  → red
+ *   between       → no color
+ *
+ * If both thresholds are NULL (default), fall back to legacy logic
+ * relative to the user's lifetime average:
+ *   < 90 % avg  → green ("výrazně lepší než moje normální")
+ *   > 115 % avg → red ("výrazně horší")
+ *
+ * Mixed (one set, one null) still works — only the set side colors,
+ * the unset side falls through to the % rule.
+ */
 function consumptionClass(
   value: number | null | undefined,
   avg: number | null | undefined,
+  thresholds?: { good: number | null; bad: number | null },
 ): string {
-  if (value == null || avg == null || avg <= 0) return "";
-  if (value < avg * 0.9) return "text-emerald-600 font-medium";
-  if (value > avg * 1.15) return "text-rose-600 font-medium";
+  if (value == null) return "";
+  // Explicit thresholds take priority.
+  if (thresholds?.good != null && value <= thresholds.good) {
+    return "text-emerald-600 font-medium";
+  }
+  if (thresholds?.bad != null && value >= thresholds.bad) {
+    return "text-rose-600 font-medium";
+  }
+  // Fall back to %-of-average rule on whichever side wasn't set.
+  if (avg == null || avg <= 0) return "";
+  if (thresholds?.good == null && value < avg * 0.9) {
+    return "text-emerald-600 font-medium";
+  }
+  if (thresholds?.bad == null && value > avg * 1.15) {
+    return "text-rose-600 font-medium";
+  }
   return "";
 }

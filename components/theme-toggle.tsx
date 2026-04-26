@@ -46,7 +46,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="btn-secondary text-xs inline-flex items-center gap-1"
+        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
         aria-label="Přepnout tmavý režim"
         title="Přepnout tmavý režim"
         type="button"

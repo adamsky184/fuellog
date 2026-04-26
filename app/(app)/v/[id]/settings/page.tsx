@@ -58,6 +58,10 @@ export default function VehicleSettingsPage({
     tank_capacity_liters: "",
     color: "#0ea5e9",
     garage_id: "",
+    // v2.19.1 — per-vehicle consumption thresholds (zelená/červená).
+    //   Empty → fallback na -10/+15 % z dlouhodobého průměru (legacy).
+    consumption_threshold_good: "",
+    consumption_threshold_bad: "",
   });
 
   // Sharing
@@ -107,6 +111,24 @@ export default function VehicleSettingsPage({
           v.tank_capacity_liters != null ? String(v.tank_capacity_liters) : "",
         color: v.color ?? "#0ea5e9",
         garage_id: v.garage_id ?? "",
+        // v2.19.1 — thresholds for consumption coloring; "" = nepoužívat
+        // (fallback na ±10/15 % z dlouhodobého průměru).
+        consumption_threshold_good:
+          (v as { consumption_threshold_good?: number | null })
+            .consumption_threshold_good != null
+            ? String(
+                (v as { consumption_threshold_good?: number | null })
+                  .consumption_threshold_good,
+              )
+            : "",
+        consumption_threshold_bad:
+          (v as { consumption_threshold_bad?: number | null })
+            .consumption_threshold_bad != null
+            ? String(
+                (v as { consumption_threshold_bad?: number | null })
+                  .consumption_threshold_bad,
+              )
+            : "",
       });
       setPhotoPath(v.photo_path ?? null);
       setArchivedAt((v as { archived_at: string | null }).archived_at ?? null);
@@ -170,6 +192,8 @@ export default function VehicleSettingsPage({
           | "electric"
           | "hybrid",
         tank_capacity_liters: parseDecimal(form.tank_capacity_liters),
+        consumption_threshold_good: parseDecimal(form.consumption_threshold_good),
+        consumption_threshold_bad: parseDecimal(form.consumption_threshold_bad),
         color: form.color || null,
         garage_id: form.garage_id || null,
       })
@@ -454,6 +478,56 @@ export default function VehicleSettingsPage({
                 setForm({ ...form, tank_capacity_liters: e.target.value })
               }
             />
+          </div>
+        </div>
+
+        {/* v2.19.1 — uživatelské prahy pro barvení spotřeby v seznamu
+            tankování. Když je obojí prázdné, fallback na -10 / +15 %
+            z dlouhodobého průměru. */}
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 sm:p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/40">
+          <div>
+            <div className="text-sm font-medium">Barvení spotřeby</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              V seznamu tankování se spotřeba (l/100 km) barví zeleně/červeně.
+              Můžeš si nastavit vlastní hranice. Když necháš prázdné,
+              použije se -10 % / +15 % od tvého dlouhodobého průměru.
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5 align-middle" />
+                Dobrá ≤ (l/100)
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                className="input"
+                placeholder="např. 6,0"
+                value={form.consumption_threshold_good}
+                onChange={(e) =>
+                  setForm({ ...form, consumption_threshold_good: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="label">
+                <span className="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1.5 align-middle" />
+                Špatná ≥ (l/100)
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                className="input"
+                placeholder="např. 9,0"
+                value={form.consumption_threshold_bad}
+                onChange={(e) =>
+                  setForm({ ...form, consumption_threshold_bad: e.target.value })
+                }
+              />
+            </div>
           </div>
         </div>
 

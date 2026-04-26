@@ -497,20 +497,81 @@ export function StatsDashboard({
     };
   }, [filtered]);
 
-  // Averages per day/month/year in the selected window.
+  // v2.19.1 — lifetime tempo, NE extrapolace okna.
+  //
+  // Adam's bug report: "mám období Měsíc, mám tam počet tankování 2×,
+  // proč to ukazuje 2,34 tankování za měsíc?" — the math byl 2 / (26d /
+  // 30.4d) = 2.34, tj. lineární extrapolace 2 fill-upů na celý měsíc.
+  // Matematicky správně, UX matoucí. Nyní tyto karty říkají "jak často
+  // obecně tankuju / kolik km najedu za den/měsíc/rok ve své celé
+  // historii", nezávisle na zvoleném období.
+  const lifetimeSpan = useMemo(() => {
+    const dates = rowsAll.map((r) => r.date).filter(Boolean) as string[];
+    if (dates.length === 0) return 1;
+    const min = dates.reduce((a, b) => (a < b ? a : b));
+    const max = dates.reduce((a, b) => (a > b ? a : b));
+    return daysBetween(min, max);
+  }, [rowsAll]);
+
   const periodAvgs = useMemo(() => {
-    const d = spanDays;
+    const d = lifetimeSpan;
     const months = d / 30.4375;
     const years = d / 365.25;
+    const realRows = rowsAll.filter((r) => !r.is_baseline);
+    const lifetimeKm = realRows.reduce(
+      (a, r) => a + Number(r.km_since_last ?? 0),
+      0,
+    );
+    const count = realRows.length;
     return {
-      fillUpsPerDay: filtered.length / d,
-      fillUpsPerMonth: filtered.length / Math.max(1 / 30, months),
-      fillUpsPerYear: filtered.length / Math.max(1 / 365, years),
-      kmPerDay: totalAgg.km / d,
-      kmPerMonth: totalAgg.km / Math.max(1 / 30, months),
-      kmPerYear: totalAgg.km / Math.max(1 / 365, years),
+      fillUpsPerDay: count / d,
+      fillUpsPerMonth: count / Math.max(1 / 30, months),
+      fillUpsPerYear: count / Math.max(1 / 365, years),
+      kmPerDay: lifetimeKm / d,
+      kmPerMonth: lifetimeKm / Math.max(1 / 30, months),
+      kmPerYear: lifetimeKm / Math.max(1 / 365, years),
     };
-  }, [filtered, spanDays, totalAgg]);
+  }, [rowsAll, lifetimeSpan]);
+
+  // v2.19.1 — sezónní trend (30 dní) + spotřeba posledního tankování.
+  //
+  // Reaguje na uživatelský feedback: "v prehledu mi chybi spotreba za
+  // posledni mesic (=sezonni trend) a hlavne okamzita spotreba od
+  // posledniho tankovani (uzitecny udaj: hned vidis/potvrdis si, zes
+  // minule vzal nekvalitni/velmi kvalitni phm)."
+  //
+  // Oba metriky NEZÁVISÍ na zvoleném období — vždy poslední 30 dní /
+  // poslední fill-up. Smysl je: rychlý přehled "co se děje právě teď".
+  const last30dConsumption = useMemo(() => {
+    if (rowsAll.length === 0) return null;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffIso = cutoff.toISOString().slice(0, 10);
+    let liters = 0;
+    let km = 0;
+    let count = 0;
+    for (const r of rowsAll) {
+      if (r.is_baseline) continue;
+      if (!r.date || r.date < cutoffIso) continue;
+      liters += Number(r.liters ?? 0);
+      km += Number(r.km_since_last ?? 0);
+      count += 1;
+    }
+    if (count === 0 || km === 0) return null;
+    return (liters / km) * 100;
+  }, [rowsAll]);
+
+  const lastFillUp = useMemo(() => {
+    const real = rowsAll.filter((r) => !r.is_baseline && r.date);
+    if (real.length === 0) return null;
+    // Sort: nejnovější datum nejdřív; tie-break přes vyšší tachometr.
+    const sorted = [...real].sort((a, b) => {
+      const dateCmp = (b.date ?? "").localeCompare(a.date ?? "");
+      if (dateCmp !== 0) return dateCmp;
+      return Number(b.odometer_km ?? 0) - Number(a.odometer_km ?? 0);
+    });
+    return sorted[0];
+  }, [rowsAll]);
 
   // Fixed "recent activity" card — last 30 / 365 days (absolute, not period-filtered)
   const recentData = useMemo(() => {
@@ -837,15 +898,45 @@ export function StatsDashboard({
           info="Kolikrát jsi ve vybraném období tankoval."
           tone="count"
         />
+        {/* v2.19.1 — sezónní trend a spotřeba posledního tankování,
+            obě nezávislé na period filtru, vždy aktuální. */}
+        {vehicleId && (
+          <Stat
+            label="Spotřeba (30 dní)"
+            mobileLabel="Ø L 30d"
+            value={last30dConsumption != null ? formatNumber(last30dConsumption, 2) : "—"}
+            info="Průměrná spotřeba l/100 km za posledních 30 dní (sezónní trend). Zelená/červená proti tvému dlouhodobému průměru."
+            tone="fuel"
+            icon={<Fuel className="h-4 w-4" />}
+          />
+        )}
+        {vehicleId && lastFillUp && (
+          <Stat
+            label="Posl. tankování"
+            mobileLabel="Posl. tank."
+            value={
+              lastFillUp.consumption_l_per_100km != null
+                ? formatNumber(Number(lastFillUp.consumption_l_per_100km), 2)
+                : "—"
+            }
+            info={`Spotřeba zaznamenaná u posledního tankování (${lastFillUp.date ?? "—"}${lastFillUp.station_brand ? " · " + lastFillUp.station_brand : ""}). Užitečné pro porovnání kvality paliva — výrazně vyšší než průměr může znamenat horší kvalitu nebo styl jízdy.`}
+            tone="fuel"
+            icon={<Fuel className="h-4 w-4" />}
+          />
+        )}
       </div>
 
-      {/* Period averages */}
+      {/* Period averages — DLOUHODOBÝ PRŮMĚR (lifetime), v2.19.1.
+          Period selector neovlivní hodnoty v této sekci, protože tu
+          je smysl říci "jak často / kolik kilometrů obecně jezdím",
+          ne extrapolace z malého okna (která plete user, viz Adamova
+          stížnost na "2,34 tankování/měsíc" když má v měsíci jen 2). */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <Stat
           label="Ø tankování / den"
           mobileLabel="Ø za den"
           value={formatNumber(periodAvgs.fillUpsPerDay, 3)}
-          info={`Průměrný počet tankování na den (období má ${Math.round(spanDays)} dní).`}
+          info={`Dlouhodobý průměr ze všech tankování (historie ${Math.round(lifetimeSpan)} dní). Nezávisí na zvoleném období.`}
           tone="count"
           icon={<CalendarRange className="h-4 w-4" />}
         />
@@ -853,7 +944,7 @@ export function StatsDashboard({
           label="Ø tankování / měsíc"
           mobileLabel="Ø za měsíc"
           value={formatNumber(periodAvgs.fillUpsPerMonth, 2)}
-          info="Průměrný počet tankování za měsíc v tomto období."
+          info="Dlouhodobý průměr — celkový počet tankování děleno počtem měsíců historie. Nezávisí na zvoleném období."
           tone="count"
           icon={<CalendarRange className="h-4 w-4" />}
         />
@@ -861,26 +952,26 @@ export function StatsDashboard({
           label="Ø tankování / rok"
           mobileLabel="Ø za rok"
           value={formatNumber(periodAvgs.fillUpsPerYear, 1)}
-          info="Průměrný počet tankování za rok v tomto období."
+          info="Dlouhodobý průměr — celkový počet tankování děleno počtem let historie. Nezávisí na zvoleném období."
           tone="count"
           icon={<CalendarRange className="h-4 w-4" />}
         />
         <Stat
           label="Ø km / den"
           value={formatNumber(periodAvgs.kmPerDay, 1)}
-          info="Průměrný počet ujetých kilometrů na den — počítá se ze všech dní v období, i bez tankování."
+          info="Dlouhodobý průměr — celkové ujeté kilometry děleno počtem dní historie. Nezávisí na zvoleném období."
           tone="km"
         />
         <Stat
           label="Ø km / měsíc"
           value={formatNumber(periodAvgs.kmPerMonth, 0)}
-          info="Průměrný počet ujetých kilometrů za měsíc v tomto období."
+          info="Dlouhodobý průměr — celkové ujeté kilometry děleno počtem měsíců historie. Nezávisí na zvoleném období."
           tone="km"
         />
         <Stat
           label="Ø km / rok"
           value={formatNumber(periodAvgs.kmPerYear, 0)}
-          info="Průměrný počet ujetých kilometrů za rok v tomto období."
+          info="Dlouhodobý průměr — celkové ujeté kilometry děleno počtem let historie. Nezávisí na zvoleném období."
           tone="km"
         />
       </div>

@@ -491,6 +491,8 @@ export type Database = {
           name: string
           photo_path: string | null
           tank_capacity_liters: number | null
+          consumption_threshold_good: number | null
+          consumption_threshold_bad: number | null
           updated_at: string
           year: number | null
         }
@@ -509,6 +511,8 @@ export type Database = {
           name: string
           photo_path?: string | null
           tank_capacity_liters?: number | null
+          consumption_threshold_good?: number | null
+          consumption_threshold_bad?: number | null
           updated_at?: string
           year?: number | null
         }
@@ -527,6 +531,8 @@ export type Database = {
           name?: string
           photo_path?: string | null
           tank_capacity_liters?: number | null
+          consumption_threshold_good?: number | null
+          consumption_threshold_bad?: number | null
           updated_at?: string
           year?: number | null
         }

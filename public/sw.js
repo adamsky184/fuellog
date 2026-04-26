@@ -10,22 +10,30 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.19.0: form input fixes — RegionPicker hierarchie + decimal čárka.
+// v2.19.1: stats clarity + per-vehicle thresholds + header alignment.
 //
-// (a) <RegionPicker> nahrazuje plochý 75-položkový dropdown progressive
-//     3-úrovní hierarchií Stát → Kraj → Praha okres. Default Česko (90 %
-//     případů), kraj jen pro CZ, district jen pro Praha. Migrated v
-//     /v/[id]/fill-ups/new + /edit. Backward-compat ověřena na 2152
-//     existing rows (1875 CZ+region, 274 foreign+null, 3 CZ+null).
-//     applyStationPick / applyCombo / cityToKraj autofill / OCR receipt
-//     adaptovány na nový (country, region) shape.
+// (a) Hamburger v headeru sjednocen na w-9 h-9 (čtverec) jako Accent +
+//     Theme toggle. Bylo px-2 py-1.5 → výška 28 px, ostatní 36 px →
+//     hamburger vyčníval. Adam: "hamburger je opět mimo ostatní".
 //
-// (b) parseDecimal helper — input fields přijímají čárku i tečku
-//     ("67,48" i "67.48"). type="number" odmítá čárku, takže přepnuto
-//     na type="text" inputMode="decimal" (mobile numpad zachován).
-//     Migrated všech 6 callsites: liters, total_price (new + edit),
-//     maintenance cost, vehicle tank_capacity_liters (new + settings).
-const CACHE_VERSION = "fuellog-v2.19.0";
+// (b) Ø tankování / měsíc / rok / km — přepočítané z lifetime data místo
+//     extrapolace okna. Adam viděl "2,34 tankování / měsíc" když měl
+//     filter Měsíc + 2 fill-upy: math byl 2 / (26d/30.4) = 2.34. Teď
+//     karty říkají "jak často obecně tankuju", nezávislé na filtru.
+//
+// (c) Nové stat tile (jen per-vehicle): "Spotřeba (30 dní)" = sezónní
+//     trend, "Posl. tankování" = consumption_l_per_100km posledního
+//     fill-upu. User feedback: "okamzita spotreba od posledniho
+//     tankovani — uzitecny udaj: hned vidis, zes minule vzal
+//     nekvalitni/velmi kvalitni phm".
+//
+// (d) Per-vehicle consumption thresholds. Settings vehicle → "Dobrá ≤"
+//     a "Špatná ≥" inputy v l/100. Když nastaveny, hard cutoff barvení
+//     v seznamu tankování (zelená pod good, červená nad bad). Když
+//     prázdné, fallback na ±10/15 % z dlouhodobého průměru. Migrace
+//     v2_19_1_consumption_thresholds přidala 2 nullable sloupce do
+//     vehicles.
+const CACHE_VERSION = "fuellog-v2.19.1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

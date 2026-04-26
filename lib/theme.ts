@@ -26,43 +26,39 @@ export type AccentPreset = {
 };
 
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: "sky",     label: "Modrá",       swatch: "#0284c7", hover: "#0369a1", soft: "rgba(2,132,199,0.12)",   rgb: "2 132 199",   hoverRgb: "3 105 161"   },
+  // v2.14.2 — Zelená první (default). Stará "sky" je permanently retired
+  // (viz loadAccent); pokud uživatel chce modrou, nově je k dispozici
+  // "blue" s odlišným hex (richer indigo-blue) než předchozí sky-modrá.
+  { id: "emerald", label: "Zelená",      swatch: "#059669", hover: "#047857", soft: "rgba(5,150,105,0.12)",   rgb: "5 150 105",   hoverRgb: "4 120 87"    },
+  { id: "blue",    label: "Modrá",       swatch: "#2563eb", hover: "#1d4ed8", soft: "rgba(37,99,235,0.12)",   rgb: "37 99 235",   hoverRgb: "29 78 216"   },
   { id: "indigo",  label: "Indigo",      swatch: "#4f46e5", hover: "#4338ca", soft: "rgba(79,70,229,0.12)",   rgb: "79 70 229",   hoverRgb: "67 56 202"   },
   { id: "violet",  label: "Fialová",     swatch: "#7c3aed", hover: "#6d28d9", soft: "rgba(124,58,237,0.12)",  rgb: "124 58 237",  hoverRgb: "109 40 217"  },
   { id: "rose",    label: "Růžová",      swatch: "#e11d48", hover: "#be123c", soft: "rgba(225,29,72,0.12)",   rgb: "225 29 72",   hoverRgb: "190 18 60"   },
   { id: "amber",   label: "Oranžová",    swatch: "#d97706", hover: "#b45309", soft: "rgba(217,119,6,0.12)",   rgb: "217 119 6",   hoverRgb: "180 83 9"    },
-  { id: "emerald", label: "Zelená",      swatch: "#059669", hover: "#047857", soft: "rgba(5,150,105,0.12)",   rgb: "5 150 105",   hoverRgb: "4 120 87"    },
   { id: "slate",   label: "Tmavě šedá",  swatch: "#475569", hover: "#334155", soft: "rgba(71,85,105,0.12)",   rgb: "71 85 105",   hoverRgb: "51 65 85"    },
 ];
 
 const STORAGE_KEY = "fuellog-accent";
-// v2.14.1 — migration flag bumped from v2-13 → v2-14 so users whose
-//   v2.13.2 migration didn't take effect (e.g. SW cached old JS, never
-//   picked up the new default) get re-migrated to emerald exactly once.
-const MIGRATION_KEY = "fuellog-accent-migrated-v2-14";
-// v2.13.0 — default switched from "sky" to "emerald" for the premium
-//   redesign. v2.13.2 adds a one-shot migration: anyone who had the
-//   OLD default "sky" still saved (i.e. they never explicitly picked
-//   it) is bumped to the new default. After the migration runs once
-//   the flag stays set so we never re-touch their later choice.
+// v2.14.2 — "sky" retired permanently, see loadAccent() comment.
 const DEFAULT_ID = "emerald";
 const PREVIOUS_DEFAULT_ID = "sky";
 
 export function loadAccent(): AccentPreset {
   if (typeof window === "undefined") return ACCENT_PRESETS[0];
   try {
-    // v2.13.2 — one-shot migration from the legacy "sky" default to
-    // the new "emerald" default. Runs once per browser; after that,
-    // explicit user choices stay untouched.
-    const migrated = window.localStorage.getItem(MIGRATION_KEY);
+    // v2.14.2 — hard policy switch: the legacy "sky" default is
+    // permanently retired. ANY load that still has "sky" stored gets
+    // reset to "emerald", regardless of migration history. Users who
+    // genuinely want blue can pick it again from the AccentToggle —
+    // the next save will stick because we only force-rewrite "sky".
+    //
+    // Reason: a service-worker race left some users frozen on the old
+    // value even after v2.13.2/v2.14.1 migration commits. Adam's tab
+    // was one of them. This is the safe lower bound.
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!migrated && stored === PREVIOUS_DEFAULT_ID) {
+    if (stored === PREVIOUS_DEFAULT_ID) {
       window.localStorage.setItem(STORAGE_KEY, DEFAULT_ID);
-      window.localStorage.setItem(MIGRATION_KEY, "1");
       return ACCENT_PRESETS.find((p) => p.id === DEFAULT_ID)!;
-    }
-    if (!migrated) {
-      window.localStorage.setItem(MIGRATION_KEY, "1");
     }
     const found = stored ? ACCENT_PRESETS.find((p) => p.id === stored) : null;
     return found ?? ACCENT_PRESETS.find((p) => p.id === DEFAULT_ID)!;
@@ -70,6 +66,7 @@ export function loadAccent(): AccentPreset {
     return ACCENT_PRESETS[0];
   }
 }
+
 
 export function applyAccent(preset: AccentPreset): void {
   if (typeof document === "undefined") return;

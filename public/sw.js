@@ -10,11 +10,12 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.14.1: forced accent re-migration (sky→emerald), chart palette is
-// now reactive to accent (graphs match user's chosen colour), map hover
-// renders the active shape on top so its full outline highlights, and
-// "Přizpůsobit dashboard" moved next to the period selector.
-const CACHE_VERSION = "fuellog-v2.14.1";
+// v2.14.2: HARD reset of stale "sky" accent on every load (migration
+// keys were unreliable across SW caches), "sky" preset replaced with
+// a richer "blue" so users can still pick blue from the toggle, and
+// the visibility "Přizpůsobit dashboard" trigger compacted into a
+// real btn-secondary with a count badge.
+const CACHE_VERSION = "fuellog-v2.14.2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

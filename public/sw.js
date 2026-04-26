@@ -76,7 +76,11 @@
 //   Mobile tabs: filled black active state nahrazen bordered
 //   accent-tint, takže active a inactive mají naprosto stejný
 //   visual weight a Statistiky už "nevyčuhuje".
-const CACHE_VERSION = "fuellog-v2.19.5";
+// v2.19.6: jednoduchý finální sweep — + Tankování button bez
+//   shadow/ring (přidávalo ~2px optical width vs IconButton);
+//   mobile tabs oba s identickým bg (white), aktivní jen s accent
+//   border+text (žádný bg fill, takže opticky úplně stejný shape).
+const CACHE_VERSION = "fuellog-v2.19.6";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

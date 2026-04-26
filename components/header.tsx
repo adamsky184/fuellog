@@ -160,7 +160,12 @@ export function Header({
           {quickAddVehicleId && (
             <Link
               href={`/v/${quickAddVehicleId}/fill-ups/new`}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent text-white shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition shrink-0"
+              /* v2.19.6 — vyhozen `shadow-sm ring-1 ring-white/20`,
+                 který opticky zvyšoval button o ~2 px proti ostatním
+                 IconButton tlačítkům. Teď přesně ten samý box jako
+                 ostatní (w-9 h-9 + rounded-lg + transition) jen
+                 s accent bg místo borderu. */
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent text-white hover:brightness-110 active:scale-95 transition shrink-0"
               title="Nové tankování"
               aria-label="Nové tankování"
             >
@@ -270,15 +275,15 @@ export function Header({
                 <Link
                   key={t.href}
                   href={t.href}
-                  /* v2.19.5 — oba tabs bordered + accent rozdíl, ne
-                     dramatic filled vs ghost. Adam: "Statistiky stále
-                     vyčuhuje". Filled bg-slate-900 vypadal optically
-                     "wider" než bg-slate-100 ghost; teď oba mají border,
-                     active má accent tint, ale stejný box-sizing. */
-                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium border transition ${
+                  /* v2.19.6 — oba tabs MAJÍ stejný bg (transparent /
+                     card-white), aktivní jen má accent border+text.
+                     Žádný color fill, takže oba vypadají naprosto
+                     stejně visualy "kompaktní". Adam: "Tankování /
+                     Statistiky pořád vyčuhuje". */
+                  className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium border bg-white dark:bg-slate-900 transition ${
                     active
-                      ? "bg-accent/10 text-accent border-accent/40 dark:bg-accent/15"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+                      ? "text-accent border-accent"
+                      : "text-slate-600 border-slate-200 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
                   }`}
                 >
                   <Icon className="h-4 w-4" />

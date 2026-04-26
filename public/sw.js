@@ -108,7 +108,14 @@
 //   pravým okrajem cardu. LAMBO/jiné vozy mají kratší adresy → tabulka
 //   se vejde, problém nebyl. Plus chevron kontrast zvýšen z slate-300
 //   na slate-400 (původní splývalo s hover bg-slate-100).
-const CACHE_VERSION = "fuellog-v2.19.10";
+// v2.19.11: ChevronRight odstraněn z fill-up tabulky (Adam:
+//   "u Octavie není šipka... jestli to neumíš fixnout, tak ji
+//   tam radši nedávej, než aby bylo zase mimo a celé zvýraznění
+//   bylo mimo"). Šipka byla nice-to-have visual cue ale Octavia
+//   long adresy roztáhly tabulku za card border → asymetrické
+//   chování přes vozy. Hover bg na <tr> + cursor-pointer zůstává
+//   jako ukazatel klikatelnosti; konzistentní napříč všemi vozy.
+const CACHE_VERSION = "fuellog-v2.19.11";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

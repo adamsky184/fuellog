@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ChevronRight,
   Coins,
   Droplet,
   Fuel,
@@ -206,12 +205,12 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                stretched-link pattern: <tr> is `relative`, an absolute <Link>
                in the last cell spans the whole row. No more pencil column
                overflowing the card edge. */}
-          {/* v2.19.10 — `overflow-x-auto` na cardu umožní horizontal
-              scroll když total table width > card width. Octavia má
-              long adresy ("Žernosecká") + table-layout: auto roztáhne
-              sloupce → content přesahoval card border vpravo a šipka
-              byla mimo. LAMBO to nemělo (kratší adresy). Teď uvnitř
-              scroll oblasti, šipka vždy viditelná. */}
+          {/* v2.19.11 — `overflow-x-auto` zachováno (umožní horizontal
+              scroll když Octavia + long adresy roztáhnou tabulku) +
+              chevron odstraněn (Adam preferuje konzistenci). Hover bg
+              je teď bez šipky stejně limitován tabulkou — přesahuje-li
+              hover bg za card border vpravo, je to OK protože uvnitř
+              je pak jen scrollable area. */}
           <div className="card hidden sm:block overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead className="text-slate-600 dark:text-slate-300 text-xs uppercase">
@@ -275,25 +274,26 @@ export default async function FillUpsPage({ params }: { params: Promise<{ id: st
                         )}
                       </Td>
                       <Td>
-                        <div className="relative flex items-center justify-between gap-2">
-                          <div className="flex flex-col leading-tight min-w-0">
-                            <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
-                              {flag && <span aria-hidden>{flag}</span>}
-                              <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
+                        {/* v2.19.11 — ChevronRight úplně odstraněn.
+                            Adam: "u Octavie není šipka, jinde asi
+                            ano... jestli to neumíš fixnout, tak ji
+                            tam radši nedávej, než aby bylo zase mimo
+                            a celé zvýraznění bylo mimo, to už nechci".
+                            Šipka byla nice-to-have visual cue, ale
+                            asymetrické chování přes vozy (long adresy
+                            u Octavie ji tlačily mimo card) > ztráta
+                            UX konzistence > zachování. Hover bg na
+                            <tr> zůstává jako ukazatel klikatelnosti. */}
+                        <div className="flex flex-col leading-tight min-w-0">
+                          <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                            {flag && <span aria-hidden>{flag}</span>}
+                            <span className="truncate">{formatLocation(r.city, r.region, r.country) || "—"}</span>
+                          </span>
+                          {stripHighwayPrefix(r.address) && (
+                            <span className="text-slate-400 dark:text-slate-500 text-[11px] truncate">
+                              {stripHighwayPrefix(r.address)}
                             </span>
-                            {stripHighwayPrefix(r.address) && (
-                              <span className="text-slate-400 dark:text-slate-500 text-[11px] truncate">
-                                {stripHighwayPrefix(r.address)}
-                              </span>
-                            )}
-                          </div>
-                          {/* v2.9.8 — always-visible chevron indicates the
-                               row is clickable; brightens on row hover. */}
-                          {/* v2.19.10 — kontrast zvýšen ze slate-300/600
-                              na slate-400/500, aby šipka byla viditelná
-                              i bez hover (na slate-300 splývala s hover
-                              bg). */}
-                          <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500 group-hover:text-accent transition-colors shrink-0" />
+                          )}
                         </div>
                       </Td>
                     </FillUpRow>

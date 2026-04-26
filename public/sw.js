@@ -10,14 +10,14 @@
  */
 
 // Bump on HTML-cache shape change OR to forcibly evict old shell state.
-// v2.17.0: perf bundle — DueReminders fetch bounded to ±7..90 d window
-// (was unbounded), (app)/layout collapsed 3 sequential awaits → single
-// Promise.all of 5 (saves ~150 ms cold edge), DB indexes added on
-// fill_ups (vehicle_id, date DESC), maintenance_entries (vehicle_id,
-// next_due_date), vehicle_members (user_id), garage_members (user_id),
-// dead code removed (lib/currency.ts, components/skeleton.tsx, geo
-// data arrays).
-const CACHE_VERSION = "fuellog-v2.17.0";
+// v2.18.0: UX polish bundle — every window.confirm() callsite migrated
+// to in-app <ConfirmDialog/> (8 callers across maintenance, fill-up
+// edit, vehicle settings, garages page, garage-manager, vehicle photo
+// uploader, admin actions, profile AI key clear), Sonner toasts wired
+// into every mutation (insert/update/delete) so Adam gets a corner
+// confirmation instead of a dead-quiet redirect, removed last
+// uppercase H1s on /vehicles + /compare.
+const CACHE_VERSION = "fuellog-v2.18.0";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
 import { OfflineSync } from "@/components/offline-sync";
 import { BackToTop } from "@/components/back-to-top";
+import { Toaster } from "sonner";
 import { GlobalErrorCatcher } from "@/components/global-error-catcher";
 import { AccentInit } from "@/components/accent-init";
 import { CommandPaletteMount } from "@/components/command-palette-mount";
@@ -241,6 +242,14 @@ export default async function AppLayout({
       </main>
       <OfflineSync />
       <BackToTop />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          className:
+            "!rounded-xl !border !border-slate-200 dark:!border-slate-700 !bg-white dark:!bg-slate-900 !text-slate-700 dark:!text-slate-200",
+        }}
+        closeButton
+      />
       <GlobalErrorCatcher />
       <AccentInit />
       <CommandPaletteMount

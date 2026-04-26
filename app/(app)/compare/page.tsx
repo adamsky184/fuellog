@@ -131,7 +131,7 @@ export default async function ComparePage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold uppercase tracking-tight inline-flex items-center gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
           <ArrowLeftRight className="h-6 w-6 text-accent" />
           Porovnání vozů
         </h1>

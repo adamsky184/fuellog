@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   CZ_REGION_OPTIONS,
   FOREIGN_COUNTRIES,
@@ -24,6 +26,7 @@ export default function EditFillUpPage({
 }) {
   const { id: vehicleId, fid: fillUpId } = use(params);
   const router = useRouter();
+  const askConfirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -237,14 +240,22 @@ export default function EditFillUpPage({
     setSaving(false);
     if (error) {
       setError(error.message);
+      toast.error(`Uložení selhalo: ${error.message}`);
       return;
     }
+    toast.success("Tankování upraveno");
     router.push(`/v/${vehicleId}/fill-ups`);
     router.refresh();
   }
 
   async function handleDelete() {
-    if (!confirm("Opravdu smazat toto tankování? Tato akce je nevratná.")) return;
+    const ok = await askConfirm({
+      title: "Smazat tankování?",
+      message: "Tankování bude trvale odstraněno. Akce je nevratná.",
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     setDeleting(true);
     const supabase = createClient();
@@ -252,8 +263,10 @@ export default function EditFillUpPage({
     setDeleting(false);
     if (error) {
       setError(error.message);
+      toast.error(`Smazání selhalo: ${error.message}`);
       return;
     }
+    toast.success("Tankování smazáno");
     router.push(`/v/${vehicleId}/fill-ups`);
     router.refresh();
   }

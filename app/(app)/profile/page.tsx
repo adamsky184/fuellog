@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { KeyRound, Palette, Sparkles, User } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { AccentPicker } from "@/components/accent-picker";
+import { useConfirm } from "@/components/confirm-dialog";
 
 type AiProvider = "gemini" | "openai" | "anthropic" | "openrouter";
 
@@ -34,6 +36,7 @@ const PROVIDER_HINTS: Record<AiProvider, { url: string; blurb: string }> = {
 };
 
 export default function ProfilePage() {
+  const askConfirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,18 +123,26 @@ export default function ProfilePage() {
   }
 
   async function handleAiClear() {
-    if (!confirm("Opravdu odstranit AI klíč?")) return;
+    const ok = await askConfirm({
+      title: "Odstranit AI klíč?",
+      message: "Tvoje uložený AI klíč bude trvale smazán. AI autofill se vypne.",
+      confirmLabel: "Odstranit",
+      tone: "warn",
+    });
+    if (!ok) return;
     setAiBusy(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("clear_ai_key");
     setAiBusy(false);
     if (error) {
       setAiError(error.message);
+      toast.error(`Chyba: ${error.message}`);
       return;
     }
     setAiSavedProvider(null);
     setAiKeyLast4(null);
     setAiInfo("Klíč odstraněn.");
+    toast.success("AI klíč odstraněn");
   }
 
   async function handleSave(e: React.FormEvent) {

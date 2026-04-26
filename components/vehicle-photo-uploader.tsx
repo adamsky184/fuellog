@@ -14,7 +14,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const PHOTO_NAME = "vehicle.jpg";
 
@@ -27,6 +29,7 @@ export function VehiclePhotoUploader({
   initialPath: string | null;
   onChange?: (newPath: string | null) => void;
 }) {
+  const confirm = useConfirm();
   const [path, setPath] = useState<string | null>(initialPath);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,17 +72,25 @@ export function VehiclePhotoUploader({
       .eq("id", vehicleId);
     if (dbErr) {
       setError(dbErr.message);
+      toast.error(`Uložení selhalo: ${dbErr.message}`);
       setBusy(false);
       return;
     }
     setPath(newPath);
     onChange?.(newPath);
+    toast.success("Fotka nahrána");
     setBusy(false);
   }
 
   async function handleRemove() {
     if (!path) return;
-    if (!window.confirm("Smazat fotku vozidla?")) return;
+    const ok = await confirm({
+      title: "Smazat fotku vozidla?",
+      message: "Fotka bude trvale odstraněna.",
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -88,7 +99,12 @@ export function VehiclePhotoUploader({
       .from("vehicles")
       .update({ photo_path: null })
       .eq("id", vehicleId);
-    if (dbErr) setError(dbErr.message);
+    if (dbErr) {
+      setError(dbErr.message);
+      toast.error(`Smazání selhalo: ${dbErr.message}`);
+    } else {
+      toast.success("Fotka smazána");
+    }
     setPath(null);
     onChange?.(null);
     setBusy(false);

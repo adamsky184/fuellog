@@ -14,7 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm-dialog";
 
 type Garage = {
   id: string;
@@ -50,6 +52,7 @@ const ROLE_LABEL: Record<Member["role"], string> = {
 };
 
 export default function GaragesPage() {
+  const askConfirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [garages, setGarages] = useState<Garage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -163,24 +166,25 @@ export default function GaragesPage() {
   }
 
   async function handleDelete(g: Garage) {
-    if (g.vehicle_count > 0) {
-      if (
-        !confirm(
-          `V garáži "${g.name}" je ${g.vehicle_count} ${g.vehicle_count === 1 ? "vozidlo" : "vozidel"}. ` +
-            `Smazáním se vozidla nesmažou — jen se odstraní jejich přiřazení k této garáži. Pokračovat?`,
-        )
-      ) {
-        return;
-      }
-    } else if (!confirm(`Smazat garáž "${g.name}"?`)) {
-      return;
-    }
+    const msg =
+      g.vehicle_count > 0
+        ? `V garáži je ${g.vehicle_count} ${g.vehicle_count === 1 ? "vozidlo" : "vozidel"} — vozidla zůstanou, jen se odstraní jejich přiřazení k této garáži.`
+        : "Garáž bude trvale odstraněna.";
+    const ok = await askConfirm({
+      title: `Smazat garáž "${g.name}"?`,
+      message: msg,
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.from("garages").delete().eq("id", g.id);
     if (error) {
       setError(error.message);
+      toast.error(`Smazání selhalo: ${error.message}`);
       return;
     }
+    toast.success("Garáž smazána");
     await load();
   }
 
@@ -321,16 +325,25 @@ export default function GaragesPage() {
   }
 
   async function handleCancelInvite(garageId: string, inviteId: string, email: string) {
-    if (!confirm(`Zrušit pozvánku pro ${email}?`)) return;
+    const ok = await askConfirm({
+      title: "Zrušit pozvánku?",
+      message: `Pozvánka pro ${email} bude zneplatněna.`,
+      confirmLabel: "Zrušit pozvánku",
+      cancelLabel: "Ne",
+      tone: "warn",
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.rpc("cancel_pending_invite", {
       p_invite_id: inviteId,
     });
     if (error) {
       setMemberMsg({ garageId, text: `Chyba: ${error.message}` });
+      toast.error(`Chyba: ${error.message}`);
       return;
     }
     setMemberMsg({ garageId, text: `Pozvánka zrušena.` });
+    toast.success("Pozvánka zrušena");
     await loadPendingGarageInvites(garageId);
   }
 
@@ -358,10 +371,15 @@ export default function GaragesPage() {
     userId: string,
     isSelf: boolean,
   ) {
-    const msg = isSelf
-      ? "Opravdu se chceš z této garáže odebrat? Ztratíš přístup."
-      : "Opravdu odebrat tohoto uživatele z garáže?";
-    if (!confirm(msg)) return;
+    const ok = await askConfirm({
+      title: isSelf ? "Odebrat se z garáže?" : "Odebrat uživatele?",
+      message: isSelf
+        ? "Ztratíš přístup ke všem autům v této garáži."
+        : "Uživatel ztratí přístup k autům v této garáži.",
+      confirmLabel: isSelf ? "Odebrat se" : "Odebrat",
+      tone: "warn",
+    });
+    if (!ok) return;
     setMemberMsg(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("remove_garage_member", {

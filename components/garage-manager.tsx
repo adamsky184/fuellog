@@ -11,7 +11,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Warehouse } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm-dialog";
 
 type GarageItem = {
   id: string;
@@ -22,6 +24,7 @@ type GarageItem = {
 
 export function GarageManager({ initialGarages }: { initialGarages: GarageItem[] }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [garages, setGarages] = useState<GarageItem[]>(initialGarages);
   const [newName, setNewName] = useState("");
@@ -69,8 +72,10 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
     setBusy(false);
     if (insErr) {
       setError(insErr.message);
+      toast.error(`Garáž se nepodařilo vytvořit: ${insErr.message}`);
       return;
     }
+    toast.success("Garáž vytvořena");
     setNewName("");
     await refresh();
     router.refresh();
@@ -88,8 +93,10 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
     setBusy(false);
     if (updErr) {
       setError(updErr.message);
+      toast.error(`Přejmenování selhalo: ${updErr.message}`);
       return;
     }
+    toast.success("Garáž přejmenována");
     setEditingId(null);
     setEditName("");
     await refresh();
@@ -99,11 +106,17 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
   async function deleteGarage(id: string, name: string, count: number) {
     const msg =
       count > 0
-        ? `Smazat garáž "${name}"? Bude obsahovat ${count} ${
+        ? `Garáž obsahuje ${count} ${
             count === 1 ? "auto" : count < 5 ? "auta" : "aut"
           } — auta zůstanou, jen nebudou v garáži.`
-        : `Smazat garáž "${name}"?`;
-    if (!window.confirm(msg)) return;
+        : "Garáž bude trvale odstraněna.";
+    const ok = await confirm({
+      title: `Smazat garáž "${name}"?`,
+      message: msg,
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     const supabase = createClient();
     // First detach vehicles (RLS ON DELETE CASCADE on vehicles.garage_id sets
@@ -113,8 +126,10 @@ export function GarageManager({ initialGarages }: { initialGarages: GarageItem[]
     setBusy(false);
     if (delErr) {
       setError(delErr.message);
+      toast.error(`Smazání selhalo: ${delErr.message}`);
       return;
     }
+    toast.success("Garáž smazána");
     await refresh();
     router.refresh();
   }

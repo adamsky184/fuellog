@@ -14,7 +14,9 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Download, Pencil, X, Save, AlertTriangle, Loader2, ShieldCheck, ShieldOff } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm-dialog";
 
 /* -------------------------- CSV export ----------------------------------- */
 
@@ -85,15 +87,22 @@ export function AdminDeleteButton({
 }: {
   rpc: DeleteRpc;
   id: string;
-  /** Confirmation sentence — shown in a native confirm dialog. */
+  /** Confirmation sentence shown in the in-app confirm modal. */
   confirm: string;
 }) {
   const router = useRouter();
+  const ask = useConfirm();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
-    if (!window.confirm(confirm)) return;
+    const ok = await ask({
+      title: "Smazat záznam?",
+      message: confirm,
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     const supabase = createClient();
     // v2.10.0 — supabase-js types each RPC's args individually, so we
@@ -112,8 +121,10 @@ export function AdminDeleteButton({
     })();
     if (error) {
       setError(error.message);
+      toast.error(`Smazání selhalo: ${error.message}`);
       return;
     }
+    toast.success("Záznam smazán");
     startTransition(() => router.refresh());
   }
 
@@ -165,8 +176,10 @@ export function AdminToggleButton({
     });
     if (error) {
       setError(error.message);
+      toast.error(`Změna selhala: ${error.message}`);
       return;
     }
+    toast.success(isAdmin ? "Admin práva odebrána" : "Admin práva přidělena");
     startTransition(() => router.refresh());
   }
 
@@ -256,8 +269,10 @@ export function AdminEditButton<T extends Record<string, unknown>>({
     ) => Promise<{ error: { message: string } | null }>)(rpc, payload);
     if (error) {
       setError(error.message);
+      toast.error(`Uložení selhalo: ${error.message}`);
       return;
     }
+    toast.success("Uloženo");
     setOpen(false);
     startTransition(() => router.refresh());
   }

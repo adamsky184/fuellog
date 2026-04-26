@@ -3,8 +3,10 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, UserPlus, Users, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { VehiclePhotoUploader } from "@/components/vehicle-photo-uploader";
+import { useConfirm } from "@/components/confirm-dialog";
 
 type Member = {
   user_id: string;
@@ -37,6 +39,7 @@ export default function VehicleSettingsPage({
 }) {
   const { id: vehicleId } = use(params);
   const router = useRouter();
+  const askConfirm = useConfirm();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -175,8 +178,10 @@ export default function VehicleSettingsPage({
     setSaving(false);
     if (error) {
       setError(error.message);
+      toast.error(`Uložení selhalo: ${error.message}`);
       return;
     }
+    toast.success("Údaje uloženy");
     router.refresh();
   }
 
@@ -263,16 +268,25 @@ export default function VehicleSettingsPage({
   }
 
   async function handleCancelInvite(inviteId: string, email: string) {
-    if (!confirm(`Zrušit pozvánku pro ${email}?`)) return;
+    const ok = await askConfirm({
+      title: "Zrušit pozvánku?",
+      message: `Pozvánka pro ${email} bude zneplatněna.`,
+      confirmLabel: "Zrušit pozvánku",
+      cancelLabel: "Ne",
+      tone: "warn",
+    });
+    if (!ok) return;
     const supabase = createClient();
     const { error } = await supabase.rpc("cancel_pending_invite", {
       p_invite_id: inviteId,
     });
     if (error) {
       setInviteMsg(`Chyba: ${error.message}`);
+      toast.error(`Chyba: ${error.message}`);
       return;
     }
     setInviteMsg("Pozvánka zrušena.");
+    toast.success("Pozvánka zrušena");
     await loadPendingVehicleInvites();
   }
 
@@ -292,10 +306,15 @@ export default function VehicleSettingsPage({
   }
 
   async function handleRemove(userId: string, isSelf: boolean) {
-    const msg = isSelf
-      ? "Opravdu se chceš z tohoto auta odebrat? Ztratíš přístup."
-      : "Opravdu odebrat tohoto uživatele?";
-    if (!confirm(msg)) return;
+    const ok = await askConfirm({
+      title: isSelf ? "Odebrat se z auta?" : "Odebrat uživatele?",
+      message: isSelf
+        ? "Ztratíš přístup k tomuto autu."
+        : "Uživatel ztratí přístup k autu.",
+      confirmLabel: isSelf ? "Odebrat se" : "Odebrat",
+      tone: "warn",
+    });
+    if (!ok) return;
     setInviteMsg(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("remove_vehicle_member", {
@@ -304,8 +323,10 @@ export default function VehicleSettingsPage({
     });
     if (error) {
       setInviteMsg(`Chyba: ${error.message}`);
+      toast.error(`Chyba: ${error.message}`);
       return;
     }
+    toast.success(isSelf ? "Odebrán/a z auta" : "Uživatel odebrán");
     if (isSelf) {
       router.push("/vehicles");
       router.refresh();
@@ -319,7 +340,13 @@ export default function VehicleSettingsPage({
       setError("Název auta se neshoduje. Smazání zrušeno.");
       return;
     }
-    if (!confirm("Opravdu smazat auto a všechna jeho tankování? Tato akce je nevratná.")) return;
+    const ok = await askConfirm({
+      title: "Smazat auto?",
+      message: `Auto "${form.name}" a všechna jeho tankování budou trvale odstraněna. Akce je nevratná.`,
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     setError(null);
     setDeleting(true);
     const supabase = createClient();
@@ -328,8 +355,10 @@ export default function VehicleSettingsPage({
     setDeleting(false);
     if (error) {
       setError(error.message);
+      toast.error(`Smazání selhalo: ${error.message}`);
       return;
     }
+    toast.success("Auto smazáno");
     router.push("/vehicles");
     router.refresh();
   }

@@ -2,8 +2,10 @@
 
 import { use, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2, Wrench, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   MAINTENANCE_LABELS,
   MAINTENANCE_KIND_ORDER,
@@ -50,6 +52,7 @@ const EMPTY_FORM: FormState = {
 
 export default function MaintenancePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: vehicleId } = use(params);
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -124,6 +127,7 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
       next_due_date: form.next_due_date || null,
       next_due_km: form.next_due_km ? parseInt(form.next_due_km, 10) : null,
     };
+    const wasEdit = !!editingId;
     const { error } = editingId
       ? await supabase.from("maintenance_entries").update(payload).eq("id", editingId)
       : await supabase.from("maintenance_entries").insert(payload);
@@ -132,15 +136,27 @@ export default function MaintenancePage({ params }: { params: Promise<{ id: stri
       setError(error.message);
       return;
     }
+    toast.success(wasEdit ? "Záznam upraven" : "Záznam přidán");
     setShowForm(false);
     setEditingId(null);
     load();
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Opravdu smazat tento záznam?")) return;
+    const ok = await confirm({
+      title: "Smazat záznam?",
+      message: "Záznam o údržbě bude trvale odstraněn.",
+      confirmLabel: "Smazat",
+      tone: "danger",
+    });
+    if (!ok) return;
     const supabase = createClient();
-    await supabase.from("maintenance_entries").delete().eq("id", id);
+    const { error } = await supabase.from("maintenance_entries").delete().eq("id", id);
+    if (error) {
+      toast.error(`Smazání selhalo: ${error.message}`);
+      return;
+    }
+    toast.success("Záznam smazán");
     load();
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
   CZ_REGION_OPTIONS,
@@ -536,6 +537,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         await enqueueFillUp(payload);
         window.dispatchEvent(new CustomEvent("fuellog:queued"));
         setSaving(false);
+        toast.success("Tankování ve frontě — odešle se po připojení");
         router.push(`/v/${vehicleId}/fill-ups`);
         router.refresh();
         return;
@@ -546,6 +548,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
             ? `Offline fronta selhala: ${err.message}`
             : "Offline fronta selhala.",
         );
+        toast.error("Offline fronta selhala");
         return;
       }
     }
@@ -606,6 +609,7 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         try {
           await enqueueFillUp(payload);
           window.dispatchEvent(new CustomEvent("fuellog:queued"));
+          toast.success("Tankování ve frontě — odešle se po připojení");
           router.push(`/v/${vehicleId}/fill-ups`);
           router.refresh();
           return;
@@ -614,8 +618,10 @@ export default function NewFillUpPage({ params }: { params: Promise<{ id: string
         }
       }
       setError(error.message);
+      toast.error(`Uložení selhalo: ${error.message}`);
       return;
     }
+    toast.success("Tankování přidáno");
     router.push(`/v/${vehicleId}/fill-ups`);
     router.refresh();
   }

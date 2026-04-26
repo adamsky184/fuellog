@@ -898,28 +898,33 @@ export function StatsDashboard({
           info="Kolikrát jsi ve vybraném období tankoval."
           tone="count"
         />
-        {/* v2.19.1 — sezónní trend a spotřeba posledního tankování,
-            obě nezávislé na period filtru, vždy aktuální. */}
+        {/* v2.19.1 — sezónní trend a spotřeba posledního tankování.
+            v2.19.2 — přidaná jednotka „l/100" do hodnoty + jasnější
+            label. Adam: "nejasný popis a dej tam i jednotku". */}
         {vehicleId && (
           <Stat
-            label="Spotřeba (30 dní)"
-            mobileLabel="Ø L 30d"
-            value={last30dConsumption != null ? formatNumber(last30dConsumption, 2) : "—"}
-            info="Průměrná spotřeba l/100 km za posledních 30 dní (sezónní trend). Zelená/červená proti tvému dlouhodobému průměru."
+            label="Spotřeba 30 dní"
+            mobileLabel="Ø 30d"
+            value={
+              last30dConsumption != null
+                ? `${formatNumber(last30dConsumption, 2)} l/100`
+                : "—"
+            }
+            info="Průměrná spotřeba (l/100 km) za posledních 30 dní — sezónní trend, nezávislý na zvoleném období."
             tone="fuel"
             icon={<Fuel className="h-4 w-4" />}
           />
         )}
         {vehicleId && lastFillUp && (
           <Stat
-            label="Posl. tankování"
+            label="Spotřeba posl. tank."
             mobileLabel="Posl. tank."
             value={
               lastFillUp.consumption_l_per_100km != null
-                ? formatNumber(Number(lastFillUp.consumption_l_per_100km), 2)
+                ? `${formatNumber(Number(lastFillUp.consumption_l_per_100km), 2)} l/100`
                 : "—"
             }
-            info={`Spotřeba zaznamenaná u posledního tankování (${lastFillUp.date ?? "—"}${lastFillUp.station_brand ? " · " + lastFillUp.station_brand : ""}). Užitečné pro porovnání kvality paliva — výrazně vyšší než průměr může znamenat horší kvalitu nebo styl jízdy.`}
+            info={`Spotřeba l/100 km u posledního tankování${lastFillUp.date ? " · " + lastFillUp.date : ""}${lastFillUp.station_brand ? " · " + lastFillUp.station_brand : ""}. Slouží k rychlé kontrole kvality paliva.`}
             tone="fuel"
             icon={<Fuel className="h-4 w-4" />}
           />

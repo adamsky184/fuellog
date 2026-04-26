@@ -33,7 +33,14 @@
 //     prázdné, fallback na ±10/15 % z dlouhodobého průměru. Migrace
 //     v2_19_1_consumption_thresholds přidala 2 nullable sloupce do
 //     vehicles.
-const CACHE_VERSION = "fuellog-v2.19.1";
+// v2.19.2: hotfix — ThemeToggle live `mounted` větev v2.19.1 zůstala
+// na btn-secondary (replace_all minul druhý výskyt → tlačítko bylo
+// vyšší než ostatní), `+ Tankování` button taky sjednocen na h-9 px-3
+// (byl py-1.5 → ~h-7), takže celá pravá řada hlavičky je teď v jedné
+// vodorovné lince. Stat tile "Posl. tankování" přejmenované na
+// "Spotřeba posl. tank." + jednotka l/100 přímo v hodnotě + kratší
+// tooltip aby se nestal oříznutým mimo viewport.
+const CACHE_VERSION = "fuellog-v2.19.2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGES_CACHE = `${CACHE_VERSION}-pages`;
 

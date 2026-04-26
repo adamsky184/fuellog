@@ -156,10 +156,10 @@ export function Header({
           {quickAddVehicleId && (
             <Link
               href={`/v/${quickAddVehicleId}/fill-ups/new`}
-              /* v2.14.3 — was hardcoded sky→indigo gradient. Now follows
-                  the accent CSS var so it matches whatever the user
-                  picked in AccentToggle / profile. */
-              className="inline-flex items-center gap-1 rounded-lg bg-accent text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition"
+              /* v2.14.3 — accent CSS var místo hardcoded sky/indigo.
+                 v2.19.2 — h-9 + px-3 sjednoceno s AccentToggle / Theme
+                 / Hamburger (Adam: "hamburger pořád mimo"). */
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-accent text-white h-9 px-3 text-xs font-semibold shadow-sm ring-1 ring-white/20 hover:brightness-110 active:scale-95 transition"
               title="Nové tankování"
               aria-label="Nové tankování"
             >
